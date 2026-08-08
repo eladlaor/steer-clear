@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Steer Clear — Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="head">
+        <h1>Steer Clear</h1>
+        <p class="sub">
+          Sites listed here show you a reminder instead of loading. Everything
+          stays in your browser.
+        </p>
+      </header>
+
+      <section class="panel">
+        <h2>Defaults</h2>
+        <p class="hint">
+          Used by any site that doesn't set its own. Add a per-site override
+          below when you want something different.
+        </p>
+
+        <label class="field">
+          <span class="label">Send me to</span>
+          <input
+            type="url"
+            id="global-target"
+            placeholder="https://example.com"
+            required
+          />
+        </label>
+
+        <label class="field">
+          <span class="label">Remind me why <span class="opt">optional</span></span>
+          <textarea
+            id="global-note"
+            rows="2"
+            placeholder="I said I'd stop doomscrolling during work hours."
+          ></textarea>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>Sites</h2>
+
+        <form class="add-row" id="add-form">
+          <input
+            type="text"
+            id="add-pattern"
+            placeholder="ynet.co.il"
+            aria-label="Domain to steer clear of"
+            required
+          />
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+
+        <ul class="sites" id="sites"></ul>
+        <p class="empty" id="empty">No sites yet. Add one above.</p>
+      </section>
+
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </main>
+
+    <template id="site-row">
+      <li class="site">
+        <div class="site-main">
+          <label class="toggle">
+            <input type="checkbox" class="site-enabled" />
+            <span class="sr-only">Enabled</span>
+          </label>
+          <span class="site-pattern"></span>
+          <button type="button" class="link site-expand">Customize</button>
+          <button type="button" class="link danger site-remove">Remove</button>
+        </div>
+
+        <div class="site-detail" hidden>
+          <label class="field">
+            <span class="label">
+              <input type="checkbox" class="site-subdomains" />
+              Include subdomains
+            </span>
+          </label>
+
+          <label class="field">
+            <span class="label">Send me to <span class="opt">leave blank to use the default</span></span>
+            <input type="url" class="site-target" placeholder="Using default" />
+          </label>
+
+          <label class="field">
+            <span class="label">Remind me why <span class="opt">leave blank to use the default</span></span>
+            <textarea class="site-note" rows="2" placeholder="Using default"></textarea>
+          </label>
+        </div>
+      </li>
+    </template>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

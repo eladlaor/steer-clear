@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Steer Clear</title>
+    <link rel="stylesheet" href="blocked.css" />
+  </head>
+  <body>
+    <main class="card">
+      <p class="eyebrow">You were heading to</p>
+      <h1 class="host" id="host">&nbsp;</h1>
+
+      <blockquote class="note" id="note" hidden></blockquote>
+
+      <div class="actions">
+        <a class="btn btn-primary" id="go-target" href="#">
+          Go where I meant to
+        </a>
+        <button class="btn btn-ghost" id="bypass" type="button">
+          Continue anyway <span class="btn-sub">5 min</span>
+        </button>
+      </div>
+
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+
+      <footer class="footer">
+        <a href="#" id="open-options">Settings</a>
+      </footer>
+    </main>
+
+    <script type="module" src="blocked.js"></script>
+  </body>
+</html>

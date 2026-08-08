@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Steer Clear: a path that forks away from an obstacle.
+       Placeholder mark — see README.md before Web Store submission. -->
+  <rect width="128" height="128" rx="28" fill="#2f6f5e"/>
+
+  <g fill="none" stroke="#f7f6f3" stroke-width="10" stroke-linecap="round">
+    <!-- Shared approach, coming up from the bottom -->
+    <path d="M46 112 L46 78"/>
+    <!-- The chosen path: bends clear to the right and continues up -->
+    <path d="M46 78 C46 58 90 62 90 42 L90 30"/>
+    <!-- Arrowhead on the chosen path -->
+    <path d="M78 40 L90 27 L102 40" stroke-linejoin="round"/>
+  </g>
+
+  <!-- The obstacle: the way that is no longer taken -->
+  <g stroke="#f7f6f3" stroke-width="10" stroke-linecap="round" opacity="0.4">
+    <path d="M46 62 L46 44"/>
+    <path d="M37 33 L55 15 M37 15 L55 33"/>
+  </g>
+</svg>
