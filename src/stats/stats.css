@@ -28,6 +28,17 @@
   box-sizing: border-box;
 }
 
+/*
+ * The hidden attribute must win over any class that sets display.
+ * A class selector outranks the browser's built-in [hidden] { display: none },
+ * so `display: flex` on a block JS hides with `.hidden = true` silently keeps
+ * it visible. !important is the correct tool here: this is a global invariant,
+ * not a specificity skirmish.
+ */
+[hidden] {
+  display: none !important;
+}
+
 body {
   /*
    * This page is both a toolbar popup and a standalone tab. A popup sizes to

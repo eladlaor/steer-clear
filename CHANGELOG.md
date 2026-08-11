@@ -63,6 +63,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The countdown block and its Stop button were permanently visible on the
+  interstitial, alongside empty placeholder text, because a class setting
+  `display` outranks the `hidden` attribute. The same defect hid nothing on the
+  per-site permission banner and the statistics cards.
+- An unnamed destination showed the placeholder "somewhere better" on the
+  primary button instead of the destination's own hostname.
 - Manifest no longer declares a `permissions` entry, which is not a valid
   permission and produced an "unknown permission" warning on load. Added tests
   asserting every `chrome.*` API used in source is declared and that no

@@ -17,6 +17,9 @@ import {
   MAX_COUNTDOWN_SECONDS,
 } from '../constants.js';
 
+/** The placeholder destination name shipped briefly in v2; cleared on read. */
+const LEGACY_PLACEHOLDER_TARGET_NAME = 'somewhere better';
+
 /**
  * The config applied on first install.
  *
@@ -64,6 +67,12 @@ export function migrateConfig(stored) {
   }
 
   if (from === SCHEMA_VERSION) {
+    // v2 shipped briefly with a placeholder destination name that rendered on
+    // the button in place of the actual destination. Clear it so the hostname
+    // fallback applies; a name the user chose themselves is left alone.
+    if (stored.globalTargetName === LEGACY_PLACEHOLDER_TARGET_NAME) {
+      return { config: { ...stored, globalTargetName: '' }, migrated: true };
+    }
     return { config: stored, migrated: false };
   }
 

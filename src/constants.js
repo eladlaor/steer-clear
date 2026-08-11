@@ -60,7 +60,13 @@ export const MAX_REGEX_RULES = 1000;
 /** Defaults applied on first install. */
 export const DEFAULT_TARGET = 'https://en.wikipedia.org/wiki/Special:Random';
 export const DEFAULT_NOTE = '';
-export const DEFAULT_TARGET_NAME = 'somewhere better';
+/**
+ * Empty rather than a phrase: an unnamed destination falls back to the target's
+ * own hostname, which tells the user where the button goes. A generic default
+ * like "somewhere better" reads as placeholder text and hides the destination
+ * behind a slogan.
+ */
+export const DEFAULT_TARGET_NAME = '';
 
 /**
  * Auto-continue: show the gateway briefly, then proceed to the destination

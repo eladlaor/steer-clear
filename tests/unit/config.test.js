@@ -161,3 +161,18 @@ test('a site from createSite passes validation', () => {
   config.sites = [createSite('ynet.co.il', { displayName: 'News' })];
   assert.doesNotThrow(() => validateConfig(config));
 });
+
+test('the v2 placeholder destination name is cleared on read', () => {
+  // It rendered on the primary button in place of the actual destination.
+  const stored = { ...defaultConfig(), globalTargetName: 'somewhere better' };
+  const { config, migrated } = migrateConfig(stored);
+  assert.equal(config.globalTargetName, '');
+  assert.equal(migrated, true);
+});
+
+test('a destination name the user chose is preserved', () => {
+  const stored = { ...defaultConfig(), globalTargetName: 'Wikipedia' };
+  const { config, migrated } = migrateConfig(stored);
+  assert.equal(config.globalTargetName, 'Wikipedia');
+  assert.equal(migrated, false);
+});
