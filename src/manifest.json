@@ -6,7 +6,8 @@
   "permissions": [
     "declarativeNetRequest",
     "storage",
-    "alarms"
+    "alarms",
+    "permissions"
   ],
   "optional_host_permissions": [
     "http://*/*",

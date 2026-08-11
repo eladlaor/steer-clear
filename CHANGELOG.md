@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Adding a site now collects its name, destination, and reminder in the add
+  form, instead of requiring a second pass through Customize on the new row.
 - Interstitial buttons name their destinations ("Wikipedia" / "ynet") instead of
   characterizing the choice ("Go where I meant to" / "Continue anyway"), so
   neither option is phrased as the approved one.
@@ -48,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Blank interstitial: the manifest did not declare the `permissions` API, so
+  the service worker threw while registering its permission listeners and never
+  started. Messages to it went unanswered and the page kept its placeholder
+  text. Added a test asserting every `chrome.*` API used in source is declared.
 - Redirects had no effect: `declarativeNetRequest` redirect actions require host
   permissions, which the manifest did not declare. Chrome installed the rules
   and silently ignored them. Declared `http://*/*` and `https://*/*`.

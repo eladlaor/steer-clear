@@ -26,6 +26,9 @@ const elements = {
   globalCountdown: document.getElementById('global-countdown'),
   addForm: document.getElementById('add-form'),
   addPattern: document.getElementById('add-pattern'),
+  addDisplayName: document.getElementById('add-display-name'),
+  addTarget: document.getElementById('add-target'),
+  addNote: document.getElementById('add-note'),
   sites: document.getElementById('sites'),
   empty: document.getElementById('empty'),
   status: document.getElementById('status'),
@@ -315,8 +318,15 @@ async function handleAdd(event) {
     // than silently discarding what they typed.
     const granted = await requestHostPermission(host);
 
-    config.sites.push(createSite(host));
-    elements.addPattern.value = '';
+    config.sites.push(
+      createSite(host, {
+        displayName: elements.addDisplayName.value,
+        target: elements.addTarget.value,
+        note: elements.addNote.value,
+      })
+    );
+
+    elements.addForm.reset();
     render();
     await save();
 

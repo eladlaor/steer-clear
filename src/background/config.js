@@ -238,17 +238,18 @@ export async function writeConfig(config) {
  * Create a new site entry with defaults applied.
  *
  * @param {string} pattern The domain pattern.
- * @param {string|null} [displayName] Friendly label; null falls back to the host.
+ * @param {{displayName?: string|null, target?: string|null, note?: string|null}} [fields]
+ *   Optional values collected when the site was added. Null means "inherit".
  * @returns {object} A site entry ready to append to config.sites.
  */
-export function createSite(pattern, displayName = null) {
+export function createSite(pattern, fields = {}) {
   return {
     id: crypto.randomUUID(),
     pattern,
-    displayName,
+    displayName: fields.displayName?.trim() || null,
     includeSubdomains: true,
-    target: null,
-    note: null,
+    target: fields.target?.trim() || null,
+    note: fields.note?.trim() || null,
     autoContinue: null,
     countdownSeconds: null,
     enabled: true,

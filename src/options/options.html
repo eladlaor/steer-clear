@@ -76,15 +76,43 @@
       <section class="panel">
         <h2>Sites</h2>
 
-        <form class="add-row" id="add-form">
-          <input
-            type="text"
-            id="add-pattern"
-            placeholder="ynet.co.il"
-            aria-label="Domain to steer clear of"
-            required
-          />
-          <button type="submit" class="btn btn-primary">Add</button>
+        <form class="add-form" id="add-form">
+          <div class="add-grid">
+            <label class="field">
+              <span class="label">Steer clear of</span>
+              <input
+                type="text"
+                id="add-pattern"
+                placeholder="ynet.co.il"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span class="label">Call it <span class="opt">optional</span></span>
+              <input type="text" id="add-display-name" placeholder="The news" />
+            </label>
+
+            <label class="field">
+              <span class="label">Send me to <span class="opt">optional</span></span>
+              <input
+                type="url"
+                id="add-target"
+                placeholder="Using the default above"
+              />
+            </label>
+
+            <label class="field">
+              <span class="label">Remind me why <span class="opt">optional</span></span>
+              <input
+                type="text"
+                id="add-note"
+                placeholder="Using the default above"
+              />
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Add site</button>
         </form>
 
         <ul class="sites" id="sites"></ul>

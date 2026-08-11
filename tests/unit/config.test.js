@@ -14,6 +14,7 @@ import {
   migrateConfig,
   validateConfig,
   defaultConfig,
+  createSite,
 } from '../../src/background/config.js';
 import {
   SCHEMA_VERSION,
@@ -126,4 +127,37 @@ test('validator rejects a non-boolean autoContinue on a site', () => {
 
 test('default config is valid', () => {
   assert.doesNotThrow(() => validateConfig(defaultConfig()));
+});
+
+test('createSite stores fields supplied at add time', () => {
+  const site = createSite('ynet.co.il', {
+    displayName: 'The news',
+    target: 'https://wikipedia.org',
+    note: 'not during work',
+  });
+  assert.equal(site.displayName, 'The news');
+  assert.equal(site.target, 'https://wikipedia.org');
+  assert.equal(site.note, 'not during work');
+});
+
+test('createSite treats blank add-time fields as inherit', () => {
+  // Empty inputs must become null, not '', or resolution would return an empty
+  // string instead of falling back to the global value.
+  const site = createSite('ynet.co.il', { displayName: '  ', target: '', note: undefined });
+  assert.equal(site.displayName, null);
+  assert.equal(site.target, null);
+  assert.equal(site.note, null);
+});
+
+test('createSite works with no fields argument', () => {
+  const site = createSite('ynet.co.il');
+  assert.equal(site.displayName, null);
+  assert.equal(site.enabled, true);
+  assert.equal(site.includeSubdomains, true);
+});
+
+test('a site from createSite passes validation', () => {
+  const config = defaultConfig();
+  config.sites = [createSite('ynet.co.il', { displayName: 'News' })];
+  assert.doesNotThrow(() => validateConfig(config));
 });

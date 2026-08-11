@@ -113,10 +113,23 @@ textarea:focus {
   outline-offset: -1px;
 }
 
-.add-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+.add-form {
+  margin-bottom: 20px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+/*
+ * Two columns on a comfortable window, one when narrow. Everything needed to
+ * add a site is visible at once, so the common case is a single pass through
+ * the form rather than add-then-find-the-row-then-customize.
+ */
+.add-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .btn {

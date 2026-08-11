@@ -11,12 +11,28 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '../../src');
 const manifest = JSON.parse(readFileSync(join(SRC, 'manifest.json'), 'utf8'));
+
+/**
+ * Every .js file under a directory, recursively.
+ *
+ * @param {string} dir
+ * @returns {string[]} Absolute paths.
+ */
+function jsFilesUnder(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      return jsFilesUnder(path);
+    }
+    return entry.name.endsWith('.js') ? [path] : [];
+  });
+}
 
 test('manifest is MV3', () => {
   assert.equal(manifest.manifest_version, 3);
@@ -64,6 +80,45 @@ test('every file the manifest references exists', () => {
   for (const path of referenced) {
     assert.ok(existsSync(join(SRC, path)), `manifest references missing file: ${path}`);
   }
+});
+
+test('every chrome API used in source is declared', () => {
+  // An undeclared namespace is undefined at runtime, so touching it at the top
+  // level of the service worker throws before any listener registers — the
+  // worker never starts and every message to it times out. That failure
+  // presents as blank UI, nowhere near its actual cause.
+  const alwaysAvailable = new Set([
+    'runtime', // available to every extension
+    'permissions', // checked below; also implied by optional_host_permissions
+  ]);
+
+  const used = new Set();
+  for (const file of jsFilesUnder(SRC)) {
+    const source = readFileSync(file, 'utf8');
+    for (const match of source.matchAll(/\bchrome\.([a-zA-Z]+)\b/g)) {
+      used.add(match[1]);
+    }
+  }
+
+  const declared = new Set(manifest.permissions ?? []);
+  const missing = [...used].filter(
+    (api) => !declared.has(api) && !alwaysAvailable.has(api)
+  );
+
+  assert.deepEqual(
+    missing,
+    [],
+    `chrome APIs used but not declared in manifest.permissions: ${missing.join(', ')}`
+  );
+});
+
+test('the permissions API is declared, since the code calls it', () => {
+  // chrome.permissions is not implicitly available; optional_host_permissions
+  // declares what may be requested, not the API used to request it.
+  assert.ok(
+    (manifest.permissions ?? []).includes('permissions'),
+    'optional host permissions are unusable without the "permissions" API'
+  );
 });
 
 test('the interstitial is web-accessible', () => {
