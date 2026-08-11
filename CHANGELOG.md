@@ -46,6 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The countdown-duration setting is hidden while auto-continue is off, where it
+  implied a countdown was running when none was, and toggling auto-continue now
+  confirms which state it is in.
+- The interstitial logs its resolved settings to the console, so unexpected
+  behavior can be diagnosed from the page rather than from stored data.
 - Adding a site now collects its name, destination, and reminder in the add
   form, instead of requiring a second pass through Customize on the new row.
 - Interstitial buttons name their destinations ("Wikipedia" / "ynet") instead of

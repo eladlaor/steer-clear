@@ -24,6 +24,7 @@ const elements = {
   globalNote: document.getElementById('global-note'),
   globalAutoContinue: document.getElementById('global-auto-continue'),
   globalCountdown: document.getElementById('global-countdown'),
+  globalCountdownField: document.getElementById('global-countdown-field'),
   addForm: document.getElementById('add-form'),
   addPattern: document.getElementById('add-pattern'),
   addDisplayName: document.getElementById('add-display-name'),
@@ -211,6 +212,13 @@ function buildRow(site) {
 }
 
 /**
+ * Show the countdown-duration field only when auto-continue is on.
+ */
+function syncCountdownVisibility() {
+  elements.globalCountdownField.hidden = !elements.globalAutoContinue.checked;
+}
+
+/**
  * Whether a countdown value is within the accepted range.
  *
  * @param {number} seconds
@@ -374,9 +382,19 @@ async function init() {
       saveDebounced();
     });
 
+    // The countdown duration is meaningless while auto-continue is off, and
+    // showing it there implies a countdown is running when none is.
+    syncCountdownVisibility();
+
     elements.globalAutoContinue.addEventListener('change', () => {
       config.globalAutoContinue = elements.globalAutoContinue.checked;
+      syncCountdownVisibility();
       save();
+      setStatus(
+        config.globalAutoContinue
+          ? `On — sites will move on by themselves after ${config.globalCountdownSeconds}s`
+          : 'Off — the reminder will wait for you'
+      );
     });
 
     elements.globalCountdown.addEventListener('input', () => {

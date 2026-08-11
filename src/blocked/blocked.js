@@ -195,6 +195,12 @@ async function init() {
 
     elements.stop.addEventListener('click', cancelCountdown);
 
+    // Log the resolved settings on every interstitial. When behavior does not
+    // match expectations, the first question is always "what did the page
+    // actually receive" — and without this, answering it means reading Chrome's
+    // storage off disk.
+    console.info('[steer-clear] interstitial resolved', resolved);
+
     if (resolved.autoContinue) {
       startCountdown(resolved);
     }
