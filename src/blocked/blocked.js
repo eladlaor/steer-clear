@@ -11,11 +11,21 @@ import { MessageType, PARAM_FROM } from '../constants.js';
 const elements = {
   host: document.getElementById('host'),
   note: document.getElementById('note'),
+  actions: document.getElementById('actions'),
   goTarget: document.getElementById('go-target'),
+  goTargetLabel: document.getElementById('go-target-label'),
   bypass: document.getElementById('bypass'),
+  bypassLabel: document.getElementById('bypass-label'),
+  countdown: document.getElementById('countdown'),
+  countdownTarget: document.getElementById('countdown-target'),
+  countdownSeconds: document.getElementById('countdown-seconds'),
+  stop: document.getElementById('stop'),
   status: document.getElementById('status'),
   openOptions: document.getElementById('open-options'),
 };
+
+/** Handle for the auto-continue interval, so Stop can cancel it. */
+let countdownTimer = null;
 
 /**
  * Extract the originally-requested URL from this page's query string.
@@ -57,16 +67,72 @@ async function sendMessage(message) {
 /**
  * Render the resolved site details into the page.
  *
- * @param {{host: string, target: string, note: string}} resolved
+ * Both buttons name their destination rather than describing the choice
+ * ("ynet" / "Wikipedia", not "Continue anyway" / "Go where I meant to"), so
+ * neither option is phrased more approvingly than the other. The user picks a
+ * place to go, not a verdict on their own behavior.
+ *
+ * @param {{host: string, siteName: string, target: string, targetName: string,
+ *   note: string}} resolved
  */
 function render(resolved) {
-  elements.host.textContent = resolved.host;
+  elements.host.textContent = resolved.siteName;
   elements.goTarget.href = resolved.target;
+  elements.goTargetLabel.textContent = resolved.targetName;
+  elements.bypassLabel.textContent = resolved.siteName;
 
   if (resolved.note) {
     elements.note.textContent = resolved.note;
     elements.note.hidden = false;
   }
+}
+
+/**
+ * Run the auto-continue countdown, navigating to the target when it elapses.
+ *
+ * The screen still appears — the point is that the reflex becomes visible —
+ * but proceeding is the default and stopping is the deliberate act. This
+ * inverts the normal interstitial without making the redirect invisible.
+ *
+ * @param {{target: string, targetName: string, countdownSeconds: number}} resolved
+ */
+function startCountdown(resolved) {
+  let remaining = resolved.countdownSeconds;
+
+  elements.countdownTarget.textContent = resolved.targetName;
+  elements.countdownSeconds.textContent = `${remaining}s`;
+  elements.countdown.hidden = false;
+  elements.actions.hidden = true;
+
+  countdownTimer = window.setInterval(() => {
+    remaining -= 1;
+
+    if (remaining > 0) {
+      elements.countdownSeconds.textContent = `${remaining}s`;
+      return;
+    }
+
+    window.clearInterval(countdownTimer);
+    countdownTimer = null;
+    window.location.replace(resolved.target);
+  }, 1000);
+}
+
+/**
+ * Cancel the countdown and fall back to the deliberate two-button choice.
+ *
+ * Stopping means "wait, let me think" rather than "take me to the site" — a
+ * reflexive click must not commit the user to the destination they were trying
+ * to avoid.
+ */
+function cancelCountdown() {
+  if (countdownTimer !== null) {
+    window.clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+  elements.countdown.hidden = true;
+  elements.actions.hidden = false;
+  elements.status.textContent = 'Stopped. Your call.';
 }
 
 /**
@@ -110,8 +176,7 @@ async function init() {
     if (!sourceUrl) {
       // Reached without a source URL — someone opened the page directly.
       elements.host.textContent = 'Nothing to steer clear of';
-      elements.bypass.hidden = true;
-      elements.goTarget.hidden = true;
+      elements.actions.hidden = true;
       elements.status.textContent =
         'This page appears when you navigate to a site you have blocked.';
       return;
@@ -127,6 +192,12 @@ async function init() {
     elements.bypass.addEventListener('click', () => {
       handleBypass(sourceUrl);
     });
+
+    elements.stop.addEventListener('click', cancelCountdown);
+
+    if (resolved.autoContinue) {
+      startCountdown(resolved);
+    }
   } catch (error) {
     console.error('[steer-clear] init failed', { error: error.message });
     elements.status.textContent = `Something went wrong: ${error.message}`;

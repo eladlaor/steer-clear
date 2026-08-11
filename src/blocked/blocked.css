@@ -148,3 +148,27 @@ body {
 .footer a:hover {
   text-decoration: underline;
 }
+
+/* Auto-continue countdown ------------------------------------------------ */
+
+.countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.countdown-text {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.countdown-seconds {
+  display: inline-block;
+  min-width: 2.5ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent);
+}

@@ -13,6 +13,8 @@ import {
   buildRules,
   findMatchingSite,
   resolveSiteSettings,
+  siteLabel,
+  hostnameOf,
 } from '../../src/background/rules.js';
 
 const BASE_URL = 'chrome-extension://abcdefghijklmnop/';
@@ -210,4 +212,131 @@ test('resolveSiteSettings treats whitespace-only overrides as absent', () => {
 test('resolveSiteSettings handles a null site', () => {
   const resolved = resolveSiteSettings(config(), null);
   assert.equal(resolved.target, 'https://example.com/');
+});
+
+/* ---------------------------------------------------------------------------
+ * Schema v2: display names, auto-continue, and permission gating.
+ * ------------------------------------------------------------------------ */
+
+/** @returns {object} A v2 config with test defaults. */
+function v2Config(overrides = {}) {
+  return {
+    schemaVersion: 2,
+    globalTarget: 'https://example.com',
+    globalTargetName: 'Example',
+    globalNote: 'global note',
+    globalAutoContinue: false,
+    globalCountdownSeconds: 3,
+    sites: [],
+    ...overrides,
+  };
+}
+
+/** @returns {object} A v2 site entry with test defaults. */
+function v2Site(overrides = {}) {
+  return {
+    id: 'test-id',
+    pattern: 'ynet.co.il',
+    displayName: null,
+    includeSubdomains: true,
+    target: null,
+    note: null,
+    autoContinue: null,
+    countdownSeconds: null,
+    enabled: true,
+    ...overrides,
+  };
+}
+
+test('siteLabel prefers the display name', () => {
+  assert.equal(siteLabel(v2Site({ displayName: 'The News' })), 'The News');
+});
+
+test('siteLabel falls back to the hostname', () => {
+  assert.equal(siteLabel(v2Site()), 'ynet.co.il');
+});
+
+test('siteLabel ignores a whitespace-only display name', () => {
+  assert.equal(siteLabel(v2Site({ displayName: '   ' })), 'ynet.co.il');
+});
+
+test('resolveSiteSettings inherits autoContinue from global', () => {
+  const config = v2Config({ globalAutoContinue: true });
+  const resolved = resolveSiteSettings(config, v2Site());
+  assert.equal(resolved.autoContinue, true);
+});
+
+test('resolveSiteSettings lets a site turn autoContinue off', () => {
+  // false must override a true global — the bug here is treating false as
+  // "unset" and falling through to the global.
+  const config = v2Config({ globalAutoContinue: true });
+  const resolved = resolveSiteSettings(config, v2Site({ autoContinue: false }));
+  assert.equal(resolved.autoContinue, false);
+});
+
+test('resolveSiteSettings lets a site turn autoContinue on', () => {
+  const config = v2Config({ globalAutoContinue: false });
+  const resolved = resolveSiteSettings(config, v2Site({ autoContinue: true }));
+  assert.equal(resolved.autoContinue, true);
+});
+
+test('resolveSiteSettings inherits and overrides the countdown', () => {
+  const config = v2Config({ globalCountdownSeconds: 3 });
+  assert.equal(resolveSiteSettings(config, v2Site()).countdownSeconds, 3);
+  assert.equal(
+    resolveSiteSettings(config, v2Site({ countdownSeconds: 10 })).countdownSeconds,
+    10
+  );
+});
+
+test('resolveSiteSettings uses the target hostname when unnamed', () => {
+  const config = v2Config({ globalTargetName: '' });
+  const resolved = resolveSiteSettings(config, v2Site());
+  assert.equal(resolved.targetName, 'example.com');
+});
+
+test('hostnameOf strips www', () => {
+  assert.equal(hostnameOf('https://www.wikipedia.org/wiki/X'), 'wikipedia.org');
+});
+
+test('hostnameOf returns empty for an unparseable URL', () => {
+  assert.equal(hostnameOf('not a url'), '');
+});
+
+test('buildRules skips sites without host permission', () => {
+  // The core guard: an un-permitted rule is one Chrome installs and ignores,
+  // which looks identical to the extension being broken.
+  const config = v2Config({ sites: [v2Site()] });
+  const rules = buildRules(config, BASE_URL, new Set(), new Set());
+  assert.equal(rules.length, 0);
+});
+
+test('buildRules includes sites with host permission', () => {
+  const config = v2Config({ sites: [v2Site()] });
+  const rules = buildRules(config, BASE_URL, new Set(), new Set(['ynet.co.il']));
+  assert.equal(rules.length, 1);
+});
+
+test('buildRules ignores permission gating when passed null', () => {
+  const config = v2Config({ sites: [v2Site()] });
+  const rules = buildRules(config, BASE_URL, new Set(), null);
+  assert.equal(rules.length, 1);
+});
+
+test('buildRules keeps rule ids stable when a site is skipped', () => {
+  // Ids are derived from array position, so a skipped site must not shift the
+  // ids of the sites after it.
+  const config = v2Config({
+    sites: [
+      v2Site({ id: 'a', pattern: 'a.com' }),
+      v2Site({ id: 'b', pattern: 'b.com' }),
+    ],
+  });
+
+  const both = buildRules(config, BASE_URL, new Set(), new Set(['a.com', 'b.com']));
+  const onlyB = buildRules(config, BASE_URL, new Set(), new Set(['b.com']));
+
+  const bId = both.find((r) => r.condition.regexFilter.includes('b\\.com')).id;
+  assert.equal(onlyB.length, 1);
+  assert.equal(onlyB[0].id, bId);
 });

@@ -3,7 +3,7 @@
  * Configurable values live in the user's chrome.storage.sync config, not here.
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** chrome.storage keys. */
 export const StorageKey = Object.freeze({
@@ -15,6 +15,7 @@ export const StorageKey = Object.freeze({
 export const MessageType = Object.freeze({
   GRANT_BYPASS: 'GRANT_BYPASS',
   GET_RESOLVED_SITE: 'GET_RESOLVED_SITE',
+  REBUILD_RULES: 'REBUILD_RULES',
 });
 
 /** chrome.alarms name prefix for bypass expiry. */
@@ -44,3 +45,25 @@ export const MAX_REGEX_RULES = 1000;
 /** Defaults applied on first install. */
 export const DEFAULT_TARGET = 'https://en.wikipedia.org/wiki/Special:Random';
 export const DEFAULT_NOTE = '';
+export const DEFAULT_TARGET_NAME = 'somewhere better';
+
+/**
+ * Auto-continue: show the gateway briefly, then proceed to the destination
+ * unless the user stops the countdown.
+ *
+ * Off by default. The interstitial's purpose is to make an automatic reflex
+ * conscious, and a screen that dismisses itself asks less of the user than one
+ * that waits — so the deliberate version is the default and auto-continue is
+ * the opt-in.
+ */
+export const DEFAULT_AUTO_CONTINUE = false;
+
+/** Countdown before auto-continue proceeds, in seconds. */
+export const DEFAULT_COUNTDOWN_SECONDS = 3;
+
+/** Bounds for a user-supplied countdown, in seconds. */
+export const MIN_COUNTDOWN_SECONDS = 1;
+export const MAX_COUNTDOWN_SECONDS = 60;
+
+/** Longest accepted site display name, in characters. */
+export const MAX_DISPLAY_NAME_LENGTH = 60;

@@ -90,15 +90,24 @@ export function buildRegexFilter(site) {
  * Every enabled, non-bypassed site produces exactly one rule redirecting to the
  * local interstitial, with the original URL preserved via `\0` substitution.
  *
+ * A site with no host permission produces no rule. Chrome silently ignores
+ * redirect rules for hosts the extension cannot access, so emitting one would
+ * look like the extension was working when it was not — the exact failure mode
+ * that made redirects appear broken before host permissions were declared.
+ *
  * @param {object} config The user config (see knowledge/plans).
  * @param {string} extensionBaseUrl Result of chrome.runtime.getURL('').
  * @param {Set<string>} [bypassedPatterns] Normalized hosts currently bypassed.
+ * @param {Set<string>|null} [grantedHosts] Normalized hosts with host
+ *   permission. Pass null to skip the check (used by tests and by builds that
+ *   declare blanket host permissions).
  * @returns {Array<object>} declarativeNetRequest rule objects.
  */
 export function buildRules(
   config,
   extensionBaseUrl,
-  bypassedPatterns = new Set()
+  bypassedPatterns = new Set(),
+  grantedHosts = null
 ) {
   if (!config || !Array.isArray(config.sites)) {
     throw new Error('buildRules: config.sites must be an array');
@@ -131,6 +140,10 @@ export function buildRules(
     }
 
     if (bypassedPatterns.has(host)) {
+      return;
+    }
+
+    if (grantedHosts !== null && !grantedHosts.has(host)) {
       return;
     }
 
@@ -212,14 +225,61 @@ export function findMatchingSite(config, url) {
 }
 
 /**
- * Resolve the effective target and note for a site, applying global fallback.
+ * Resolve the effective settings for a site, applying global fallback.
+ *
+ * Strings fall back when blank; booleans and numbers fall back only when null,
+ * since `false` and `0` are meaningful values a user may have chosen
+ * deliberately and must not be treated as "unset".
  *
  * @param {object} config The user config.
  * @param {object|null} site The matched site entry, or null.
- * @returns {{target: string, note: string}}
+ * @returns {{target: string, targetName: string, note: string,
+ *   autoContinue: boolean, countdownSeconds: number}}
  */
 export function resolveSiteSettings(config, site) {
   const target = site?.target?.trim() || config.globalTarget;
   const note = site?.note?.trim() || config.globalNote;
-  return { target, note };
+
+  // The destination label is cosmetic; if the user never named it, fall back to
+  // the target's hostname rather than showing a raw URL on a button.
+  const targetName =
+    config.globalTargetName?.trim() || hostnameOf(target) || 'your destination';
+
+  const autoContinue = site?.autoContinue ?? config.globalAutoContinue;
+  const countdownSeconds =
+    site?.countdownSeconds ?? config.globalCountdownSeconds;
+
+  return { target, targetName, note, autoContinue, countdownSeconds };
+}
+
+/**
+ * Best-effort hostname extraction, for display only.
+ *
+ * @param {string} url
+ * @returns {string} The hostname without "www.", or '' if unparseable.
+ */
+export function hostnameOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * The label to show for a blocked site: the user's chosen name, else the host.
+ *
+ * @param {object} site A site entry.
+ * @returns {string}
+ */
+export function siteLabel(site) {
+  const name = site?.displayName?.trim();
+  if (name) {
+    return name;
+  }
+  try {
+    return normalizePattern(site.pattern);
+  } catch {
+    return site?.pattern ?? 'this site';
+  }
 }

@@ -23,6 +23,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   justifications, data-use disclosures, and privacy policy.
 - Placeholder extension icons with a design brief for replacements.
 
+### Added
+
+- Per-site display name, used on the interstitial buttons and in settings, so a
+  site can be called what the user calls it rather than by bare hostname.
+- Name for the default destination, shown on its button.
+- Auto-continue mode: the reminder appears, counts down, and proceeds to the
+  destination on its own unless stopped. Configurable globally and per site,
+  with a configurable countdown (default 3 seconds).
+- Config schema v2 with a migration that carries v1 configs forward, filling
+  new fields with defaults rather than rejecting the stored config.
+- Manifest structural tests, covering the host-permission declaration whose
+  absence made every redirect a silent no-op.
+
+### Changed
+
+- Interstitial buttons name their destinations ("Wikipedia" / "ynet") instead of
+  characterizing the choice ("Go where I meant to" / "Continue anyway"), so
+  neither option is phrased as the approved one.
+- Host access is now requested per site as it is added, via
+  `optional_host_permissions`, replacing the blanket all-sites permission. Sites
+  without granted access are inert and say so in settings, with a button to
+  grant.
+
 ### Fixed
 
 - Redirects had no effect: `declarativeNetRequest` redirect actions require host

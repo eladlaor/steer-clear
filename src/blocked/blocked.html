@@ -13,12 +13,21 @@
 
       <blockquote class="note" id="note" hidden></blockquote>
 
-      <div class="actions">
+      <div class="countdown" id="countdown" hidden>
+        <p class="countdown-text">
+          Going to <strong id="countdown-target"></strong> in
+          <span class="countdown-seconds" id="countdown-seconds"></span>
+        </p>
+        <button class="btn btn-ghost" id="stop" type="button">Stop</button>
+      </div>
+
+      <div class="actions" id="actions">
         <a class="btn btn-primary" id="go-target" href="#">
-          Go where I meant to
+          <span id="go-target-label">&nbsp;</span>
         </a>
         <button class="btn btn-ghost" id="bypass" type="button">
-          Continue anyway <span class="btn-sub">5 min</span>
+          <span id="bypass-label">&nbsp;</span>
+          <span class="btn-sub">5 min</span>
         </button>
       </div>
 

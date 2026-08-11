@@ -34,12 +34,42 @@
         </label>
 
         <label class="field">
+          <span class="label">
+            Call that place <span class="opt">shown on the button</span>
+          </span>
+          <input type="text" id="global-target-name" placeholder="Wikipedia" />
+        </label>
+
+        <label class="field">
           <span class="label">Remind me why <span class="opt">optional</span></span>
           <textarea
             id="global-note"
             rows="2"
             placeholder="I said I'd stop doomscrolling during work hours."
           ></textarea>
+        </label>
+
+        <label class="field">
+          <span class="label">
+            <input type="checkbox" id="global-auto-continue" />
+            Don't wait for me — go automatically
+          </span>
+          <span class="hint">
+            The reminder still appears, then moves on by itself. You can stop it
+            while the countdown runs.
+          </span>
+        </label>
+
+        <label class="field">
+          <span class="label">Wait this long first</span>
+          <input
+            type="number"
+            id="global-countdown"
+            min="1"
+            max="60"
+            step="1"
+          />
+          <span class="hint">Seconds before it goes on without you.</span>
         </label>
       </section>
 
@@ -71,12 +101,27 @@
             <input type="checkbox" class="site-enabled" />
             <span class="sr-only">Enabled</span>
           </label>
+          <span class="site-name"></span>
           <span class="site-pattern"></span>
           <button type="button" class="link site-expand">Customize</button>
           <button type="button" class="link danger site-remove">Remove</button>
         </div>
 
+        <div class="site-warning" hidden>
+          <span class="site-warning-text">
+            Not active — Steer Clear needs your permission for this site.
+          </span>
+          <button type="button" class="btn btn-small site-grant">
+            Grant access
+          </button>
+        </div>
+
         <div class="site-detail" hidden>
+          <label class="field">
+            <span class="label">Call it <span class="opt">shown on the buttons</span></span>
+            <input type="text" class="site-display-name" placeholder="Using the domain" />
+          </label>
+
           <label class="field">
             <span class="label">
               <input type="checkbox" class="site-subdomains" />
@@ -92,6 +137,27 @@
           <label class="field">
             <span class="label">Remind me why <span class="opt">leave blank to use the default</span></span>
             <textarea class="site-note" rows="2" placeholder="Using default"></textarea>
+          </label>
+
+          <label class="field">
+            <span class="label">Go automatically</span>
+            <select class="site-auto-continue">
+              <option value="inherit">Use the default</option>
+              <option value="true">Yes — go without waiting</option>
+              <option value="false">No — wait for me to choose</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="label">Wait this long <span class="opt">leave blank to use the default</span></span>
+            <input
+              type="number"
+              class="site-countdown"
+              min="1"
+              max="60"
+              step="1"
+              placeholder="Using default"
+            />
           </label>
         </div>
       </li>

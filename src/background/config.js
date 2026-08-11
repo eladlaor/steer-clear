@@ -10,6 +10,11 @@ import {
   StorageKey,
   DEFAULT_TARGET,
   DEFAULT_NOTE,
+  DEFAULT_TARGET_NAME,
+  DEFAULT_AUTO_CONTINUE,
+  DEFAULT_COUNTDOWN_SECONDS,
+  MIN_COUNTDOWN_SECONDS,
+  MAX_COUNTDOWN_SECONDS,
 } from '../constants.js';
 
 /**
@@ -21,9 +26,69 @@ export function defaultConfig() {
   return {
     schemaVersion: SCHEMA_VERSION,
     globalTarget: DEFAULT_TARGET,
+    globalTargetName: DEFAULT_TARGET_NAME,
     globalNote: DEFAULT_NOTE,
+    globalAutoContinue: DEFAULT_AUTO_CONTINUE,
+    globalCountdownSeconds: DEFAULT_COUNTDOWN_SECONDS,
     sites: [],
   };
+}
+
+/**
+ * Bring a stored config up to the current schema version.
+ *
+ * Runs on every read, so it must be idempotent and total: any config this
+ * function returns has to satisfy validateConfig. Missing fields are filled
+ * with defaults rather than rejected — a user who installed v1 must not have
+ * their site list refused by a v2 validator.
+ *
+ * @param {object} stored The raw config from storage.
+ * @returns {{config: object, migrated: boolean}} The upgraded config, and
+ *   whether anything actually changed (so the caller can persist it).
+ */
+export function migrateConfig(stored) {
+  if (!stored || typeof stored !== 'object') {
+    throw new Error('migrateConfig: stored config must be an object');
+  }
+
+  const from = stored.schemaVersion ?? 1;
+
+  if (from > SCHEMA_VERSION) {
+    // A newer version of the extension wrote this, and sync pulled it onto an
+    // older install. Refusing is safer than silently discarding fields we do
+    // not understand.
+    throw new Error(
+      `migrateConfig: config schemaVersion ${from} is newer than supported ` +
+        `version ${SCHEMA_VERSION}; update the extension`
+    );
+  }
+
+  if (from === SCHEMA_VERSION) {
+    return { config: stored, migrated: false };
+  }
+
+  const config = {
+    ...stored,
+    schemaVersion: SCHEMA_VERSION,
+    globalTargetName: stored.globalTargetName ?? DEFAULT_TARGET_NAME,
+    globalAutoContinue: stored.globalAutoContinue ?? DEFAULT_AUTO_CONTINUE,
+    globalCountdownSeconds:
+      stored.globalCountdownSeconds ?? DEFAULT_COUNTDOWN_SECONDS,
+    sites: (stored.sites ?? []).map((site) => ({
+      ...site,
+      displayName: site.displayName ?? null,
+      autoContinue: site.autoContinue ?? null,
+      countdownSeconds: site.countdownSeconds ?? null,
+    })),
+  };
+
+  console.info('[steer-clear] config migrated', {
+    from,
+    to: SCHEMA_VERSION,
+    siteCount: config.sites.length,
+  });
+
+  return { config, migrated: true };
 }
 
 /**
@@ -41,9 +106,16 @@ export function validateConfig(config) {
   if (typeof config.globalTarget !== 'string' || config.globalTarget === '') {
     throw new Error('validateConfig: globalTarget must be a non-empty string');
   }
+  if (typeof config.globalTargetName !== 'string') {
+    throw new Error('validateConfig: globalTargetName must be a string');
+  }
   if (typeof config.globalNote !== 'string') {
     throw new Error('validateConfig: globalNote must be a string');
   }
+  if (typeof config.globalAutoContinue !== 'boolean') {
+    throw new Error('validateConfig: globalAutoContinue must be a boolean');
+  }
+  assertCountdown(config.globalCountdownSeconds, 'globalCountdownSeconds');
   if (!Array.isArray(config.sites)) {
     throw new Error('validateConfig: sites must be an array');
   }
@@ -74,7 +146,41 @@ export function validateConfig(config) {
         `validateConfig: sites[${index}].note must be a string or null`
       );
     }
+    if (site.displayName !== null && typeof site.displayName !== 'string') {
+      throw new Error(
+        `validateConfig: sites[${index}].displayName must be a string or null`
+      );
+    }
+    if (site.autoContinue !== null && typeof site.autoContinue !== 'boolean') {
+      throw new Error(
+        `validateConfig: sites[${index}].autoContinue must be a boolean or null`
+      );
+    }
+    if (site.countdownSeconds !== null) {
+      assertCountdown(site.countdownSeconds, `sites[${index}].countdownSeconds`);
+    }
   });
+}
+
+/**
+ * Assert that a value is a countdown duration within the accepted bounds.
+ *
+ * @param {unknown} value
+ * @param {string} fieldName Field name, for the error message.
+ * @throws {Error} If the value is not an in-range integer.
+ */
+function assertCountdown(value, fieldName) {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < MIN_COUNTDOWN_SECONDS ||
+    value > MAX_COUNTDOWN_SECONDS
+  ) {
+    throw new Error(
+      `validateConfig: ${fieldName} must be an integer between ` +
+        `${MIN_COUNTDOWN_SECONDS} and ${MAX_COUNTDOWN_SECONDS}, got ${value}`
+    );
+  }
 }
 
 /**
@@ -92,8 +198,15 @@ export async function readConfig() {
       return defaultConfig();
     }
 
-    validateConfig(config);
-    return config;
+    const { config: upgraded, migrated } = migrateConfig(config);
+    validateConfig(upgraded);
+
+    // Persist the upgrade so the migration runs once rather than on every read.
+    if (migrated) {
+      await chrome.storage.sync.set({ [StorageKey.CONFIG]: upgraded });
+    }
+
+    return upgraded;
   } catch (error) {
     console.error('[steer-clear] readConfig failed', {
       error: error.message,
@@ -125,15 +238,19 @@ export async function writeConfig(config) {
  * Create a new site entry with defaults applied.
  *
  * @param {string} pattern The domain pattern.
+ * @param {string|null} [displayName] Friendly label; null falls back to the host.
  * @returns {object} A site entry ready to append to config.sites.
  */
-export function createSite(pattern) {
+export function createSite(pattern, displayName = null) {
   return {
     id: crypto.randomUUID(),
     pattern,
+    displayName,
     includeSubdomains: true,
     target: null,
     note: null,
+    autoContinue: null,
+    countdownSeconds: null,
     enabled: true,
   };
 }

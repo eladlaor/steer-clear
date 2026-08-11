@@ -14,7 +14,14 @@ import {
   BYPASS_DURATION_MS,
 } from '../constants.js';
 import { readConfig, writeConfig, defaultConfig } from './config.js';
-import { buildRules, normalizePattern, findMatchingSite, resolveSiteSettings } from './rules.js';
+import {
+  buildRules,
+  normalizePattern,
+  findMatchingSite,
+  resolveSiteSettings,
+  siteLabel,
+} from './rules.js';
+import { grantedHostsAmong } from './permissions.js';
 
 /**
  * Read the currently-active bypasses, dropping any that have expired.
@@ -60,7 +67,27 @@ async function rebuildRules() {
 
     const bypassedHosts = new Set(Object.keys(bypasses));
     const extensionBaseUrl = chrome.runtime.getURL('');
-    const newRules = buildRules(config, extensionBaseUrl, bypassedHosts);
+
+    // Only sites the user has granted access to can be redirected. Passing the
+    // granted set keeps un-permitted sites out of the rule table entirely,
+    // rather than installing rules Chrome will quietly refuse to apply.
+    const configuredHosts = config.sites
+      .map((site) => {
+        try {
+          return normalizePattern(site.pattern);
+        } catch {
+          return null;
+        }
+      })
+      .filter((host) => host !== null);
+    const grantedHosts = await grantedHostsAmong(configuredHosts);
+
+    const newRules = buildRules(
+      config,
+      extensionBaseUrl,
+      bypassedHosts,
+      grantedHosts
+    );
 
     const existing = await chrome.declarativeNetRequest.getDynamicRules();
     const removeRuleIds = existing.map((rule) => rule.id);
@@ -73,6 +100,8 @@ async function rebuildRules() {
     console.info('[steer-clear] rules rebuilt', {
       ruleCount: newRules.length,
       bypassedCount: bypassedHosts.size,
+      configuredCount: configuredHosts.length,
+      ungrantedCount: configuredHosts.length - grantedHosts.size,
     });
   } catch (error) {
     console.error('[steer-clear] rebuildRules failed', {
@@ -126,12 +155,21 @@ async function getResolvedSite(fromUrl) {
   try {
     const config = await readConfig();
     const site = findMatchingSite(config, fromUrl);
-    const { target, note } = resolveSiteSettings(config, site);
+    const { target, targetName, note, autoContinue, countdownSeconds } =
+      resolveSiteSettings(config, site);
+
+    const host = new URL(fromUrl).hostname;
 
     return {
-      host: new URL(fromUrl).hostname,
+      host,
+      // What to call the site the user was heading to. Falls back to the host
+      // when unmatched, which happens only if config changed mid-navigation.
+      siteName: site ? siteLabel(site) : host,
       target,
+      targetName,
       note,
+      autoContinue,
+      countdownSeconds,
       matched: site !== null,
     };
   } catch (error) {
@@ -182,6 +220,32 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
   }
 });
 
+/**
+ * Permissions can also change from chrome://extensions, outside our UI.
+ * Rebuilding on these events keeps rules consistent with what Chrome will
+ * actually honor — without them, revoking access in Chrome's own settings
+ * would leave a dead rule behind.
+ */
+chrome.permissions.onAdded.addListener(async () => {
+  try {
+    await rebuildRules();
+  } catch (error) {
+    console.error('[steer-clear] rebuild after permission grant failed', {
+      error: error.message,
+    });
+  }
+});
+
+chrome.permissions.onRemoved.addListener(async () => {
+  try {
+    await rebuildRules();
+  } catch (error) {
+    console.error('[steer-clear] rebuild after permission revoke failed', {
+      error: error.message,
+    });
+  }
+});
+
 /** Bypass expiry reinstates the rule. */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   try {
@@ -217,6 +281,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         case MessageType.GET_RESOLVED_SITE: {
           const result = await getResolvedSite(message.fromUrl);
           sendResponse({ ok: true, ...result });
+          break;
+        }
+        case MessageType.REBUILD_RULES: {
+          // Granting a permission is not a storage change, so the options page
+          // asks for a rebuild explicitly after the user approves a host.
+          await rebuildRules();
+          sendResponse({ ok: true });
           break;
         }
         default:
