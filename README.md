@@ -141,7 +141,7 @@ steer-clear/
 See `store/LISTING.md` for copy-paste listing text, permission justifications,
 and data-use disclosures. Outstanding items requiring you:
 
-- **Replace the placeholder icons** — `src/icons/README.md` has the design brief
+- **Icons** are present and usable; redraw for 16px legibility when convenient
 - **Host the privacy policy** at a public URL (GitHub Pages is sufficient)
 - **Capture screenshots** at 1280×800, at least one
 - **Register** as a Chrome Web Store developer ($5 one-time)

@@ -1,4 +1,4 @@
-# Icons — Required Before Loading
+# Icons
 
 ## Table of Contents
 
@@ -11,9 +11,15 @@
 
 ## Summary
 
-**The extension will not load until these four PNG files exist.** Chrome rejects
-a manifest whose declared icon paths are missing. This directory is empty by
-design — icons could not be generated as part of the build and must be supplied.
+All four PNGs are present and the extension loads. The current set is a
+first-pass design: a path forking away from a crossed-out route.
+
+It holds up at 128px, which is the size the Chrome Web Store listing displays.
+At 16px — the toolbar size — the fork and the X blur together into a single
+mark. That is a legibility limit worth revisiting, not a blocker; the silhouette
+still reads as a diverging path.
+
+The design brief below is retained for whoever redraws them.
 
 ---
 

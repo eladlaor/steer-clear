@@ -157,9 +157,26 @@ In the Privacy practices tab, declare:
 | Authentication information? | **No** |
 | Personal communications? | **No** |
 | Location? | **No** |
-| Web history? | **No** — the extension stores only domains the user typed in manually; it does not record visits |
-| User activity? | **No** |
+| Web history? | **Yes** — see the note below |
+| User activity? | **Yes** — see the note below |
 | Website content? | **No** |
+
+**On the two "Yes" answers.** The statistics feature records the date and time
+of each interception, against the domain the user themselves configured. That is
+timestamped activity data, and answering "No" because it never leaves the device
+would be false: these questions ask what the extension *collects*, not what it
+transmits. A disclosure that turns out to be inaccurate is grounds for takedown
+after publication, which is a far worse outcome than declaring accurately now.
+
+What is recorded is deliberately narrow, and the listing should say so in the
+justification field:
+
+> Steer Clear records the date and time it redirected you away from a site you
+> configured, so it can show you your own patterns. It records only the domain
+> you entered in settings — never the full address, the page, or anything you
+> searched for. It is never sent anywhere: it is stored locally, is excluded
+> from Chrome Sync by design, is deleted automatically after 90 days, and can be
+> erased permanently at any time from the extension's statistics page.
 
 Then check all three certification boxes:
 
@@ -167,9 +184,10 @@ Then check all three certification boxes:
 - Not being used for purposes unrelated to the item's single purpose
 - Not being used to determine creditworthiness or for lending
 
-**Privacy policy URL:** **YOU MUST SUPPLY** — host `PRIVACY_POLICY.md` at a
-public URL. A GitHub Pages site on the project repo is the least-effort route
-that satisfies the requirement.
+**Privacy policy URL:** enable GitHub Pages on this repo (Settings → Pages →
+deploy from `main`, folder `/ (root)`), which serves the policy at
+`https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY`. See
+`knowledge/setup/DISTRIBUTION.md` for the full submission sequence.
 
 ---
 
@@ -177,8 +195,8 @@ that satisfies the requirement.
 
 | Asset | Spec | Status |
 |---|---|---|
-| Icon | 128×128 PNG | **YOU MUST SUPPLY** — see `src/icons/README.md` |
-| Toolbar icons | 16/32/48 PNG | **YOU MUST SUPPLY** |
+| Icon | 128×128 PNG | Present — reads clearly at listing size |
+| Toolbar icons | 16/32/48 PNG | Present — 16px is muddy; redraw when convenient |
 | Screenshot | 1280×800 or 640×400 PNG, at least 1, up to 5 | **YOU MUST SUPPLY** — capture after loading the extension |
 | Small promo tile | 440×280 PNG | Optional |
 | Marquee promo tile | 1400×560 PNG | Optional |
