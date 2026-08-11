@@ -1,0 +1,256 @@
+/* Steer Clear statistics page. */
+
+:root {
+  --bg: #f7f6f3;
+  --card: #ffffff;
+  --ink: #1c1b19;
+  --ink-soft: #6b6862;
+  --line: #e4e1da;
+  --accent: #2f6f5e;
+  --accent-ink: #ffffff;
+  --danger: #a33a2f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16151a;
+    --card: #201f26;
+    --ink: #ececef;
+    --ink-soft: #9b98a3;
+    --line: #32313a;
+    --accent: #6fbfa5;
+    --accent-ink: #10221c;
+    --danger: #e08a7e;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  /*
+   * This page is both a toolbar popup and a standalone tab. A popup sizes to
+   * its content and would otherwise render as a narrow column; the min-width
+   * fixes that without affecting the tab, where max-width on .wrap governs.
+   */
+  min-width: 440px;
+  margin: 0;
+  padding: 40px 20px 80px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", sans-serif;
+  line-height: 1.55;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.head h1 {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+}
+
+.sub {
+  margin: 0 0 24px;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+h2 {
+  margin: 28px 0 10px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+h2:first-child {
+  margin-top: 0;
+}
+
+.hint {
+  margin: 0 0 14px;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+/* Summary cards ---------------------------------------------------------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.card-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.card-label {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.panel {
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+/* Horizontal bars -------------------------------------------------------- */
+
+.bars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 130px) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+}
+
+.bar-label {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.bar-track {
+  height: 10px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ink-soft) 14%, transparent);
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  width: var(--fill, 0%);
+  height: 100%;
+  border-radius: 5px;
+  background: var(--accent);
+}
+
+.bar-value {
+  min-width: 2.5ch;
+  text-align: right;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* Hour-of-day columns ---------------------------------------------------- */
+
+.hours {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  align-items: end;
+  gap: 2px;
+  height: 120px;
+  margin-bottom: 8px;
+}
+
+.hour {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  gap: 4px;
+}
+
+.hour-fill {
+  width: 100%;
+  /* A hairline floor keeps empty hours visible as part of the axis. */
+  height: max(var(--height, 0%), 2px);
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+}
+
+.hour-label {
+  font-size: 0.6875rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 30-day sparkline ------------------------------------------------------- */
+
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 60px;
+}
+
+.spark {
+  flex: 1;
+  height: max(var(--height, 0%), 2px);
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+}
+
+/* Buttons and destructive actions ---------------------------------------- */
+
+.btn {
+  padding: 9px 18px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+.btn-ghost:hover {
+  border-color: var(--ink-soft);
+}
+
+.btn.danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.btn.danger:hover {
+  border-color: var(--danger);
+}
+
+.status {
+  min-height: 1.25rem;
+  margin: 10px 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.footer {
+  margin-top: 24px;
+  font-size: 0.875rem;
+}
+
+.footer a {
+  color: var(--ink-soft);
+}

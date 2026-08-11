@@ -73,9 +73,10 @@ test('every file the manifest references exists', () => {
   const referenced = [
     manifest.background.service_worker,
     manifest.options_page,
+    manifest.action?.default_popup,
     ...Object.values(manifest.icons ?? {}),
     ...(manifest.web_accessible_resources ?? []).flatMap((e) => e.resources),
-  ];
+  ].filter(Boolean);
 
   for (const path of referenced) {
     assert.ok(existsSync(join(SRC, path)), `manifest references missing file: ${path}`);

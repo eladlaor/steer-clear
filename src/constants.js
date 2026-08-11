@@ -9,14 +9,29 @@ export const SCHEMA_VERSION = 2;
 export const StorageKey = Object.freeze({
   CONFIG: 'config',
   BYPASSES: 'bypasses',
+  /**
+   * Interception history. Lives in storage.local, never storage.sync: this is
+   * a record of browsing urges, and sync would copy it to every machine on the
+   * Chrome profile and through Google's servers. It stays on the device it
+   * happened on.
+   */
+  STATS: 'stats',
 });
+
+/** Days of individual events retained before pruning. Totals are kept forever. */
+export const STATS_RETENTION_DAYS = 90;
 
 /** Runtime message types exchanged between surfaces and the service worker. */
 export const MessageType = Object.freeze({
   GRANT_BYPASS: 'GRANT_BYPASS',
   GET_RESOLVED_SITE: 'GET_RESOLVED_SITE',
   REBUILD_RULES: 'REBUILD_RULES',
+  GET_STATS: 'GET_STATS',
+  CLEAR_STATS: 'CLEAR_STATS',
 });
+
+/** chrome.alarms name for the periodic stats-retention sweep. */
+export const STATS_PRUNE_ALARM = 'stats-prune';
 
 /** chrome.alarms name prefix for bypass expiry. */
 export const BYPASS_ALARM_PREFIX = 'bypass-expiry:';

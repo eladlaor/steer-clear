@@ -12,6 +12,7 @@ import {
   MessageType,
   BYPASS_ALARM_PREFIX,
   BYPASS_DURATION_MS,
+  STATS_PRUNE_ALARM,
 } from '../constants.js';
 import { readConfig, writeConfig, defaultConfig } from './config.js';
 import {
@@ -22,6 +23,12 @@ import {
   siteLabel,
 } from './rules.js';
 import { grantedHostsAmong } from './permissions.js';
+import {
+  logInterception,
+  readStats,
+  clearStats,
+  pruneStoredStats,
+} from './stats_store.js';
 
 /**
  * Read the currently-active bypasses, dropping any that have expired.
@@ -160,6 +167,18 @@ async function getResolvedSite(fromUrl) {
 
     const host = new URL(fromUrl).hostname;
 
+    // One interception = one interstitial asking what to display, so this is
+    // the single place a redirect can be counted exactly once. Counting at
+    // rule-match time is not possible; declarativeNetRequest fires no event
+    // the extension can observe without requesting feedback permissions.
+    //
+    // The *configured* host is recorded, not the requested one, so that
+    // m.ynet.co.il and www.ynet.co.il aggregate under the entry the user
+    // created rather than fragmenting the count across subdomains.
+    if (site) {
+      await logInterception(normalizePattern(site.pattern), Date.now());
+    }
+
     return {
       host,
       // What to call the site the user was heading to. Falls back to the host
@@ -188,6 +207,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       await writeConfig(defaultConfig());
       await chrome.runtime.openOptionsPage();
     }
+    await chrome.alarms.create(STATS_PRUNE_ALARM, { periodInMinutes: 60 * 24 });
     await rebuildRules();
   } catch (error) {
     console.error('[steer-clear] onInstalled failed', {
@@ -249,6 +269,13 @@ chrome.permissions.onRemoved.addListener(async () => {
 /** Bypass expiry reinstates the rule. */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   try {
+    // Retention must hold even for a user who never triggers another
+    // interception, so pruning cannot rely only on the write path.
+    if (alarm.name === STATS_PRUNE_ALARM) {
+      await pruneStoredStats(Date.now());
+      return;
+    }
+
     if (!alarm.name.startsWith(BYPASS_ALARM_PREFIX)) {
       return;
     }
@@ -281,6 +308,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         case MessageType.GET_RESOLVED_SITE: {
           const result = await getResolvedSite(message.fromUrl);
           sendResponse({ ok: true, ...result });
+          break;
+        }
+        case MessageType.GET_STATS: {
+          sendResponse({ ok: true, stats: await readStats() });
+          break;
+        }
+        case MessageType.CLEAR_STATS: {
+          await clearStats();
+          sendResponse({ ok: true });
           break;
         }
         case MessageType.REBUILD_RULES: {

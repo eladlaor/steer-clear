@@ -25,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Interception statistics: each time a site is intercepted, the configured
+  domain and a timestamp are recorded locally. A statistics page shows lifetime
+  and 7-day totals, a per-site breakdown, hour-of-day and day-of-week
+  distributions, and a 30-day trend, reachable from the toolbar icon and from
+  settings.
+- One-click permanent erase of all recorded statistics.
+- Automatic 90-day retention for individual interception records; per-site
+  running totals are kept until erased.
 - Per-site display name, used on the interstitial buttons and in settings, so a
   site can be called what the user calls it rather than by bare hostname.
 - Name for the default destination, shown on its button.

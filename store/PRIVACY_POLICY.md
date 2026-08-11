@@ -40,6 +40,26 @@ never sent to the developer or to any third party.
 Temporary "continue anyway" passes are stored using Chrome's `storage.session`
 API and are erased when you close the browser.
 
+### Your interception history
+
+So that the extension can show you your own patterns, it records each time it
+steers you away from a site. Each record contains two things:
+
+- The domain you were heading to, exactly as you entered it in settings
+- The date and time it happened
+
+It does **not** record the full address, the page, the article, or anything you
+searched for — only the domain you yourself configured.
+
+This history is saved using Chrome's `storage.local` API. Unlike your settings,
+it is **not** synchronized to your other machines and does not pass through
+Google's servers; it stays in the browser where it happened. Individual records
+are deleted automatically after 90 days, while the per-site running totals are
+kept until you erase them.
+
+You can view this history on the extension's statistics page, and erase all of
+it permanently from that same page at any time.
+
 ---
 
 ## What Steer Clear does not do

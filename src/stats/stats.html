@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Steer Clear — Your patterns</title>
+    <link rel="stylesheet" href="stats.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="head">
+        <h1>Your patterns</h1>
+        <p class="sub" id="since">Counting since —</p>
+      </header>
+
+      <section class="cards">
+        <div class="card">
+          <span class="card-value" id="total">—</span>
+          <span class="card-label">times steered clear</span>
+        </div>
+        <div class="card">
+          <span class="card-value" id="last7">—</span>
+          <span class="card-label">in the last 7 days</span>
+        </div>
+        <div class="card">
+          <span class="card-value" id="top-host">—</span>
+          <span class="card-label">most often</span>
+        </div>
+      </section>
+
+      <section class="panel" id="empty-state" hidden>
+        <h2>Nothing recorded yet</h2>
+        <p class="hint">
+          Once Steer Clear catches you heading somewhere you'd rather not go,
+          the count will show up here.
+        </p>
+      </section>
+
+      <section class="panel" id="content" hidden>
+        <h2>By site</h2>
+        <ul class="bars" id="by-site"></ul>
+
+        <h2>By hour of day</h2>
+        <p class="hint">Local time, over the last 90 days.</p>
+        <div class="hours" id="by-hour"></div>
+
+        <h2>By day of week</h2>
+        <ul class="bars" id="by-weekday"></ul>
+
+        <h2>Last 30 days</h2>
+        <div class="sparkline" id="daily"></div>
+      </section>
+
+      <section class="panel danger-zone">
+        <h2>Your data</h2>
+        <p class="hint">
+          All of this is stored in this browser and never sent anywhere. Erasing
+          it cannot be undone.
+        </p>
+        <button type="button" class="btn btn-ghost danger" id="clear">
+          Erase my statistics
+        </button>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <footer class="footer">
+        <a href="#" id="open-options">Settings</a>
+      </footer>
+    </main>
+
+    <script type="module" src="stats.js"></script>
+  </body>
+</html>
