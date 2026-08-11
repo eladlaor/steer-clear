@@ -88,8 +88,10 @@ test('every chrome API used in source is declared', () => {
   // worker never starts and every message to it times out. That failure
   // presents as blank UI, nowhere near its actual cause.
   const alwaysAvailable = new Set([
-    'runtime', // available to every extension
-    'permissions', // checked below; also implied by optional_host_permissions
+    'runtime',
+    // chrome.permissions needs no declaration — declaring it produces a
+    // "Permission 'permissions' is unknown" warning and nothing else.
+    'permissions',
   ]);
 
   const used = new Set();
@@ -112,13 +114,25 @@ test('every chrome API used in source is declared', () => {
   );
 });
 
-test('the permissions API is declared, since the code calls it', () => {
-  // chrome.permissions is not implicitly available; optional_host_permissions
-  // declares what may be requested, not the API used to request it.
-  assert.ok(
-    (manifest.permissions ?? []).includes('permissions'),
-    'optional host permissions are unusable without the "permissions" API'
-  );
+test('declares no unknown permissions', () => {
+  // Chrome warns on unrecognized entries and ignores them. "permissions" is
+  // one such non-permission: chrome.permissions is available to every
+  // extension without being declared.
+  const known = new Set([
+    'declarativeNetRequest',
+    'declarativeNetRequestFeedback',
+    'storage',
+    'alarms',
+    'tabs',
+    'activeTab',
+    'scripting',
+    'notifications',
+    'contextMenus',
+    'idle',
+  ]);
+
+  const unknown = (manifest.permissions ?? []).filter((p) => !known.has(p));
+  assert.deepEqual(unknown, [], `unknown manifest permissions: ${unknown.join(', ')}`);
 });
 
 test('the interstitial is web-accessible', () => {

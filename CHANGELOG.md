@@ -50,10 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- Blank interstitial: the manifest did not declare the `permissions` API, so
-  the service worker threw while registering its permission listeners and never
-  started. Messages to it went unanswered and the page kept its placeholder
-  text. Added a test asserting every `chrome.*` API used in source is declared.
+- Manifest no longer declares a `permissions` entry, which is not a valid
+  permission and produced an "unknown permission" warning on load. Added tests
+  asserting every `chrome.*` API used in source is declared and that no
+  declared permission is unrecognized.
 - Redirects had no effect: `declarativeNetRequest` redirect actions require host
   permissions, which the manifest did not declare. Chrome installed the rules
   and silently ignored them. Declared `http://*/*` and `https://*/*`.
