@@ -15,8 +15,8 @@
 
 Copy-paste-ready text for every field of the Chrome Web Store submission form,
 plus the permission justifications reviewers require and a draft launch post.
-Fields marked **YOU MUST SUPPLY** cannot be produced without design assets or
-account access.
+Every asset is prepared; the only fields needing you are the privacy-policy URL
+(one GitHub Pages toggle) and the developer-account registration.
 
 ---
 
@@ -67,13 +67,16 @@ MADE TO BE HONEST
 
 PRIVATE BY CONSTRUCTION
 
-• No servers. No accounts. No analytics. No network requests at all
-• Your settings never leave your browser
-• No permission to read any web page, so it cannot see what you browse
+• No servers. No accounts. No network requests at all
+• Your settings and your history stay in your browser
+• It counts how often it steered you away, so you can see your own patterns —
+  stored on your device only, auto-deleted after 90 days, erasable in one click
+• It records only the domains you typed in yourself, never the pages you visit
 • Fully open source
 
-Steer Clear asks for no host permissions and cannot read page content on any
-site. It knows only the domains you typed into it yourself.
+Steer Clear asks for access only to the specific sites you add, one at a time,
+when you add them. It cannot read page content on any site, and it knows only
+the domains you typed into it yourself.
 ```
 
 ### Category
@@ -117,7 +120,13 @@ destination they chose, and the reminder note they wrote. Stored via
 storage.sync so settings follow the user's Chrome profile.
 
 storage.session additionally holds temporary "continue anyway" passes, which are
-discarded when the browser closes. No data is transmitted anywhere.
+discarded when the browser closes.
+
+storage.local holds the interception history shown on the extension's own
+statistics page: for each redirect, the user-configured domain and a timestamp.
+It is kept out of storage.sync deliberately so it never leaves the device,
+individual records expire after 90 days, and the user can erase all of it from
+that page. No data is transmitted anywhere.
 ```
 
 ### `alarms`
@@ -197,15 +206,16 @@ deploy from `main`, folder `/ (root)`), which serves the policy at
 |---|---|---|
 | Icon | 128×128 PNG | Present — reads clearly at listing size |
 | Toolbar icons | 16/32/48 PNG | Present — 16px is muddy; redraw when convenient |
-| Screenshot | 1280×800 or 640×400 PNG, at least 1, up to 5 | **YOU MUST SUPPLY** — capture after loading the extension |
+| Screenshot | 1280×800 or 640×400 PNG, at least 1, up to 5 | Present — three in `store/screenshots/`, upload in numbered order |
 | Small promo tile | 440×280 PNG | Optional |
 | Marquee promo tile | 1400×560 PNG | Optional |
 
-**Suggested screenshots**, in order:
+**The three in `store/screenshots/`**, upload in this order:
 
-1. The reminder page with a filled-in note — this is the product, lead with it
-2. The settings page showing two or three sites configured
-3. A per-site override expanded, demonstrating the flexibility
+1. `1-reminder.png` — the reminder page with a real note; this is the product
+2. `2-settings.png` — settings with the defaults filled in and two sites listed
+3. `3-patterns.png` — the statistics page, which also makes the local-only
+   data story concrete for a reviewer reading the privacy disclosures
 
 ---
 
