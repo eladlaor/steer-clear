@@ -22,3 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Chrome Web Store submission materials: listing copy, permission
   justifications, data-use disclosures, and privacy policy.
 - Placeholder extension icons with a design brief for replacements.
+
+### Fixed
+
+- Redirects had no effect: `declarativeNetRequest` redirect actions require host
+  permissions, which the manifest did not declare. Chrome installed the rules
+  and silently ignored them. Declared `http://*/*` and `https://*/*`.
+
+### Changed
+
+- Privacy-policy contact address is now a personal address rather than a work one.
