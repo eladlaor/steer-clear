@@ -111,16 +111,16 @@ Two items, both requiring you; everything else is prepared:
 |---|---|
 | Icons | **Done.** All four sizes present; the 128×128 reads clearly at listing size |
 | Screenshots | **Done.** Three at 1280×800 in `store/screenshots/` |
-| Submission zip | **Done.** `dist/steer-clear-1.0.0.zip`, rebuild with `npm run package` |
+| Submission zip | **Done.** `dist/steer-clear-1.0.0.zip`, rebuild with `./tools/package.sh` |
 | Privacy policy hosted | **You must do this.** Repo Settings → Pages → deploy from `main` |
 | Developer registration | **You must do this.** $5 one-time |
 
-There is also one **code** item that is not strictly a blocker but materially
-affects the review: the extension currently requests broad host access. See
-`optional_host_permissions` in `src/manifest.json` — sites are granted
-individually as the user adds them, which is the right shape. Confirm the
-install-time permission warning is absent before submitting, since that warning
-is what reviewers and users react to most strongly.
+One thing to confirm visually before submitting, since it is what reviewers and
+users react to most strongly: the extension should show **no** "read and change
+all your data on all websites" warning at install. It requests access to each
+site individually as the user adds it, via `optional_host_permissions` in
+`src/manifest.json`. If that warning does appear, the manifest has regressed to
+a blanket `host_permissions` grant and should be fixed before submitting.
 
 ---
 
