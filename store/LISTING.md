@@ -5,6 +5,7 @@
 - [Summary](#summary)
 - [Listing fields](#listing-fields)
 - [Permission justifications](#permission-justifications)
+- [Submission walkthrough](#submission-walkthrough)
 - [Data-use disclosures](#data-use-disclosures)
 - [Assets checklist](#assets-checklist)
 - [LinkedIn launch post](#linkedin-launch-post)
@@ -138,6 +139,27 @@ the bypass would persist indefinitely, silently disabling the feature the user
 installed the extension for.
 ```
 
+### Host permissions
+
+```
+Redirecting a navigation requires host access to the site being redirected, so
+Steer Clear requests access to each site individually, at the moment the user
+adds that site in the extension's settings page. Nothing is granted at install
+time and the extension holds no access to any site the user has not personally
+entered.
+
+The broad pattern appears under optional_host_permissions rather than
+host_permissions precisely so that no blanket grant exists: the user's list is
+theirs to define, and a fixed list in the manifest would mean shipping an update
+every time someone wanted to add a domain. A site the user has not granted
+produces no redirect rule at all, and the settings page shows it as inactive
+with a button to grant access.
+
+Access is used solely to redirect top-level navigations to the extension's own
+bundled reminder page. The extension injects no content scripts and reads no
+page content on any site.
+```
+
 ### Single-purpose statement
 
 ```
@@ -151,6 +173,13 @@ page inside the extension, so the user can reconsider before continuing.
 No. All code is contained in the extension package. No remote code is loaded or
 executed.
 ```
+
+---
+
+## Submission walkthrough
+
+Step-by-step, in the order the dashboard presents things:
+`knowledge/setup/SUBMISSION_STEPS.md`.
 
 ---
 
