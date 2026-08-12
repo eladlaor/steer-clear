@@ -63,6 +63,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- "Continue anyway" did not work for any site reached via a subdomain: the
+  bypass was recorded against the requested host (`www.facebook.com`) while
+  redirect rules are keyed on the configured pattern (`facebook.com`), so the
+  rule was never lifted and the reminder page reappeared immediately. The
+  bypass is now resolved to the configured site before being stored.
+- Removed an arbitrary 150 ms delay before the post-bypass redirect; the
+  service worker already awaits its rule rebuild before responding.
 - The countdown block and its Stop button were permanently visible on the
   interstitial, alongside empty placeholder text, because a class setting
   `display` outranks the `hidden` attribute. The same defect hid nothing on the

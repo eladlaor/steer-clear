@@ -340,3 +340,47 @@ test('buildRules keeps rule ids stable when a site is skipped', () => {
   assert.equal(onlyB.length, 1);
   assert.equal(onlyB[0].id, bId);
 });
+
+/* ---------------------------------------------------------------------------
+ * Bypass key resolution.
+ *
+ * Rules are keyed on the configured pattern; the interstitial reports the
+ * requested host. When a user configures "facebook.com" and navigates to
+ * "www.facebook.com", a bypass stored under the requested host never matches
+ * the rule it is meant to lift, and clicking through returns to the
+ * interstitial. Every www-prefixed site was affected.
+ * ------------------------------------------------------------------------ */
+
+test('a bypass keyed on the configured pattern lifts the rule', () => {
+  const config = v2Config({ sites: [v2Site({ pattern: 'facebook.com' })] });
+  const rules = buildRules(config, BASE_URL, new Set(['facebook.com']), null);
+  assert.equal(rules.length, 0);
+});
+
+test('a bypass keyed on the requested subdomain does NOT lift the rule', () => {
+  // Documents the failure precisely: this is why the resolution happens in the
+  // service worker before the bypass is stored.
+  const config = v2Config({ sites: [v2Site({ pattern: 'facebook.com' })] });
+  const rules = buildRules(config, BASE_URL, new Set(['www.facebook.com']), null);
+  assert.equal(rules.length, 1);
+});
+
+test('findMatchingSite maps a requested host back to its configured pattern', () => {
+  // The mapping the service worker relies on to key the bypass correctly.
+  const config = v2Config({ sites: [v2Site({ pattern: 'facebook.com' })] });
+  for (const host of ['www.facebook.com', 'm.facebook.com', 'facebook.com']) {
+    const site = findMatchingSite(config, `https://${host}/`);
+    assert.ok(site, `no match for ${host}`);
+    assert.equal(normalizePattern(site.pattern), 'facebook.com');
+  }
+});
+
+test('an exact-match site does not resolve a subdomain bypass', () => {
+  // includeSubdomains false means www.facebook.com was never blocked, so there
+  // is nothing to bypass and no site should match.
+  const config = v2Config({
+    sites: [v2Site({ pattern: 'facebook.com', includeSubdomains: false })],
+  });
+  assert.equal(findMatchingSite(config, 'https://www.facebook.com/'), null);
+  assert.ok(findMatchingSite(config, 'https://facebook.com/'));
+});

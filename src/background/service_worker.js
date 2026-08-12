@@ -126,7 +126,16 @@ async function rebuildRules() {
  */
 async function grantBypass(rawHost) {
   try {
-    const host = normalizePattern(rawHost);
+    // Resolve to the *configured* pattern, not the requested host. Rules are
+    // keyed on what the user typed in settings ("facebook.com"), while the
+    // interstitial reports where the browser was actually going
+    // ("www.facebook.com"). Storing the requested host means the bypass never
+    // matches the rule it is meant to lift, and the user bounces straight back
+    // to the interstitial — the whole feature silently doing nothing.
+    const config = await readConfig();
+    const site = findMatchingSite(config, `https://${rawHost}/`);
+    const host = site ? normalizePattern(site.pattern) : normalizePattern(rawHost);
+
     const expiresAt = Date.now() + BYPASS_DURATION_MS;
 
     const bypasses = await readActiveBypasses();

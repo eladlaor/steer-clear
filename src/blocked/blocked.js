@@ -146,13 +146,13 @@ async function handleBypass(sourceUrl) {
     elements.status.textContent = 'Opening…';
 
     const host = new URL(sourceUrl).hostname;
+
+    // The worker awaits its rule rebuild before responding, so once this
+    // resolves the redirect rule is already gone. An arbitrary settle delay
+    // here would be a guess about timing that the response already guarantees.
     await sendMessage({ type: MessageType.GRANT_BYPASS, host });
 
-    // The rule is removed asynchronously; a short settle avoids racing the
-    // rebuild and bouncing straight back to this page.
-    window.setTimeout(() => {
-      window.location.replace(sourceUrl);
-    }, 150);
+    window.location.replace(sourceUrl);
   } catch (error) {
     console.error('[steer-clear] handleBypass failed', {
       sourceUrl,
