@@ -36,7 +36,7 @@ As of 2026-10-02:
 | Item | Status |
 |---|---|
 | Developer registration ($5) | **Done.** Dashboard is live; the account has a 2-item extension limit, Steer Clear will use one |
-| Publisher contact email | **In progress.** Dashboard → Settings → set and **verify** the contact email; publishing is blocked until it is verified |
+| Publisher account settings | **Done.** Publisher name `eladlaor`; contact email set and verified |
 | Privacy policy hosted | **Not done.** See Step 0 — the repo is private, so the original Pages plan needs a decision |
 | Package, screenshots, listing text | **Done** |
 | Submitted | No |

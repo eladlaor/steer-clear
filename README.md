@@ -144,8 +144,7 @@ and data-use disclosures. Outstanding items requiring you:
 - **Icons** are present and usable; redraw for 16px legibility when convenient
 - **Host the privacy policy** at a public URL — the repo is private, so see
   `knowledge/setup/SUBMISSION_STEPS.md` Step 0 for options
-- **Verify the publisher contact email** in the developer dashboard
-- Screenshots and developer registration are done
+- Screenshots, developer registration, and publisher settings are done
 
 Expect closer-than-average review: `declarativeNetRequest` with redirect is the
 permission set traffic-hijacking extensions use. The justifications in

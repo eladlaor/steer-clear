@@ -114,7 +114,7 @@ As of 2026-10-02 (live status is kept in `SUBMISSION_STEPS.md`):
 | Submission zip | **Done.** `dist/steer-clear-1.0.0.zip`, rebuild with `./tools/package.sh` |
 | Privacy policy hosted | **You must do this.** The repo is private, so Pages needs either a public repo or a paid plan; alternatives in `SUBMISSION_STEPS.md` Step 0 |
 | Developer registration | **Done.** $5 paid; account limit is 2 extensions |
-| Publisher contact email | **In progress.** Must be verified in dashboard Settings before publishing |
+| Publisher account settings | **Done.** Publisher name `eladlaor`, contact email verified |
 
 One thing to confirm visually before submitting, since it is what reviewers and
 users react to most strongly: the extension should show **no** "read and change
@@ -129,7 +129,7 @@ a blanket `host_permissions` grant and should be fixed before submitting.
 
 1. ~~**Register** at the Chrome Web Store Developer Dashboard, pay the $5.~~
    Done. https://chrome.google.com/webstore/devconsole
-2. **Verify the publisher contact email** in the dashboard's Settings
+2. ~~**Verify the publisher contact email** in the dashboard's Settings~~ Done.
 3. **Host the privacy policy** — see `SUBMISSION_STEPS.md` Step 0; the repo is
    private, so GitHub Pages requires making it public first
 4. **Upload** `dist/steer-clear-1.0.0.zip` — already built, manifest at the root
