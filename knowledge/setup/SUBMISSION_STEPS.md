@@ -104,6 +104,11 @@ publishing with "Icon image is missing".
 
 **Screenshots:** upload all three from `store/screenshots/`, in this order:
 
+They are generated, not hand-made: `node tools/screenshots.mjs` loads `src/`
+in Chromium, seeds the demo persona, and writes all three at exactly 1280×800.
+Re-run it after any UI change. Use `--out <dir>` to preview without
+overwriting the committed set.
+
 1. `1-reminder.png` — the reminder page; this is the product, so it leads
 2. `2-settings.png` — settings, showing the model is comprehensible
 3. `3-patterns.png` — statistics, which also makes the local-only data story

@@ -128,6 +128,9 @@ steer-clear/
 │   ├── blocked/                # The interstitial
 │   ├── options/                # Settings UI
 │   └── icons/                  # PLACEHOLDER — see icons/README.md
+├── tools/
+│   ├── package.sh              # Builds the Web Store upload zip
+│   └── screenshots.mjs         # Regenerates store/screenshots/ at 1280×800
 ├── tests/unit/
 ├── store/                      # Web Store submission materials
 │   ├── LISTING.md
