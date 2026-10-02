@@ -1,6 +1,6 @@
 # Privacy Policy — Steer Clear
 
-**Last updated:** 2026-08-08
+**Last updated:** 2026-10-02
 
 ## Table of Contents
 
@@ -68,13 +68,14 @@ Steer Clear does not:
 
 - Make any network requests of any kind
 - Collect, transmit, or sell personal information
-- Track, log, or report your browsing history
-- Record which sites you visit, block, or bypass
+- Track, log, or report your general browsing history
+- Record any site you have not added to your own list, or any page beyond the
+  domain itself
 - Include analytics, telemetry, advertising, or third-party code
 - Read or modify the content of any web page
 
 The extension contains no remote code. Everything it runs ships inside the
-extension package and is reviewable in the source repository.
+extension package.
 
 ---
 
@@ -85,9 +86,7 @@ extension package and is reviewable in the source repository.
 | `declarativeNetRequest` | To redirect navigations to the domains you configure toward the extension's own reminder page. Rules are supplied to Chrome declaratively; the extension does not observe or receive the requests themselves. |
 | `storage` | To save your settings, and to hold temporary bypass passes for the current browser session. |
 | `alarms` | To restore a reminder automatically when a temporary bypass expires. |
-
-Steer Clear requests no host permissions and therefore cannot read page content
-on any site.
+| Site access (optional host permissions) | Chrome only lets an extension redirect a site it has access to. Steer Clear asks for access to each site individually, at the moment you add that site in settings, and holds no access to any site you have not entered. Removing a site from your list gives its access back. The extension uses this access only to redirect; it injects no scripts and does not read page content on any site. |
 
 ---
 
@@ -95,7 +94,8 @@ on any site.
 
 Your settings persist until you delete them. To remove everything:
 
-- Remove individual entries from the extension's settings page, or
+- Remove individual entries from the extension's settings page,
+- Erase your interception history from the extension's statistics page, or
 - Uninstall the extension — Chrome deletes all of its stored data automatically
 
 Uninstalling removes every trace of the extension's configuration. Because
