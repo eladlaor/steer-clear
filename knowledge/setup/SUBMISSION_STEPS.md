@@ -37,7 +37,7 @@ As of 2026-10-02:
 |---|---|
 | Developer registration ($5) | **Done.** Dashboard is live; the account has a 2-item extension limit, Steer Clear will use one |
 | Publisher account settings | **Done.** Publisher name `eladlaor`; contact email set and verified |
-| Privacy policy hosted | **Not done.** See Step 0 — the repo is private, so the original Pages plan needs a decision |
+| Privacy policy hosted | **Decided, not live yet.** Repo goes public, then GitHub Pages from `main`. URL: `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY` |
 | Package, screenshots, listing text | **Done** |
 | Submitted | No |
 
