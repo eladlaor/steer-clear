@@ -16,8 +16,9 @@
 
 Copy-paste-ready text for every field of the Chrome Web Store submission form,
 plus the permission justifications reviewers require and a draft launch post.
-Every asset is prepared; the only fields needing you are the privacy-policy URL
-(one GitHub Pages toggle) and the developer-account registration.
+Every asset is prepared; the only field needing you is the privacy-policy URL.
+Developer registration is done. See `knowledge/setup/SUBMISSION_STEPS.md` for
+current status.
 
 ---
 
@@ -222,10 +223,9 @@ Then check all three certification boxes:
 - Not being used for purposes unrelated to the item's single purpose
 - Not being used to determine creditworthiness or for lending
 
-**Privacy policy URL:** enable GitHub Pages on this repo (Settings → Pages →
-deploy from `main`, folder `/ (root)`), which serves the policy at
-`https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY`. See
-`knowledge/setup/DISTRIBUTION.md` for the full submission sequence.
+**Privacy policy URL:** the public URL where `store/PRIVACY_POLICY.md` is
+hosted. The repo is private, so GitHub Pages requires making it public first;
+options are in `knowledge/setup/SUBMISSION_STEPS.md` Step 0.
 
 ---
 

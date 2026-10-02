@@ -22,7 +22,7 @@ Load `src/` as an unpacked extension, add a domain in its settings page, then
 navigate to that domain. You get the reminder page rather than the site. Bypass
 lasts 5 minutes and dies with the browser.
 
-Unit tests cover the pure rule-building logic: `node --test tests/unit/`.
+Unit tests cover the pure logic: `node --test tests/unit/*.js`.
 
 ---
 
@@ -71,10 +71,10 @@ chrome.declarativeNetRequest.getDynamicRules().then(console.table)
 ## Run the tests
 
 ```bash
-node --test tests/unit/
+node --test tests/unit/*.js
 ```
 
-22 tests covering pattern normalization, regex generation, subdomain matching,
+90 tests covering pattern normalization, regex generation, subdomain matching,
 lookalike-domain rejection, rule construction, bypass filtering, and
 global-versus-per-site resolution. No dependencies; Node 20+.
 
@@ -142,9 +142,10 @@ See `store/LISTING.md` for copy-paste listing text, permission justifications,
 and data-use disclosures. Outstanding items requiring you:
 
 - **Icons** are present and usable; redraw for 16px legibility when convenient
-- **Host the privacy policy** at a public URL (GitHub Pages is sufficient)
-- **Capture screenshots** at 1280×800, at least one
-- **Register** as a Chrome Web Store developer ($5 one-time)
+- **Host the privacy policy** at a public URL — the repo is private, so see
+  `knowledge/setup/SUBMISSION_STEPS.md` Step 0 for options
+- **Verify the publisher contact email** in the developer dashboard
+- Screenshots and developer registration are done
 
 Expect closer-than-average review: `declarativeNetRequest` with redirect is the
 permission set traffic-hijacking extensions use. The justifications in

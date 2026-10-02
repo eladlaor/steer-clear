@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Summary](#summary)
+- [Status](#status)
 - [Step 0 — Host the privacy policy](#step-0--host-the-privacy-policy)
 - [Step 1 — Create the item](#step-1--create-the-item)
 - [Step 2 — Store listing tab](#step-2--store-listing-tab)
@@ -28,23 +29,41 @@ says "paste the X block", that is where X lives.
 
 ---
 
+## Status
+
+As of 2026-10-02:
+
+| Item | Status |
+|---|---|
+| Developer registration ($5) | **Done.** Dashboard is live; the account has a 2-item extension limit, Steer Clear will use one |
+| Publisher contact email | **In progress.** Dashboard → Settings → set and **verify** the contact email; publishing is blocked until it is verified |
+| Privacy policy hosted | **Not done.** See Step 0 — the repo is private, so the original Pages plan needs a decision |
+| Package, screenshots, listing text | **Done** |
+| Submitted | No |
+
+---
+
 ## Step 0 — Host the privacy policy
 
-The listing requires a publicly reachable privacy policy. GitHub Pages on this
-repo is the least-effort route.
+The listing requires a publicly reachable privacy policy.
 
-1. Go to the repo on GitHub → **Settings** → **Pages**
-2. Under **Build and deployment**, set Source to **Deploy from a branch**
-3. Branch: **`main`**, folder: **`/ (root)`** → **Save**
-4. Wait a minute or two for the first build
+**The repo is private, so the GitHub Pages route does not work as-is.** Pages
+on a private repo requires a paid GitHub plan. Pick one:
 
-The policy is then at:
+- **Make the repo public, then enable Pages.** Settings → General → visibility
+  → Public; then Settings → Pages → **Deploy from a branch**, branch **`main`**,
+  folder **`/ (root)`** → **Save**. The policy is then at
+  `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY`. This publishes
+  the source too, which is harmless for an extension (installed code is
+  readable anyway).
+- **Keep the repo private and publish only the policy** — a public GitHub Gist,
+  or a Google Doc shared as "anyone with the link can view". Paste the contents
+  of `store/PRIVACY_POLICY.md`.
 
-```
-https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY
-```
+Whichever you choose, the policy published must be the current
+`store/PRIVACY_POLICY.md` on `main`.
 
-**Open that URL and confirm it renders as a formatted page**, not as raw
+**Open the URL in a private window and confirm it renders as a formatted page**, not as raw
 markdown and not as a 404. A reviewer who clicks through to a broken link is a
 reviewer who rejects the submission.
 

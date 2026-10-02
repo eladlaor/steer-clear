@@ -105,15 +105,16 @@ Useful only if you are deploying to a managed fleet. Ignore it otherwise.
 
 ## What blocks a Web Store submission today
 
-Two items, both requiring you; everything else is prepared:
+As of 2026-10-02 (live status is kept in `SUBMISSION_STEPS.md`):
 
 | Item | Status |
 |---|---|
 | Icons | **Done.** All four sizes present; the 128×128 reads clearly at listing size |
 | Screenshots | **Done.** Three at 1280×800 in `store/screenshots/` |
 | Submission zip | **Done.** `dist/steer-clear-1.0.0.zip`, rebuild with `./tools/package.sh` |
-| Privacy policy hosted | **You must do this.** Repo Settings → Pages → deploy from `main` |
-| Developer registration | **You must do this.** $5 one-time |
+| Privacy policy hosted | **You must do this.** The repo is private, so Pages needs either a public repo or a paid plan; alternatives in `SUBMISSION_STEPS.md` Step 0 |
+| Developer registration | **Done.** $5 paid; account limit is 2 extensions |
+| Publisher contact email | **In progress.** Must be verified in dashboard Settings before publishing |
 
 One thing to confirm visually before submitting, since it is what reviewers and
 users react to most strongly: the extension should show **no** "read and change
@@ -126,17 +127,17 @@ a blanket `host_permissions` grant and should be fixed before submitting.
 
 ## Publishing checklist
 
-1. **Register** at the Chrome Web Store Developer Dashboard, pay the $5.
-   https://chrome.google.com/webstore/devconsole
-2. **Host the privacy policy.** Repo Settings → Pages → source: deploy from
-   branch `main`, folder `/ (root)`. The public URL for the listing field is
-   then `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY`
-3. **Upload** `dist/steer-clear-1.0.0.zip` — already built, manifest at the root
-4. **Upload the screenshots** from `store/screenshots/`, in numbered order.
+1. ~~**Register** at the Chrome Web Store Developer Dashboard, pay the $5.~~
+   Done. https://chrome.google.com/webstore/devconsole
+2. **Verify the publisher contact email** in the dashboard's Settings
+3. **Host the privacy policy** — see `SUBMISSION_STEPS.md` Step 0; the repo is
+   private, so GitHub Pages requires making it public first
+4. **Upload** `dist/steer-clear-1.0.0.zip` — already built, manifest at the root
+5. **Upload the screenshots** from `store/screenshots/`, in numbered order.
    The reminder page leads because it is the product
-5. **Fill the listing** from `store/LISTING.md` — the copy, permission
+6. **Fill the listing** from `store/LISTING.md` — the copy, permission
    justifications, and data-use disclosures are written to be pasted verbatim
-6. **Set visibility to Public** and submit
+7. **Set visibility to Public** and submit
 
 Rebuild the zip after any code change with `./tools/package.sh`.
 
