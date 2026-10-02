@@ -31,7 +31,7 @@ says "paste the X block", that is where X lives.
 
 ## Status
 
-As of 2026-10-02:
+As of 2026-10-02 — **submitted for review**:
 
 | Item | Status |
 |---|---|
@@ -39,7 +39,7 @@ As of 2026-10-02:
 | Publisher account settings | **Done.** Publisher name `eladlaor`; contact email set and verified |
 | Privacy policy hosted | **Done.** Repo is public; GitHub Pages serves `main` at `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY` (verified rendering 2026-10-02) |
 | Package, screenshots, listing text | **Done** |
-| Submitted | No |
+| Submitted | **Yes, 2026-10-02.** Version 1.0.0, item ID `fooahacimdgjcfoofpijkpmgiaghinbn`. Awaiting review. If it was set to publish later, it must be published within 30 days of passing review or the staged release expires |
 
 ---
 
