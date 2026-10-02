@@ -142,9 +142,9 @@ See `store/LISTING.md` for copy-paste listing text, permission justifications,
 and data-use disclosures. Outstanding items requiring you:
 
 - **Icons** are present and usable; redraw for 16px legibility when convenient
-- **Host the privacy policy** at a public URL — the repo is private, so see
-  `knowledge/setup/SUBMISSION_STEPS.md` Step 0 for options
-- Screenshots, developer registration, and publisher settings are done
+- Screenshots, developer registration, publisher settings, and the
+  [hosted privacy policy](https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY)
+  are done — follow `knowledge/setup/SUBMISSION_STEPS.md` to submit
 
 Expect closer-than-average review: `declarativeNetRequest` with redirect is the
 permission set traffic-hijacking extensions use. The justifications in

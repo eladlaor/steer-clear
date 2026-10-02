@@ -112,7 +112,7 @@ As of 2026-10-02 (live status is kept in `SUBMISSION_STEPS.md`):
 | Icons | **Done.** All four sizes present; the 128×128 reads clearly at listing size |
 | Screenshots | **Done.** Three at 1280×800 in `store/screenshots/` |
 | Submission zip | **Done.** `dist/steer-clear-1.0.0.zip`, rebuild with `./tools/package.sh` |
-| Privacy policy hosted | **Decided.** Make the repo public, then enable Pages from `main` (`SUBMISSION_STEPS.md` Step 0) |
+| Privacy policy hosted | **Done.** Live at `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY` |
 | Developer registration | **Done.** $5 paid; account limit is 2 extensions |
 | Publisher account settings | **Done.** Publisher name `eladlaor`, contact email verified |
 
@@ -130,8 +130,7 @@ a blanket `host_permissions` grant and should be fixed before submitting.
 1. ~~**Register** at the Chrome Web Store Developer Dashboard, pay the $5.~~
    Done. https://chrome.google.com/webstore/devconsole
 2. ~~**Verify the publisher contact email** in the dashboard's Settings~~ Done.
-3. **Host the privacy policy** — see `SUBMISSION_STEPS.md` Step 0; the repo is
-   private, so GitHub Pages requires making it public first
+3. ~~**Host the privacy policy**~~ Done — repo public, Pages from `main`
 4. **Upload** `dist/steer-clear-1.0.0.zip` — already built, manifest at the root
 5. **Upload the screenshots** from `store/screenshots/`, in numbered order.
    The reminder page leads because it is the product
