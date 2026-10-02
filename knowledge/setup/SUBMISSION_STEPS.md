@@ -98,7 +98,9 @@ filled in any order, but all must be complete before Submit unlocks.
 | Category | `Productivity` |
 | Language | `English` |
 
-**Icon:** already inside the uploaded package; no separate upload needed.
+**Store icon:** upload `src/icons/icon-128.png` separately. The icon inside the
+package is not used for the listing; without this upload the dashboard blocks
+publishing with "Icon image is missing".
 
 **Screenshots:** upload all three from `store/screenshots/`, in this order:
 

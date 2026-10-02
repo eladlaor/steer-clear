@@ -235,7 +235,7 @@ https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY
 
 | Asset | Spec | Status |
 |---|---|---|
-| Icon | 128×128 PNG | Present — reads clearly at listing size |
+| Store icon | 128×128 PNG | `src/icons/icon-128.png` — must be uploaded separately on the Store listing tab |
 | Toolbar icons | 16/32/48 PNG | Present — 16px is muddy; redraw when convenient |
 | Screenshot | 1280×800 or 640×400 PNG, at least 1, up to 5 | Present — three in `store/screenshots/`, upload in numbered order |
 | Small promo tile | 440×280 PNG | Optional |
