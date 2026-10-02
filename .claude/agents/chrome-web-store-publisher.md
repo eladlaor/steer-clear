@@ -130,9 +130,38 @@ The form will not submit without a privacy policy URL.
 - **Store icon**: a 128×128 PNG, **uploaded separately on the Store listing
   tab**. The icon inside the package is *not* used for the listing; without
   the separate upload the dashboard blocks with "Icon image is missing".
-- **Screenshots**: at least one, 1280×800 or 640×400 PNG, up to 5. Order them
-  so the core experience comes first. Missing screenshots block publishing
-  ("At least one screenshot or video is required").
+- **Screenshots**: at least one, 1280×800 or 640×400 PNG, up to 5. Missing
+  screenshots block publishing ("At least one screenshot or video is
+  required"). Produce them with a script, never by hand. Copy the method from
+  `tools/screenshots.mjs`:
+  - **Load the real unpacked extension** in Chromium with Playwright
+    (`launchPersistentContext` with `--load-extension`, `channel: 'chromium'`
+    so headless mode supports extensions), and capture the extension's own
+    pages at `chrome-extension://<id>/...`. That way the listing shows the
+    code that ships, not a mockup.
+  - **Seed believable demo data through the extension's own modules**, e.g.
+    by importing its config and stats helpers inside an extension page, so the
+    stored shape is exactly what the code writes. Use one consistent persona
+    across all shots: the same sites, the same note, and a seeded PRNG for
+    histories, so reruns give the same charts.
+  - **Exactly 1280×800**: set the viewport and `deviceScaleFactor: 1`. Check
+    the result with `file *.png`.
+  - **Name files `N-what.png`** (`1-reminder.png`, `2-settings.png`,
+    `3-patterns.png`). The number is the upload order. Put the core experience
+    first, then the settings (shows the model is understandable), then
+    anything that makes the privacy story concrete.
+  - **Frame each page on purpose**: zoom per page (CSS `zoom`) so the telling
+    content fits above the fold. Don't zoom a vh-centred page, because zoom
+    breaks the centring.
+  - **Show the state a real user lives in.** Pre-grant UI such as "needs
+    permission" banners can't be cleared by automation, because Chrome's
+    prompt can't be clicked. Stub only the check, only in the capture
+    browser (e.g. `chrome.permissions.contains`).
+  - **Watch for pages that record what they show.** If opening a page logs an
+    event (as the interstitial does), capture the stats page first.
+  - **Preview with `--out <scratch dir>`** and look at every image before
+    replacing the committed set, especially once screenshots have been
+    uploaded to the store.
 - Promo tiles (440×280, 1400×560) are optional; skip them for a first
   submission.
 
