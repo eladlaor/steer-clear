@@ -13,6 +13,7 @@ rather be, and an easy way through when you actually mean it.
 - [How it works](#how-it-works)
 - [Project layout](#project-layout)
 - [Before publishing](#before-publishing)
+- [License](#license)
 
 ---
 
@@ -149,3 +150,9 @@ and data-use disclosures. Outstanding items requiring you:
 Expect closer-than-average review: `declarativeNetRequest` with redirect is the
 permission set traffic-hijacking extensions use. The justifications in
 `store/LISTING.md` are written to address that directly.
+
+---
+
+## License
+
+[MIT](LICENSE)
