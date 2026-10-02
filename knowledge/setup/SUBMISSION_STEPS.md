@@ -37,7 +37,7 @@ As of 2026-10-02:
 |---|---|
 | Developer registration ($5) | **Done.** Dashboard is live; the account has a 2-item extension limit, Steer Clear will use one |
 | Publisher account settings | **Done.** Publisher name `eladlaor`; contact email set and verified |
-| Privacy policy hosted | **Decided, not live yet.** Repo goes public, then GitHub Pages from `main`. URL: `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY` |
+| Privacy policy hosted | **Done.** Repo is public; GitHub Pages serves `main` at `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY` (verified rendering 2026-10-02) |
 | Package, screenshots, listing text | **Done** |
 | Submitted | No |
 
@@ -45,10 +45,14 @@ As of 2026-10-02:
 
 ## Step 0 — Host the privacy policy
 
-The listing requires a publicly reachable privacy policy.
+**Done.** The policy is live at
+`https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY`, served by GitHub
+Pages from `main`. Any edit to `store/PRIVACY_POLICY.md` merged to `main` goes
+live within a couple of minutes. The setup is kept below for reference.
 
-**The repo is private, so the GitHub Pages route does not work as-is.** Pages
-on a private repo requires a paid GitHub plan. Pick one:
+The listing requires a publicly reachable privacy policy. Pages on a private
+repo requires a paid GitHub plan, which is why the repo was made public. The
+options were:
 
 - **Make the repo public, then enable Pages.** Settings → General → visibility
   → Public; then Settings → Pages → **Deploy from a branch**, branch **`main`**,
