@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Reproducible generation of Web Store screenshots at 1280×800.
+
+## [1.0.0] - 2026-10-02
+
+### Added
+
 - Redirect of user-configured domains to a local reminder page instead of the
   requested site, via declarativeNetRequest regex rules.
 - Settings page for managing blocked domains, with a global destination and
@@ -22,9 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Chrome Web Store submission materials: listing copy, permission
   justifications, data-use disclosures, and privacy policy.
 - Placeholder extension icons with a design brief for replacements.
-
-### Added
-
 - Interception statistics: each time a site is intercepted, the configured
   domain and a timestamp are recorded locally. A statistics page shows lifetime
   and 7-day totals, a per-site breakdown, hour-of-day and day-of-week
@@ -60,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `optional_host_permissions`, replacing the blanket all-sites permission. Sites
   without granted access are inert and say so in settings, with a button to
   grant.
+- Privacy-policy contact address is now a personal address rather than a work one.
 
 ### Fixed
 
@@ -84,6 +88,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   permissions, which the manifest did not declare. Chrome installed the rules
   and silently ignored them. Declared `http://*/*` and `https://*/*`.
 
-### Changed
-
-- Privacy-policy contact address is now a personal address rather than a work one.
+[Unreleased]: https://github.com/eladlaor/steer-clear/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/eladlaor/steer-clear/releases/tag/v1.0.0

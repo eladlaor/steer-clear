@@ -142,17 +142,18 @@ steer-clear/
 
 ## Before publishing
 
-See `store/LISTING.md` for copy-paste listing text, permission justifications,
-and data-use disclosures. Outstanding items requiring you:
+Version 1.0.0 passed review and is
+[live on the Chrome Web Store](https://chromewebstore.google.com/detail/steer-clear/fooahacimdgjcfoofpijkpmgiaghinbn).
+The public launch has not been announced yet. Release status is tracked in
+`knowledge/setup/SUBMISSION_STEPS.md`; listing copy, permission justifications,
+and data-use disclosures live in `store/LISTING.md`.
 
-- **Icons** are present and usable; redraw for 16px legibility when convenient
-- Screenshots, developer registration, publisher settings, and the
-  [hosted privacy policy](https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY)
-  are done — follow `knowledge/setup/SUBMISSION_STEPS.md` to submit
+Outstanding: **icons** are usable but should be redrawn for 16px legibility.
 
-Expect closer-than-average review: `declarativeNetRequest` with redirect is the
-permission set traffic-hijacking extensions use. The justifications in
-`store/LISTING.md` are written to address that directly.
+To ship an update: bump `version` in `src/manifest.json`, rebuild with
+`./tools/package.sh`, and upload the new zip. Expect closer-than-average review:
+`declarativeNetRequest` with redirect is the permission set traffic-hijacking
+extensions use.
 
 ---
 

@@ -31,15 +31,17 @@ says "paste the X block", that is where X lives.
 
 ## Status
 
-As of 2026-10-02 — **submitted for review**:
+As of 2026-10-16 — **approved and live on the Web Store; not yet announced**:
 
 | Item | Status |
 |---|---|
-| Developer registration ($5) | **Done.** Dashboard is live; the account has a 2-item extension limit, Steer Clear will use one |
+| Developer registration ($5) | **Done.** Dashboard is live; the account has a 2-item extension limit, Steer Clear uses one |
 | Publisher account settings | **Done.** Publisher name `eladlaor`; contact email set and verified |
 | Privacy policy hosted | **Done.** Repo is public; GitHub Pages serves `main` at `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY` (verified rendering 2026-10-02) |
 | Package, screenshots, listing text | **Done** |
-| Submitted | **Yes, 2026-10-02.** Version 1.0.0, item ID `fooahacimdgjcfoofpijkpmgiaghinbn`. Awaiting review. If it was set to publish later, it must be published within 30 days of passing review or the staged release expires |
+| Submitted | **Done, 2026-10-02.** Version 1.0.0, item ID `fooahacimdgjcfoofpijkpmgiaghinbn` |
+| Review | **Passed.** Listing is live at `https://chromewebstore.google.com/detail/steer-clear/fooahacimdgjcfoofpijkpmgiaghinbn` (verified 2026-10-15) |
+| Public launch announcement | **Not yet.** Held pending competitive research; the draft is in `store/LISTING.md` |
 
 ---
 
@@ -191,8 +193,9 @@ above cover all of it.
   is the permission set traffic-hijacking extensions use, and a first submission
   from a new developer account draws more scrutiny. Days to a couple of weeks is
   normal. Silence is not a bad sign.
-- **Do not post the launch announcement yet.** The draft in `store/LISTING.md`
-  is ready, but pointing people at a pending listing wastes the launch.
+- **Do not post the launch announcement until the listing is live.** The draft
+  in `store/LISTING.md` is ready, but pointing people at a pending listing
+  wastes the launch.
 - **You will get an email** on approval or rejection.
 
 ---
