@@ -18,15 +18,11 @@
  *         machine without one: `npm i -g playwright && npx playwright install chromium`.
  */
 
-import { execSync } from 'node:child_process';
-import { createRequire } from 'node:module';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const EXTENSION_DIR = path.join(ROOT, 'src');
+import { ROOT, launchExtension, seedDemoData } from './extension_harness.mjs';
+
 const DEFAULT_OUT_DIR = path.join(ROOT, 'store', 'screenshots');
 
 /** `--out <dir>` writes elsewhere, for a preview that leaves the committed set alone. */
@@ -61,24 +57,6 @@ const HISTORY = {
   activeWeekdays: [0, 1, 2, 3, 4], // Sun–Thu
   hourWeights: { 9: 3, 10: 6, 11: 7, 13: 2, 14: 2, 15: 1, 18: 2, 19: 2, 20: 1 },
 };
-
-function loadPlaywright() {
-  const require = createRequire(import.meta.url);
-  const searchPaths = [ROOT];
-  try {
-    searchPaths.push(execSync('npm root -g', { encoding: 'utf8' }).trim());
-  } catch {
-    // No global npm; the local lookup is all we have.
-  }
-  try {
-    return require(require.resolve('playwright', { paths: searchPaths }));
-  } catch {
-    throw new Error(
-      'Playwright not found. Install it with `npm i -g playwright` ' +
-        'and `npx playwright install chromium`.'
-    );
-  }
-}
 
 /** Small deterministic PRNG (mulberry32). */
 function rng(seed) {
@@ -121,55 +99,21 @@ function buildEvents(now) {
 }
 
 async function main() {
-  const { chromium } = loadPlaywright();
-  const profileDir = mkdtempSync(path.join(tmpdir(), 'steer-clear-shots-'));
-
-  const context = await chromium.launchPersistentContext(profileDir, {
-    channel: 'chromium', // new headless mode, which supports extensions
+  const { context, base, close } = await launchExtension({
     viewport: VIEWPORT,
     deviceScaleFactor: 1,
-    args: [
-      `--disable-extensions-except=${EXTENSION_DIR}`,
-      `--load-extension=${EXTENSION_DIR}`,
-    ],
   });
 
   try {
-    let [worker] = context.serviceWorkers();
-    if (!worker) worker = await context.waitForEvent('serviceworker');
-    const extensionId = new URL(worker.url()).host;
-    const base = `chrome-extension://${extensionId}`;
-
-    // The options page opens itself on install; close it so it can't race the seed.
-    for (const p of context.pages()) await p.close();
-
     const now = Date.now();
-    const events = buildEvents(now);
-
-    // Seed through the extension's own modules so the stored shape is exactly
-    // what the shipped code writes.
     const page = await context.newPage();
     await page.goto(`${base}/options/options.html`);
-    await page.evaluate(
-      async ({ sites, note, events }) => {
-        const { defaultConfig, createSite } = await import('/background/config.js');
-        const { emptyStats, recordInterception } = await import('/background/stats.js');
-
-        const config = defaultConfig();
-        config.globalTargetName = 'Wikipedia';
-        config.globalNote = note;
-        config.sites = sites.map((pattern) => createSite(pattern));
-
-        let stats = emptyStats();
-        for (const { host, at } of events) stats = recordInterception(stats, host, at);
-
-        await chrome.storage.local.clear();
-        await chrome.storage.sync.clear();
-        await chrome.storage.sync.set({ config });
-        await chrome.storage.local.set({ stats });
-      },
-      { sites: DEMO_SITES, note: DEMO_NOTE, events }
-    );
+    await seedDemoData(page, {
+      targetName: 'Wikipedia',
+      note: DEMO_NOTE,
+      sites: DEMO_SITES.map((pattern) => ({ pattern })),
+      events: buildEvents(now),
+    });
 
     // A real user grants each site's access through Chrome's own prompt, which
     // automation cannot click. Report the demo sites as granted so the settings
@@ -201,8 +145,7 @@ async function main() {
     const from = encodeURIComponent('https://www.ynet.co.il/news');
     await shoot(`${base}/blocked/blocked.html?from=${from}`, '1-reminder.png', ZOOM.reminder);
   } finally {
-    await context.close();
-    rmSync(profileDir, { recursive: true, force: true });
+    await close();
   }
 }
 

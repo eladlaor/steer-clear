@@ -1,52 +1,10 @@
 /* Steer Clear options page. */
 
-:root {
-  --bg: #f7f6f3;
-  --card: #ffffff;
-  --ink: #1c1b19;
-  --ink-soft: #6b6862;
-  --line: #e4e1da;
-  --accent: #2f6f5e;
-  --accent-ink: #ffffff;
-  --danger: #a33a2f;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16151a;
-    --card: #201f26;
-    --ink: #ececef;
-    --ink-soft: #9b98a3;
-    --line: #32313a;
-    --accent: #6fbfa5;
-    --accent-ink: #10221c;
-    --danger: #e08a7e;
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/*
- * The hidden attribute must win over any class that sets display.
- * A class selector outranks the browser's built-in [hidden] { display: none },
- * so `display: flex` on a block JS hides with `.hidden = true` silently keeps
- * it visible. !important is the correct tool here: this is a global invariant,
- * not a specificity skirmish.
- */
-[hidden] {
-  display: none !important;
-}
+@import url("../shared/tokens.css");
+@import url("../shared/base.css");
 
 body {
-  margin: 0;
   padding: 40px 20px 80px;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", sans-serif;
-  line-height: 1.55;
 }
 
 .wrap {
@@ -106,8 +64,11 @@ body {
 
 input[type="url"],
 input[type="text"],
+input[type="number"],
+select,
 textarea {
   width: 100%;
+  min-height: var(--target-min);
   padding: 9px 12px;
   background: var(--bg);
   border: 1px solid var(--line);
@@ -118,7 +79,24 @@ textarea {
   resize: vertical;
 }
 
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* A checkbox's tap target is its label, so the label gets the full height. */
+.label:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--target-min);
+  margin-bottom: 0;
+}
+
 input:focus,
+select:focus,
 textarea:focus {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
@@ -143,24 +121,14 @@ textarea:focus {
   margin-bottom: 12px;
 }
 
+@media (max-width: 480px) {
+  .add-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .btn {
-  padding: 9px 18px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 0.9375rem;
-  cursor: pointer;
   white-space: nowrap;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 600;
-}
-
-.btn-primary:hover {
-  filter: brightness(1.07);
 }
 
 .sites {
@@ -178,14 +146,28 @@ textarea:focus {
   border-top: none;
 }
 
+/* Wraps on a phone: name and pattern stay on the first line, actions move down. */
 .site-main {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
 }
 
+/* The enable checkbox sits in a label sized as a full tap target. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--target-min);
+  min-height: var(--target-min);
+}
+
+/* Grows to fill the row, but never below 8rem: on a phone the actions wrap
+   to the next line instead of squeezing the domain into a column. */
 .site-pattern {
-  flex: 1;
+  flex: 1 1 8rem;
+  min-width: 0;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
@@ -196,7 +178,10 @@ textarea:focus {
 }
 
 .link {
-  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  padding: 0 8px;
   background: none;
   border: none;
   color: var(--ink-soft);
@@ -223,6 +208,7 @@ textarea:focus {
 
 .site-detail .label {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 7px;
   font-weight: 400;
@@ -245,18 +231,6 @@ textarea:focus {
   font-size: 0.875rem;
   color: var(--ink-soft);
   text-align: center;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 /* Site display name and permission banner -------------------------------- */
@@ -288,6 +262,30 @@ textarea:focus {
 }
 
 .btn-small {
-  padding: 0.3rem 0.7rem;
+  padding: 0.3rem 0.9rem;
   font-size: 0.8125rem;
+}
+
+/* Phone width ------------------------------------------------------------ */
+
+@media (max-width: 480px) {
+  body {
+    padding: 24px 16px 48px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .add-form {
+    padding: 12px;
+  }
+
+  .site-detail {
+    padding: 12px;
+  }
+
+  .add-form .btn-primary {
+    width: 100%;
+  }
 }

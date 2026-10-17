@@ -1,0 +1,31 @@
+/* Steer Clear colour tokens, shared by every page.
+   Pages follow the system colour scheme; there is no theme setting. */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #f7f6f3;
+  --card: #ffffff;
+  --ink: #1c1b19;
+  --ink-soft: #6b6862;
+  --line: #e4e1da;
+  --accent: #2f6f5e;
+  --accent-ink: #ffffff;
+  --danger: #a33a2f;
+
+  /* Smallest tap target, in CSS px. Matches MIN_TOUCH_TARGET_PX in tools/. */
+  --target-min: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16151a;
+    --card: #201f26;
+    --ink: #ececef;
+    --ink-soft: #9b98a3;
+    --line: #32313a;
+    --accent: #6fbfa5;
+    --accent-ink: #10221c;
+    --danger: #e08a7e;
+  }
+}

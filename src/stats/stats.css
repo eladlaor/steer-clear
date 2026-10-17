@@ -1,58 +1,18 @@
 /* Steer Clear statistics page. */
 
-:root {
-  --bg: #f7f6f3;
-  --card: #ffffff;
-  --ink: #1c1b19;
-  --ink-soft: #6b6862;
-  --line: #e4e1da;
-  --accent: #2f6f5e;
-  --accent-ink: #ffffff;
-  --danger: #a33a2f;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16151a;
-    --card: #201f26;
-    --ink: #ececef;
-    --ink-soft: #9b98a3;
-    --line: #32313a;
-    --accent: #6fbfa5;
-    --accent-ink: #10221c;
-    --danger: #e08a7e;
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/*
- * The hidden attribute must win over any class that sets display.
- * A class selector outranks the browser's built-in [hidden] { display: none },
- * so `display: flex` on a block JS hides with `.hidden = true` silently keeps
- * it visible. !important is the correct tool here: this is a global invariant,
- * not a specificity skirmish.
- */
-[hidden] {
-  display: none !important;
-}
+@import url("../shared/tokens.css");
+@import url("../shared/base.css");
 
 body {
   /*
-   * This page is both a toolbar popup and a standalone tab. A popup sizes to
-   * its content and would otherwise render as a narrow column; the min-width
-   * fixes that without affecting the tab, where max-width on .wrap governs.
+   * This page is both a toolbar popup and a standalone tab. A desktop popup
+   * sizes to its content and would otherwise render as a narrow column; the
+   * min-width fixes that without affecting the tab, where max-width on .wrap
+   * governs. It is the phone width, not wider: Firefox for Android opens the
+   * popup as a full tab, where anything wider scrolls sideways.
    */
-  min-width: 440px;
-  margin: 0;
+  min-width: 360px;
   padding: 40px 20px 80px;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", sans-serif;
-  line-height: 1.55;
 }
 
 .wrap {
@@ -91,7 +51,7 @@ h2:first-child {
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -174,7 +134,8 @@ h2:first-child {
 
 .hours {
   display: grid;
-  grid-template-columns: repeat(24, 1fr);
+  /* minmax(0, …) lets 24 columns shrink to any width instead of overflowing. */
+  grid-template-columns: repeat(24, minmax(0, 1fr));
   align-items: end;
   gap: 2px;
   height: 120px;
@@ -220,36 +181,6 @@ h2:first-child {
   background: var(--accent);
 }
 
-/* Buttons and destructive actions ---------------------------------------- */
-
-.btn {
-  padding: 9px 18px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 0.9375rem;
-  cursor: pointer;
-}
-
-.btn-ghost {
-  background: transparent;
-  border-color: var(--line);
-  color: var(--ink-soft);
-}
-
-.btn-ghost:hover {
-  border-color: var(--ink-soft);
-}
-
-.btn.danger {
-  color: var(--danger);
-  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
-}
-
-.btn.danger:hover {
-  border-color: var(--danger);
-}
-
 .status {
   min-height: 1.25rem;
   margin: 10px 0 0;
@@ -262,6 +193,22 @@ h2:first-child {
   font-size: 0.875rem;
 }
 
-.footer a {
-  color: var(--ink-soft);
+/* Phone width ------------------------------------------------------------ */
+
+@media (max-width: 480px) {
+  body {
+    padding: 24px 16px 48px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .bar-row {
+    grid-template-columns: minmax(64px, 96px) 1fr auto;
+  }
+
+  .hours {
+    gap: 1px;
+  }
 }

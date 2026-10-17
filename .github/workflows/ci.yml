@@ -1,0 +1,50 @@
+# Unit tests, both store builds, the Firefox lint and the phone-width audit.
+# No secrets and no publishing: this only checks, and keeps the zips as
+# workflow artifacts. Tool versions are pinned and recorded in
+# knowledge/usage_guides/DEVOPS_GUIDE.md; bump them there and here together.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  WEB_EXT_VERSION: 10.7.0
+  PLAYWRIGHT_VERSION: 1.64.0
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Unit tests
+        run: node --test tests/unit/*.js
+
+      - name: Build both packages
+        run: node tools/build.mjs
+
+      - name: Lint the Firefox package
+        run: npx --yes "web-ext@${WEB_EXT_VERSION}" lint --source-dir dist/firefox --warnings-as-errors
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --global "playwright@${PLAYWRIGHT_VERSION}"
+          playwright install --with-deps chromium
+
+      - name: Phone-width audit
+        run: node tools/mobile_audit.mjs
+
+      - name: Keep the store zips
+        uses: actions/upload-artifact@v4
+        with:
+          name: steer-clear-packages
+          path: dist/*.zip
+          if-no-files-found: error
