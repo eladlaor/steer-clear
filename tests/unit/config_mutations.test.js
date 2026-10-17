@@ -168,6 +168,21 @@ test('planRemoveSite removes a damaged site item the user named', () => {
   assert.throws(() => planRemoveSite(items, { siteId: 'nope' }), /no listed site/);
 });
 
+test('removing the last site item before the schema marker synced never resurrects legacy sites', () => {
+  // Sync can deliver a site item before the marker. Removing that last item
+  // without writing the marker would flip reads back to the legacy config.
+  const partial = { config: legacy, [siteKey('a')]: newSite('a.com', { id: 'a', order: 0, now: NOW }) };
+  const plan = planRemoveSite(partial, { siteId: 'a' });
+  assert.deepEqual(plan.set, { schema: SCHEMA_VERSION });
+  assert.deepEqual(plan.remove, [siteKey('a')]);
+  assert.deepEqual(assembleConfig(apply(partial, plan)).sites, []);
+
+  const damaged = { config: legacy, [siteKey('bad')]: { broken: true } };
+  const damagedPlan = planRemoveSite(damaged, { siteId: 'bad' });
+  assert.deepEqual(damagedPlan, { set: { schema: SCHEMA_VERSION }, remove: [siteKey('bad')] });
+  assert.deepEqual(assembleConfig(apply(damaged, damagedPlan)).sites, []);
+});
+
 test('planRemoveSite on legacy data materializes the remaining sites only', () => {
   const plan = planRemoveSite({ config: legacy }, { siteId: 'old1' });
   assert.deepEqual(Object.keys(plan.set).sort(), ['schema', siteKey('old2')].sort());

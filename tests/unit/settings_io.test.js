@@ -91,6 +91,21 @@ test('buildExport carries no statistics, lifecycle or bypasses at any depth', ()
   }
 });
 
+test('buildExport carries only site fields, even when a site record holds more', () => {
+  const config = v3Config();
+  config.sites[0] = { ...config.sites[0], stats: { totals: 3 }, bypasses: {} };
+  const [site] = buildExport(config, '2.0.0', NOW).config.sites;
+  assert.equal('stats' in site, false);
+  assert.equal('bypasses' in site, false);
+  assert.equal(site.id, 'r');
+});
+
+test('an imported site with a field that is not a site field is refused, naming it', () => {
+  const config = v3Config();
+  config.sites[1] = { ...config.sites[1], stats: { totals: 3 } };
+  rejects(envelope(config), /sites\[1\]\.stats is not a site field/);
+});
+
 test('buildExport does not share objects with the live config', () => {
   const config = v3Config();
   const out = buildExport(config, '2.0.0', NOW);

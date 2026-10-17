@@ -34,22 +34,38 @@ test('the three store listings exist, and no other listing file is unchecked', (
   assert.deepEqual(found.sort(), [...LISTING_FILES].sort());
 });
 
+/**
+ * The store description itself: the first fenced block under the
+ * "Description" or "Detailed description" heading. The rules apply to the
+ * text users read, not to the notes around it.
+ *
+ * @param {string} text A listing file.
+ * @returns {string}
+ */
+function descriptionBlock(text) {
+  const match = text.match(/^### (?:Detailed )?[Dd]escription\n+```\n([\s\S]*?)\n```/m);
+  assert.ok(match, 'no "### Description" heading followed by a fenced block');
+  return match[1];
+}
+
 for (const [name, text] of listings) {
+  const description = descriptionBlock(text);
+
   test(`${name} leads with the benefit line`, () => {
-    assert.ok(text.includes(BENEFIT_LINE), 'benefit line missing');
+    assert.equal(description.split('\n')[0], BENEFIT_LINE);
   });
 
   test(`${name} uses the real search phrases and names its user`, () => {
-    for (const phrase of SEARCH_PHRASES) assert.ok(text.includes(phrase), `missing "${phrase}"`);
-    assert.ok(text.includes(TARGET_USER), 'target user missing');
+    for (const phrase of SEARCH_PHRASES) assert.ok(description.includes(phrase), `missing "${phrase}"`);
+    assert.ok(description.includes(TARGET_USER), 'target user missing');
   });
 
   test(`${name} says it is not a hard lock`, () => {
-    assert.ok(text.includes(NOT_FOR_LINE));
+    assert.ok(description.includes(NOT_FOR_LINE));
   });
 
   test(`${name} makes the comparison in its exact wording only`, () => {
-    assert.ok(text.includes(COMPARISON), 'comparison sentence missing');
+    assert.ok(description.includes(COMPARISON), 'comparison sentence missing');
     // Intention also asks per site, so Steer Clear is never "the only" or "the first".
     assert.doesNotMatch(text, /\bthe (only|first)\b[^.\n]*\b(extension|blocker|one)\b/i);
   });

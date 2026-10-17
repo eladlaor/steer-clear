@@ -408,3 +408,9 @@ export const EXPORT_FILE_EXTENSION = '.json';
 export const EXPORT_MIME_TYPE = 'application/json';
 /** Indentation of the exported JSON, so the file is readable and editable by hand. */
 export const EXPORT_JSON_INDENT = 2;
+/**
+ * How long the export's object URL stays alive after the click, in ms.
+ * Revoking it at once can cancel the download in Firefox, which starts it
+ * asynchronously.
+ */
+export const EXPORT_URL_REVOKE_DELAY_MS = 60000;

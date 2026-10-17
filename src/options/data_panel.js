@@ -9,7 +9,13 @@
  * host access, which "Grant all" asks for in one prompt.
  */
 
-import { EXPORT_JSON_INDENT, EXPORT_MIME_TYPE, MAX_IMPORT_BYTES, MessageType } from '../constants.js';
+import {
+  EXPORT_JSON_INDENT,
+  EXPORT_MIME_TYPE,
+  EXPORT_URL_REVOKE_DELAY_MS,
+  MAX_IMPORT_BYTES,
+  MessageType,
+} from '../constants.js';
 import { readConfig } from '../background/config.js';
 import { originPatternsFor } from '../background/permissions.js';
 import { buildExport, exportFileName, importedHosts, parseImport } from '../background/settings_io.js';
@@ -46,8 +52,13 @@ export function createDataPanel(dom) {
       const link = document.createElement('a');
       link.href = url;
       link.download = exportFileName(now);
+      // Firefox starts the download after click() returns and may ignore a
+      // detached link, so the link is attached for the click and the URL is
+      // revoked only once the download has had time to start.
+      document.body.append(link);
       link.click();
-      URL.revokeObjectURL(url);
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), EXPORT_URL_REVOKE_DELAY_MS);
       console.info('[steer-clear] settings exported', { siteCount: config.sites.length, file: link.download });
       dom.setStatus(exportedText(config.sites.length));
     } catch (error) {

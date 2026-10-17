@@ -25,7 +25,7 @@ import {
 } from '../constants.js';
 import { migrateLegacyConfig } from './config_migration.js';
 import { normalizePattern } from './rules.js';
-import { validateSettings, validateSite } from './settings_schema.js';
+import { SITE_FIELDS, validateSettings, validateSite } from './settings_schema.js';
 
 const encoder = new TextEncoder();
 
@@ -63,7 +63,7 @@ export function buildExport(config, extensionVersion, now) {
     config: structuredClone({
       schemaVersion: SCHEMA_VERSION,
       defaults: config.defaults,
-      sites: config.sites,
+      sites: config.sites.map((site) => Object.fromEntries(SITE_FIELDS.map((field) => [field, site[field]]))),
     }),
   };
 }
@@ -104,6 +104,10 @@ export function validateImportedConfig(config) {
   const seen = new Map();
   config.sites.forEach((site, index) => {
     validateSite(site, `sites[${index}]`);
+    const unknown = Object.keys(site).find((key) => !SITE_FIELDS.includes(key));
+    if (unknown !== undefined) {
+      throw new Error(`sites[${index}].${unknown} is not a site field`);
+    }
     if (seen.has(site.id)) {
       throw new Error(`sites[${index}].id "${site.id}" repeats sites[${seen.get(site.id)}].id`);
     }

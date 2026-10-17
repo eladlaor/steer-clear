@@ -50,13 +50,16 @@ export function newSite(host, { id, order, now, reason }) {
  * The current config, plus the items the first write must also carry.
  *
  * @param {object} items Every sync item.
- * @returns {{config: object, base: object}} `base` is `{}` in v3 sites mode;
+ * @returns {{config: object, base: object}} `base` is `{}` in v3 sites mode
+ *   with the marker; the marker alone when site items arrived before it (so
+ *   removing the last item never flips reads back to the legacy config);
  *   otherwise the schema marker and every legacy site as its own item.
  */
 function startPlan(items) {
   const config = assembleConfig(items);
   if (isV3SitesMode(items)) {
-    return { config, base: {} };
+    const hasMarker = items[StorageKey.SCHEMA_MARKER] === SCHEMA_VERSION;
+    return { config, base: hasMarker ? {} : { [StorageKey.SCHEMA_MARKER]: SCHEMA_VERSION } };
   }
   const base = { [StorageKey.SCHEMA_MARKER]: SCHEMA_VERSION };
   for (const site of config.sites) base[siteKey(site.id)] = site;
@@ -171,7 +174,7 @@ export function planRemoveSite(items, { siteId }) {
   // A damaged item is not listed, but the settings page names it and offers
   // to remove it; this is the only way to clear it.
   if (config.invalidSites.some((entry) => entry.key === siteKey(siteId))) {
-    return { set: {}, remove: [siteKey(siteId)] };
+    return { set: { ...base }, remove: [siteKey(siteId)] };
   }
   findSite(config, siteId);
   const set = { ...base };

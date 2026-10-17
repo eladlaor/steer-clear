@@ -101,7 +101,7 @@ chrome.declarativeNetRequest.getDynamicRules().then(console.table)
 node --test tests/unit/*.js
 ```
 
-536 tests covering pattern normalization, regex generation, subdomain matching,
+539 tests covering pattern normalization, regex generation, subdomain matching,
 lookalike-domain rejection, rule construction (schedules and snooze included),
 schedules, outcome-tagged statistics and progress figures, the daily
 allowance, the settings schema, legacy

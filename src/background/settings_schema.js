@@ -181,6 +181,22 @@ export function validateSettings(settings, { partial = false, path = 'settings' 
 }
 
 /**
+ * The fields of a site record. Stored items are read leniently (a later
+ * release may add a field), but an import file and an export carry exactly
+ * these.
+ */
+export const SITE_FIELDS = Object.freeze([
+  'id',
+  'pattern',
+  'displayName',
+  'includeSubdomains',
+  'enabled',
+  'addedAt',
+  'order',
+  'overrides',
+]);
+
+/**
  * Validate one stored site record.
  *
  * @param {object} site
