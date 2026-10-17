@@ -15,19 +15,36 @@ import { MessageType, Outcome } from '../constants.js';
 import { sendMessage } from '../shared/messaging.js';
 
 const VISIBLE = 'visible';
+const VISIBILITY_CHANGE = 'visibilitychange';
+const PRERENDERING_CHANGE = 'prerenderingchange';
 
-/** @returns {Promise<void>} Resolves once the page is visible to the user. */
-function whenVisible() {
-  if (document.visibilityState === VISIBLE) {
+/**
+ * @param {Document} doc
+ * @returns {boolean} Whether the user can see the page: visible, and not a
+ *   prerender. Checking `prerendering` too keeps a prerendered page silent
+ *   whatever visibility state the browser reports for it.
+ */
+function isShown(doc) {
+  return doc.visibilityState === VISIBLE && doc.prerendering !== true;
+}
+
+/**
+ * @param {Document} [doc]
+ * @returns {Promise<void>} Resolves once the page is shown to the user.
+ */
+export function whenShown(doc = document) {
+  if (isShown(doc)) {
     return Promise.resolve();
   }
   return new Promise((resolve) => {
     const onChange = () => {
-      if (document.visibilityState !== VISIBLE) return;
-      document.removeEventListener('visibilitychange', onChange);
+      if (!isShown(doc)) return;
+      doc.removeEventListener(VISIBILITY_CHANGE, onChange);
+      doc.removeEventListener(PRERENDERING_CHANGE, onChange);
       resolve();
     };
-    document.addEventListener('visibilitychange', onChange);
+    doc.addEventListener(VISIBILITY_CHANGE, onChange);
+    doc.addEventListener(PRERENDERING_CHANGE, onChange);
   });
 }
 
@@ -58,7 +75,7 @@ function currentViewId() {
  *   or null when the view was not recorded.
  */
 export async function trackView(fromUrl) {
-  await whenVisible();
+  await whenShown();
   const viewId = currentViewId();
   try {
     const { eventId } = await sendMessage({ type: MessageType.RECORD_VIEW, viewId, fromUrl });

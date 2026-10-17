@@ -12,6 +12,7 @@ import {
   buildRegexFilter,
   buildRules,
   findMatchingSite,
+  isPauseInForce,
   siteLabel,
   hostnameOf,
 } from '../../src/background/rules.js';
@@ -219,6 +220,16 @@ test('buildRules returns the full set once the snooze has ended', () => {
   const cfg = config([site({ id: 'a', pattern: 'a.com' }), site({ id: 'b', pattern: 'b.com' })]);
   assert.equal(buildRules(cfg, BASE_URL, ctx({ snoozedUntil: MONDAY_TEN })).length, 2);
   assert.equal(buildRules(cfg, BASE_URL, ctx({ snoozedUntil: MONDAY_TEN - 1 })).length, 2);
+});
+
+test('isPauseInForce follows the site\'s schedule and any running snooze', () => {
+  const cfg = config([scheduled()]);
+  const [listed] = cfg.sites;
+  assert.equal(isPauseInForce(cfg, listed, { snoozedUntil: null, now: MONDAY_TEN }), true);
+  assert.equal(isPauseInForce(cfg, listed, { snoozedUntil: null, now: SATURDAY_TEN }), false);
+  assert.equal(isPauseInForce(cfg, listed, { snoozedUntil: MONDAY_TEN + 1, now: MONDAY_TEN }), false);
+  assert.equal(isPauseInForce(cfg, listed, { snoozedUntil: MONDAY_TEN, now: MONDAY_TEN }), true);
+  assert.throws(() => isPauseInForce(cfg, listed, { snoozedUntil: null, now: 'now' }), /now/);
 });
 
 test('findMatchingSite honors subdomain inclusion', () => {

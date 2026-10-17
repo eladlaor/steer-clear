@@ -343,6 +343,37 @@ test('with return-on-expiry on, expiry sends tabs on the site back to the pause 
   assert.ok(calls.clearedAlarms.includes('bypass-tick'));
 });
 
+test('a bypass that ends outside the site\'s schedule leaves its tabs alone', async () => {
+  // Weekdays 9–17: continue at Monday 16:58, the pass ends at 17:03, when
+  // the site loads normally. Sending the tab back would pause it off-schedule.
+  const mondayAt = (hour, minute) => new Date(2026, 2, 16, hour, minute).getTime();
+  mock.method(Date, 'now', () => mondayAt(16, 58));
+  install({
+    defaults: { returnPauseOnExpiry: true },
+    overrides: { schedule: WEEKDAY_WORK_SCHEDULE },
+    tabs: [{ id: 1, url: 'https://www.reddit.com/r/all' }],
+  });
+  await handleMessage({ type: MessageType.GRANT_BYPASS, host: 'reddit.com' }, { tab: { id: 1 } });
+  mock.method(Date, 'now', () => mondayAt(17, 3));
+  await expireBypass('reddit.com');
+
+  assert.deepEqual(calls.tabUpdates, []);
+  assert.equal(calls.dynamicRules.length, 0, 'no rule outside the schedule');
+});
+
+test('a bypass that ends while snoozed leaves its tabs alone', async () => {
+  install({
+    defaults: { returnPauseOnExpiry: true, bypassMinutes: 1 },
+    tabs: [{ id: 1, url: 'https://www.reddit.com/r/all' }],
+  });
+  await handleMessage({ type: MessageType.GRANT_BYPASS, host: 'reddit.com' }, { tab: { id: 1 } });
+  await globalThis.chrome.storage.session.set({ snooze: { until: NOW + 30 * MINUTE } });
+  mock.method(Date, 'now', () => NOW + MINUTE);
+  await expireBypass('reddit.com');
+
+  assert.deepEqual(calls.tabUpdates, []);
+});
+
 test('with return-on-expiry off, expiry only clears the badge', async () => {
   install({ tabs: [{ id: 1, url: 'https://reddit.com/' }] });
   await handleMessage({ type: MessageType.GRANT_BYPASS, host: 'reddit.com' }, { tab: { id: 1 } });

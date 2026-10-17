@@ -34,7 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Per-site schedules: pick days and up to four time ranges (with "Always" and
   "Weekdays 9–17" presets, and ranges that run past midnight); outside them
   the site loads normally, and reminders switch on and off at the boundaries
-  without any action.
+  without any action. A bypass that ends outside the schedule leaves the
+  site's tabs where they are.
 - An opt-in daily allowance: after a chosen number of continues of a site in a
   day, its pause lasts at least 30 seconds until midnight. The pause page says
   why and links straight to the setting; continue is never removed.

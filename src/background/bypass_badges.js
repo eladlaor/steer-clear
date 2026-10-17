@@ -17,7 +17,7 @@ import {
   BYPASS_TICK_MINUTES,
   StorageKey,
 } from '../constants.js';
-import { normalizePattern } from './rules.js';
+import { isPauseInForce, normalizePattern } from './rules.js';
 import { badgeText, expiredTabs, pausePageUrl, tabQueryPattern, tabsOnSite } from './bypass_tabs.js';
 
 /**
@@ -186,15 +186,22 @@ export async function endBypassBadges(host, remaining) {
  * @param {object} config The assembled config.
  * @param {string} host The host whose bypass ended.
  * @param {Object<string, number>} bypasses Bypasses still active.
+ * @param {{snoozedUntil: number|null, now: number}} timing Outside the
+ *   site's schedule, or while snoozed, the site loads normally, so its tabs
+ *   stay where they are.
  * @returns {Promise<void>}
  */
-export async function returnExpiredTabs(config, host, bypasses) {
+export async function returnExpiredTabs(config, host, bypasses, timing) {
   const site = listedSite(config, host);
   if (!site?.enabled) {
     console.info('[steer-clear] not returning tabs: the site is no longer listed or is turned off', { host });
     return;
   }
-  const tabs = expiredTabs(await chrome.tabs.query({ url: tabQueryPattern(site) }), site, bypasses, Date.now());
+  if (!isPauseInForce(config, site, timing)) {
+    console.info('[steer-clear] not returning tabs: the site is outside its schedule or snoozed', { host });
+    return;
+  }
+  const tabs = expiredTabs(await chrome.tabs.query({ url: tabQueryPattern(site) }), site, bypasses, timing.now);
   const base = chrome.runtime.getURL('');
   await Promise.all(tabs.map((tab) => chrome.tabs.update(tab.id, { url: pausePageUrl(base, tab.url) })));
   console.info('[steer-clear] returned tabs to the pause page', { host, tabCount: tabs.length });

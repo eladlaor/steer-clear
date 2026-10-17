@@ -110,6 +110,27 @@ function assertRuleContext(context) {
 }
 
 /**
+ * Whether a listed site's pause is in force at a moment: no snooze is
+ * running and the site's effective schedule is active. Shared by the rule
+ * build and by the return of tabs when a bypass ends, so a tab is never sent
+ * back to a pause that has no rule behind it.
+ *
+ * @param {{defaults: object}} config The assembled config.
+ * @param {object} site A listed site.
+ * @param {{snoozedUntil: number|null, now: number}} timing Epoch ms.
+ * @returns {boolean}
+ */
+export function isPauseInForce(config, site, { snoozedUntil, now }) {
+  if (!Number.isFinite(now)) {
+    throw new Error(`isPauseInForce: now must be epoch ms, got ${now}`);
+  }
+  if (snoozedUntil !== null && snoozedUntil > now) {
+    return false;
+  }
+  return isScheduleActiveAt(resolveSettings(config.defaults, site).schedule, new Date(now));
+}
+
+/**
  * Translate a config object into the full dynamic rule set.
  *
  * A site produces exactly one rule, redirecting to the local interstitial
@@ -148,7 +169,6 @@ export function buildRules(config, extensionBaseUrl, context) {
   if (snoozedUntil !== null && snoozedUntil > now) {
     return [];
   }
-  const nowDate = new Date(now);
 
   const interstitialUrl = `${extensionBaseUrl}${INTERSTITIAL_PATH}`;
   const rules = [];
@@ -181,7 +201,7 @@ export function buildRules(config, extensionBaseUrl, context) {
       return;
     }
 
-    if (!isScheduleActiveAt(resolveSettings(config.defaults, site).schedule, nowDate)) {
+    if (!isPauseInForce(config, site, { snoozedUntil, now })) {
       return;
     }
 

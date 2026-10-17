@@ -175,7 +175,7 @@ export async function expireBypass(host) {
 
     const config = await readConfig();
     if (config.defaults.returnPauseOnExpiry) {
-      await returnExpiredTabs(config, host, bypasses);
+      await returnExpiredTabs(config, host, bypasses, { snoozedUntil: await readSnoozedUntil(), now: Date.now() });
     }
     console.info('[steer-clear] bypass expired', { host, returnPause: config.defaults.returnPauseOnExpiry });
   } catch (error) {
