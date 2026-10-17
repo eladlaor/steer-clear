@@ -1,6 +1,7 @@
 # Steer Clear
 
-A Chrome extension that catches muscle-memory navigation. Sites on your list
+A browser extension for Chrome, Edge, Firefox and Firefox for Android that
+catches muscle-memory navigation. Sites on your list
 show you your own reason instead of loading — plus one click to somewhere you'd
 rather be, and an easy way through when you actually mean it.
 
@@ -19,20 +20,39 @@ rather be, and an easy way through when you actually mean it.
 
 ## Summary
 
-Load `src/` as an unpacked extension, add a domain in its settings page, then
-navigate to that domain. You get the reminder page rather than the site. Bypass
+Load `src/` (or a built `dist/<target>/`) as an unpacked extension, add a
+domain in its settings page, then navigate to that domain. You get the reminder page rather than the site. Bypass
 lasts 5 minutes and dies with the browser.
 
-Unit tests cover the pure logic: `node --test tests/unit/*.js`.
+Unit tests cover the pure logic: `node --test tests/unit/*.js`. Store
+packages come from `node tools/build.mjs`; build, lint, phone-width audit and
+CI are described in `knowledge/usage_guides/DEVOPS_GUIDE.md`.
+
+Supported: Chrome 121+, Edge 121+, Firefox 140+ and Firefox for Android 142+.
+Chrome for Android and iOS browsers do not run extensions.
 
 ---
 
 ## Install for development
 
-1. Open `chrome://extensions`
-2. Enable **Developer mode** (top right)
+**Chrome or Edge**
+
+1. Open `chrome://extensions` (or `edge://extensions`)
+2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the **`src/`** directory — not the repository root
+4. Select the **`src/`** directory — not the repository root — or
+   `dist/chrome/` after `node tools/build.mjs`
+
+Loading `src/` shows a warning that `browser_specific_settings` is not
+recognized. That key is for Firefox; the built `dist/chrome/` does not carry it.
+
+**Firefox**
+
+1. Run `node tools/build.mjs`
+2. Open `about:debugging#/runtime/this-firefox`
+3. Click **Load Temporary Add-on** and pick `dist/firefox/manifest.json`
+
+Firefox for Android: see `knowledge/usage_guides/DEVOPS_GUIDE.md`.
 
 The settings page opens automatically on first install.
 
@@ -75,9 +95,11 @@ chrome.declarativeNetRequest.getDynamicRules().then(console.table)
 node --test tests/unit/*.js
 ```
 
-90 tests covering pattern normalization, regex generation, subdomain matching,
-lookalike-domain rejection, rule construction, bypass filtering, and
-global-versus-per-site resolution. No dependencies; Node 20+.
+137 tests covering pattern normalization, regex generation, subdomain matching,
+lookalike-domain rejection, rule construction, bypass filtering,
+global-versus-per-site resolution, the cross-browser manifest and its per-store
+derivation, source-URL extraction, and browser detection. No dependencies;
+Node 20+.
 
 The Chrome-dependent surfaces (service worker, options page, interstitial) are
 verified manually via the table above — they need a real browser.
@@ -127,9 +149,13 @@ steer-clear/
 │   │   └── config.js           # Storage read/write/validate
 │   ├── blocked/                # The interstitial
 │   ├── options/                # Settings UI
+│   ├── stats/                  # Statistics page (the toolbar popup)
+│   ├── shared/                 # Page helpers and shared CSS tokens/base
 │   └── icons/                  # PLACEHOLDER — see icons/README.md
 ├── tools/
-│   ├── package.sh              # Builds the Web Store upload zip
+│   ├── build.mjs               # Builds dist/ and both store zips
+│   ├── manifest_targets.mjs    # Pure per-browser manifest derivation
+│   ├── mobile_audit.mjs        # 360px / 44px-target audit in Chromium
 │   └── screenshots.mjs         # Regenerates store/screenshots/ at 1280×800
 ├── tests/unit/
 ├── store/                      # Web Store submission materials
@@ -151,7 +177,7 @@ and data-use disclosures live in `store/LISTING.md`.
 Outstanding: **icons** are usable but should be redrawn for 16px legibility.
 
 To ship an update: bump `version` in `src/manifest.json`, rebuild with
-`./tools/package.sh`, and upload the new zip. Expect closer-than-average review:
+`node tools/build.mjs`, and upload each store's zip. Expect closer-than-average review:
 `declarativeNetRequest` with redirect is the permission set traffic-hijacking
 extensions use.
 

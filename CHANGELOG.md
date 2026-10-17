@@ -10,6 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Reproducible generation of Web Store screenshots at 1280×800.
+- Firefox (desktop 140+) and Firefox for Android (142+) support from the same
+  source tree; Edge installs the Chrome package.
+- A dependency-free build, `node tools/build.mjs`, that produces separate
+  Chrome/Edge and Firefox store zips from one cross-browser manifest.
+- Continuous integration running the unit tests, both builds, a pinned
+  `web-ext lint` with warnings treated as errors, and a phone-width audit.
+
+### Changed
+
+- Every page works at phone width (360 CSS px): no sideways scrolling, and
+  every button, field, checkbox and standalone link is at least 44×44 CSS px.
+- The statistics popup's minimum width is now the phone width (360 px), so it
+  also fits when Firefox for Android opens it as a full tab.
+- Pages share one set of colour tokens and base styles, and show a visible
+  focus ring for keyboard users.
+- The minimum supported Chrome and Edge version is 121.
+
+### Fixed
+
+- The reminder page keeps the full original address, including everything
+  after an `&` and any `#fragment`, whether or not the browser percent-encodes
+  it, so "continue" returns to the exact page that was requested.
+
+### Removed
+
+- `tools/package.sh`, replaced by `tools/build.mjs`.
 
 ## [1.0.0] - 2026-10-02
 

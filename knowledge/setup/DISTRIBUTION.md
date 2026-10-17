@@ -111,7 +111,7 @@ As of 2026-10-02 (live status is kept in `SUBMISSION_STEPS.md`):
 |---|---|
 | Icons | **Done.** All four sizes present; the 128×128 reads clearly at listing size |
 | Screenshots | **Done.** Three at 1280×800 in `store/screenshots/` |
-| Submission zip | **Done.** `dist/steer-clear-1.0.0.zip`, rebuild with `./tools/package.sh` |
+| Submission zip | **Done.** `dist/steer-clear-1.0.0.zip` (built by the since-removed `tools/package.sh`); later versions build with `node tools/build.mjs` |
 | Privacy policy hosted | **Done.** Live at `https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY` |
 | Developer registration | **Done.** $5 paid; account limit is 2 extensions |
 | Publisher account settings | **Done.** Publisher name `eladlaor`, contact email verified |
@@ -138,7 +138,7 @@ a blanket `host_permissions` grant and should be fixed before submitting.
    justifications, and data-use disclosures are written to be pasted verbatim
 7. **Set visibility to Public** and submit
 
-Rebuild the zip after any code change with `./tools/package.sh`.
+Rebuild the zips after any code change with `node tools/build.mjs`; Chrome and Edge take `dist/steer-clear-chrome-<version>.zip`.
 
 ---
 

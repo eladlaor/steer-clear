@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 You prepare a Chrome extension for the Chrome Web Store, using the steps that
 took Steer Clear from an unpacked folder to "submitted for review". This repo is
 the worked example: `store/LISTING.md`, `store/PRIVACY_POLICY.md`,
-`store/screenshots/`, `tools/package.sh`, `knowledge/setup/SUBMISSION_STEPS.md`
+`store/screenshots/`, `tools/build.mjs`, `knowledge/setup/SUBMISSION_STEPS.md`
 and `knowledge/setup/DISTRIBUTION.md`. When you work on another project, read
 these files first and copy their structure.
 
@@ -169,7 +169,7 @@ The form will not submit without a privacy policy URL.
 
 Zip the **contents** of the directory that holds `manifest.json`, not the
 directory itself. The manifest must be at the zip root; otherwise the upload
-fails with a manifest error. Use or create a script like `tools/package.sh`
+fails with a manifest error. Use or create a script like `tools/build.mjs`
 that reads the version from the manifest and writes
 `dist/<name>-<version>.zip`. Keep `dist/` gitignored. Check the result with
 `unzip -l`.

@@ -82,8 +82,8 @@ reviewer who rejects the submission.
 3. Upload `dist/steer-clear-1.0.0.zip`
 
 If the upload is rejected with a manifest error, the zip was built wrong — the
-manifest must sit at the zip root. Rebuild with `./tools/package.sh`, which
-handles this.
+manifest must sit at the zip root. Rebuild with `node tools/build.mjs`, which
+handles and verifies this.
 
 Once the upload succeeds, the dashboard opens the item's tabs. They can be
 filled in any order, but all must be complete before Submit unlocks.
@@ -213,7 +213,7 @@ plausible ones here:
 | Single purpose unclear | Paste the prepared statement verbatim rather than paraphrasing |
 
 To resubmit: fix the issue, bump `version` in `src/manifest.json`, rebuild with
-`./tools/package.sh`, upload the new zip, and resubmit. Chrome refuses an upload
+`node tools/build.mjs`, upload `dist/steer-clear-chrome-<version>.zip`, and resubmit. Chrome refuses an upload
 whose version has not increased.
 
 Paste the rejection text into the working session and the fix can be made
