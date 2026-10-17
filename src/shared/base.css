@@ -51,9 +51,9 @@ body {
   min-height: var(--target-min);
   padding: 9px 18px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font: inherit;
-  font-size: 0.9375rem;
+  font-size: var(--text-md);
   text-align: center;
   text-decoration: none;
   cursor: pointer;
@@ -91,6 +91,114 @@ body {
 
 .btn.danger:hover {
   border-color: var(--danger);
+}
+
+/* A compact button, still a full tap target. */
+.btn-small {
+  padding: 0.3rem 0.9rem;
+  font-size: var(--text-xs);
+}
+
+/* A button that reads as a link: secondary row actions. */
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  padding: 0 var(--space-2);
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link:hover {
+  color: var(--ink);
+}
+
+.link.danger:hover {
+  color: var(--danger);
+}
+
+/* A toggle chip (aria-pressed). The pressed state is shown by fill and a
+   check mark, not by colour alone. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--target-min);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--ink-soft);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.chip[aria-pressed="true"]::before {
+  content: "\2713";
+  font-weight: 700;
+}
+
+/* Status lines and errors -------------------------------------------------- */
+
+.status {
+  min-height: 1.25rem;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.status.is-error {
+  color: var(--danger);
+}
+
+.config-error {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-3) 14px;
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  font-size: var(--text-sm);
+}
+
+/* Rating banner (popup and statistics page) -------------------------------- */
+
+.rating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.rating-text {
+  flex: 1 1 14rem;
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.rating-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 /* Footer navigation ------------------------------------------------------ */

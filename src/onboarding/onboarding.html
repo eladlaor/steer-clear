@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Welcome to Steer Clear</title>
+    <link rel="stylesheet" href="onboarding.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="head">
+        <div class="head-text">
+          <h1>Welcome to Steer Clear</h1>
+          <p class="tagline">A nudge in your own words, not a wall.</p>
+        </div>
+        <a class="skip" id="skip" href="../options/options.html">Skip</a>
+      </header>
+
+      <section class="panel" id="synced" aria-labelledby="synced-heading" tabindex="-1" hidden>
+        <h2 id="synced-heading">Your sites synced from another device</h2>
+        <p class="hint">
+          Steer Clear is already set up with the sites you saved elsewhere.
+          Each one needs your permission on this device before it can pause.
+        </p>
+        <a class="btn btn-primary" href="../options/options.html" id="synced-settings">Open settings</a>
+      </section>
+
+      <div id="setup">
+        <section class="panel step" aria-labelledby="pick-heading">
+          <h2 id="pick-heading"><span class="step-number" aria-hidden="true">1</span> Pick sites</h2>
+          <p class="hint">The sites you open on autopilot. Nothing is picked for you.</p>
+
+          <div id="chips"></div>
+
+          <form class="add-domain" id="add-domain" novalidate>
+            <label class="label" for="domain-input">Another site</label>
+            <div class="add-domain-row">
+              <input
+                type="text"
+                id="domain-input"
+                placeholder="example.com"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                aria-describedby="domain-error"
+              />
+              <button type="submit" class="btn btn-ghost">Add</button>
+            </div>
+            <p class="field-error" id="domain-error"></p>
+          </form>
+
+          <div class="picked" id="picked" hidden>
+            <h3 id="picked-heading">Remind yourself why <span class="opt">optional</span></h3>
+            <p class="hint">Shown on that site's pause, in your own words.</p>
+            <ul class="picked-list" id="picked-list" aria-labelledby="picked-heading"></ul>
+          </div>
+        </section>
+
+        <section class="panel step" aria-labelledby="turn-on-heading">
+          <h2 id="turn-on-heading"><span class="step-number" aria-hidden="true">2</span> Turn on Steer Clear</h2>
+          <p class="hint" id="turn-on-hint">
+            Your browser will ask once to let Steer Clear act on the sites you
+            picked, and only those.
+          </p>
+          <button type="button" class="btn btn-primary btn-wide" id="turn-on" aria-describedby="turn-on-hint picked-count">
+            Turn on
+          </button>
+          <p class="hint" id="picked-count"></p>
+          <p class="hint">
+            The pause uses the default destination and style. Change them any
+            time in Settings.
+          </p>
+        </section>
+      </div>
+
+      <section class="panel" id="done" aria-labelledby="done-heading" tabindex="-1" hidden>
+        <h2 id="done-heading"></h2>
+        <p id="done-text"></p>
+        <div class="done-actions">
+          <a class="btn btn-primary" id="try-it" href="#"></a>
+          <a class="btn btn-ghost" href="../options/options.html" id="done-settings">Settings</a>
+        </div>
+      </section>
+
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </main>
+
+    <script type="module" src="onboarding.js"></script>
+  </body>
+</html>

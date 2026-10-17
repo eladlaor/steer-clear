@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Steer Clear</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="head">
+        <h1>Steer Clear</h1>
+      </header>
+
+      <p class="config-error" id="config-error" role="alert" hidden></p>
+
+      <section class="today" aria-labelledby="today-figure">
+        <p class="today-figure" id="today-figure">—</p>
+        <p class="today-detail" id="today-detail"></p>
+        <p class="today-days" id="steered-days"></p>
+      </section>
+
+      <section class="quick-add" id="quick-add" aria-label="Add this site" hidden>
+        <button type="button" class="btn btn-primary btn-block" id="quick-add-button">
+          Steer clear of <span id="quick-add-host"></span>
+        </button>
+        <p class="hint" id="quick-add-hint">
+          Your browser will ask to let Steer Clear act on this site only.
+        </p>
+      </section>
+      <p class="listed" id="listed" hidden></p>
+
+      <section class="snooze" aria-labelledby="snooze-heading">
+        <h2 id="snooze-heading">Snooze reminders</h2>
+        <div id="snooze-off">
+          <div class="snooze-options" id="snooze-options" role="group" aria-labelledby="snooze-heading"></div>
+          <p class="hint" id="snooze-note"></p>
+        </div>
+        <div class="snooze-on" id="snooze-on" hidden>
+          <p class="snooze-remaining" id="snooze-remaining"></p>
+          <button type="button" class="btn btn-ghost btn-block" id="resume">Resume now</button>
+        </div>
+      </section>
+
+      <div id="rating"></div>
+
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+
+      <nav class="footer" aria-label="More">
+        <a href="../stats/stats.html" id="open-stats">Your patterns</a>
+        <a href="../options/options.html" id="open-settings">Settings</a>
+      </nav>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -21,6 +21,7 @@ import {
 } from '../background/stats.js';
 import { outcomesByHost } from '../background/progress.js';
 import { renderProgress, siteOutcomeText } from './progress_cards.js';
+import { mountRatingBanner } from '../shared/rating_banner.js';
 
 const WEEKDAY_NAMES = [
   'Sunday',
@@ -57,6 +58,7 @@ const elements = {
   clear: document.getElementById('clear'),
   status: document.getElementById('status'),
   openOptions: document.getElementById('open-options'),
+  rating: document.getElementById('rating'),
 };
 
 /** Whether the erase button is awaiting confirmation. */
@@ -129,6 +131,15 @@ function renderHours(hours) {
     column.append(fill, label);
     elements.byHour.appendChild(column);
   });
+
+  // The columns are drawn with CSS, so the chart says in words what it shows.
+  const busiest = hours.indexOf(Math.max(...hours));
+  elements.byHour.setAttribute(
+    'aria-label',
+    hours[busiest] > 0
+      ? `Pauses by hour of day; most often around ${formatHour(busiest)} (${hours[busiest]})`
+      : 'Pauses by hour of day; none yet'
+  );
 }
 
 /**
@@ -147,6 +158,14 @@ function renderDaily(series) {
     column.title = `${day.date} — ${day.count} ${day.count === 1 ? 'time' : 'times'}`;
     elements.daily.appendChild(column);
   }
+
+  const total = series.reduce((sum, day) => sum + day.count, 0);
+  const peak = series.reduce((best, day) => (day.count > best.count ? day : best), series[0]);
+  elements.daily.setAttribute(
+    'aria-label',
+    `Pauses per day, last ${series.length} days: ${total} in total` +
+      (peak && peak.count > 0 ? `, most on ${peak.date} (${peak.count})` : '')
+  );
 }
 
 /**
@@ -254,6 +273,8 @@ async function init() {
 
     const { stats } = await sendMessage({ type: MessageType.GET_STATS });
     render(stats);
+    // Once per page open; re-renders (such as after erasing) do not bring it back.
+    await mountRatingBanner(elements.rating, stats);
   } catch (error) {
     console.error('[steer-clear] stats init failed', { error: error.message });
     elements.status.textContent = `Could not load statistics: ${error.message}`;

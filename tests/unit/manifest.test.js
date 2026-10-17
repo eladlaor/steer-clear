@@ -39,7 +39,7 @@ test('manifest is MV3', () => {
 });
 
 test('declares the permissions the service worker actually calls', () => {
-  for (const permission of ['declarativeNetRequest', 'storage', 'alarms']) {
+  for (const permission of ['declarativeNetRequest', 'storage', 'alarms', 'activeTab']) {
     assert.ok(
       manifest.permissions.includes(permission),
       `missing permission: ${permission}`
@@ -204,4 +204,20 @@ test('declares that no data is collected', () => {
     manifest.browser_specific_settings.gecko.data_collection_permissions,
     { required: ['none'] }
   );
+});
+
+// Toolbar popup and onboarding (2.0) ------------------------------------------------
+
+test('declares exactly the permissions the privacy docs describe', () => {
+  // Adding one means updating this list, the privacy policy and the listing together.
+  assert.deepEqual(manifest.permissions, ['declarativeNetRequest', 'storage', 'alarms', 'activeTab']);
+});
+
+test('the toolbar button opens the popup, which exists', () => {
+  assert.equal(manifest.action.default_popup, 'popup/popup.html');
+  assert.ok(existsSync(join(SRC, manifest.action.default_popup)), 'popup/popup.html missing');
+});
+
+test('the onboarding page opened on install exists', () => {
+  assert.ok(existsSync(join(SRC, 'onboarding/onboarding.html')), 'onboarding/onboarding.html missing');
 });

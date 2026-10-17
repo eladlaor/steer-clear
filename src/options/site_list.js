@@ -8,7 +8,8 @@
  */
 
 import { MessageType, SETTINGS_SAVE_DELAY_MS, SettingsFormMode } from '../constants.js';
-import { sendMessage, sendWithoutAwait } from '../shared/messaging.js';
+import { sendMessage } from '../shared/messaging.js';
+import { addSitesThenRequestAccess } from '../shared/site_access.js';
 import { normalizePattern } from '../background/rules.js';
 import {
   hasHostPermission,
@@ -39,8 +40,8 @@ export function createSiteList(dom) {
 
   /**
    * Add a site. The worker message leaves first, then the permission prompt
-   * opens in the same tick: Firefox drops the user gesture at the first
-   * await. A refused prompt leaves a visible "needs access" row.
+   * opens in the same tick (site_access.js): Firefox drops the user gesture
+   * at the first await. A refused prompt leaves a visible "needs access" row.
    */
   dom.addForm.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -57,8 +58,7 @@ export function createSiteList(dom) {
       dom.setStatus(`${host} is already on the list`, true);
       return;
     }
-    sendWithoutAwait({ type: MessageType.ADD_SITES, entries: [{ host, reason: dom.addReason.value }] });
-    requestHostPermission(host)
+    addSitesThenRequestAccess([{ host, reason: dom.addReason.value }])
       .then((granted) => {
         dom.setStatus(granted ? `${host} added` : `Added ${host}, but it needs access before it can work`, !granted);
       })
@@ -90,6 +90,11 @@ export function createSiteList(dom) {
     const siteId = site.id;
     row.displayName.id = `site-${siteId}-name`;
     q('.site-display-name-label').htmlFor = row.displayName.id;
+    row.detail.id = `site-${siteId}-detail`;
+    row.expand.setAttribute('aria-controls', row.detail.id);
+    row.expand.setAttribute('aria-expanded', 'false');
+    row.remove = q('.site-remove');
+    row.grant = q('.site-grant');
 
     row.form = createSettingsForm(q('.site-settings'), {
       mode: SettingsFormMode.SITE,
@@ -114,6 +119,7 @@ export function createSiteList(dom) {
     row.expand.addEventListener('click', () => {
       row.detail.hidden = !row.detail.hidden;
       row.expand.textContent = row.detail.hidden ? 'Customize' : 'Done';
+      row.expand.setAttribute('aria-expanded', String(!row.detail.hidden));
     });
     q('.site-remove').addEventListener('click', async () => {
       await send({ type: MessageType.REMOVE_SITE, siteId }, 'Removed');
@@ -161,6 +167,12 @@ export function createSiteList(dom) {
     const label = site.displayName?.trim();
     row.name.textContent = label || site.pattern;
     row.pattern.textContent = label ? site.pattern : '';
+    // Every row has the same buttons; their names say which site they act on.
+    const name = label || site.pattern;
+    row.enabled.setAttribute('aria-label', `Pause ${name}`);
+    row.expand.setAttribute('aria-label', `Customize ${name}`);
+    row.remove.setAttribute('aria-label', `Remove ${name}`);
+    row.grant.setAttribute('aria-label', `Grant access to ${name}`);
     row.enabled.checked = site.enabled;
     row.subdomains.checked = site.includeSubdomains;
     row.element.classList.toggle('disabled', !site.enabled);

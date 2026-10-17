@@ -13,6 +13,8 @@
         <p class="sub" id="since">Counting since —</p>
       </header>
 
+      <div id="rating"></div>
+
       <section class="cards" aria-label="Progress">
         <div class="card">
           <span class="card-value" id="steer-rate">—</span>
@@ -58,13 +60,13 @@
 
         <h2>By hour of day</h2>
         <p class="hint">Local time, over the last 90 days.</p>
-        <div class="hours" id="by-hour"></div>
+        <div class="hours" id="by-hour" role="img" aria-label="Pauses by hour of day"></div>
 
         <h2>By day of week</h2>
         <ul class="bars" id="by-weekday"></ul>
 
         <h2>Last 30 days</h2>
-        <div class="sparkline" id="daily"></div>
+        <div class="sparkline" id="daily" role="img" aria-label="Pauses per day, last 30 days"></div>
       </section>
 
       <section class="panel danger-zone">

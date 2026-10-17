@@ -7,7 +7,7 @@
  * declarativeNetRequest — the worker owns rules.
  */
 
-import { LifecycleEvent, MessageType, PauseStyle } from '../constants.js';
+import { LifecycleEvent, MessageType, PauseStyle, STOP_COUNTDOWN_KEY } from '../constants.js';
 import { sendMessage } from '../shared/messaging.js';
 import { extractSourceUrl } from '../shared/source_url.js';
 import { continueGate } from '../background/continue_gate.js';
@@ -226,6 +226,7 @@ async function init() {
     elements.goTarget.addEventListener('click', handleSteer);
     elements.bypass.addEventListener('click', () => handleBypass(sourceUrl));
     elements.stop.addEventListener('click', () => countdown?.stop());
+    document.addEventListener('keydown', (event) => event.key === STOP_COUNTDOWN_KEY && countdown?.stop());
     elements.noticeOk.addEventListener('click', dismissNotice);
 
     // With breathing, auto-continue waits for the last breath.

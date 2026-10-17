@@ -4,14 +4,6 @@
 @import url("../shared/base.css");
 
 body {
-  /*
-   * This page is both a toolbar popup and a standalone tab. A desktop popup
-   * sizes to its content and would otherwise render as a narrow column; the
-   * min-width fixes that without affecting the tab, where max-width on .wrap
-   * governs. It is the phone width, not wider: Firefox for Android opens the
-   * popup as a full tab, where anything wider scrolls sideways.
-   */
-  min-width: 360px;
   padding: 40px 20px 80px;
 }
 
@@ -22,18 +14,18 @@ body {
 
 .head h1 {
   margin: 0 0 4px;
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
 }
 
 .sub {
   margin: 0 0 24px;
   color: var(--ink-soft);
-  font-size: 0.9375rem;
+  font-size: var(--text-md);
 }
 
 h2 {
   margin: 28px 0 10px;
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
 }
 
@@ -44,7 +36,7 @@ h2:first-child {
 .hint {
   margin: 0 0 14px;
   color: var(--ink-soft);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 /* Summary cards ---------------------------------------------------------- */
@@ -62,12 +54,12 @@ h2:first-child {
   gap: 2px;
   padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--card);
 }
 
 .card-value {
-  font-size: 1.75rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
   line-height: 1.1;
   overflow-wrap: anywhere;
@@ -75,14 +67,14 @@ h2:first-child {
 
 .card-label {
   color: var(--ink-soft);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .panel {
   padding: 20px;
   margin-bottom: 20px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--card);
 }
 
@@ -107,7 +99,7 @@ h2:first-child {
 }
 
 .bar-label {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
 }
 
@@ -129,14 +121,14 @@ h2:first-child {
 .bar-detail {
   grid-column: 1 / -1;
   margin-top: -2px;
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
   color: var(--ink-soft);
 }
 
 .bar-value {
   min-width: 2.5ch;
   text-align: right;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -171,7 +163,7 @@ h2:first-child {
 }
 
 .hour-label {
-  font-size: 0.6875rem;
+  font-size: var(--text-2xs);
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -193,15 +185,12 @@ h2:first-child {
 }
 
 .status {
-  min-height: 1.25rem;
   margin: 10px 0 0;
-  font-size: 0.875rem;
-  color: var(--ink-soft);
 }
 
 .footer {
   margin-top: 24px;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 /* Phone width ------------------------------------------------------------ */

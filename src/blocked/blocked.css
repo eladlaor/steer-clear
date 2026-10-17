@@ -34,7 +34,7 @@ body {
 
 .eyebrow {
   margin: 0 0 6px;
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -42,7 +42,7 @@ body {
 
 .host {
   margin: 0 0 18px;
-  font-size: 1.75rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -56,7 +56,7 @@ body {
 
 .reason-lead {
   margin: 0 0 6px;
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
   color: var(--ink-soft);
 }
 
@@ -66,7 +66,7 @@ body {
   border-left: 3px solid var(--accent);
   border-radius: 0 8px 8px 0;
   background: color-mix(in srgb, var(--accent) 8%, transparent);
-  font-size: 1.0625rem;
+  font-size: var(--text-lg);
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
@@ -82,13 +82,13 @@ body {
   display: flex;
   width: 100%;
   padding: 13px 18px;
-  border-radius: 10px;
-  font-size: 1rem;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
 }
 
 .btn-sub {
   opacity: 0.75;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .choice-continue {
@@ -105,7 +105,7 @@ body {
 
 .gate {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--ink-soft);
 }
 
@@ -115,7 +115,7 @@ body {
 
 .status {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--ink-soft);
 }
 
@@ -127,7 +127,7 @@ body {
   margin-top: 12px;
   padding-top: 4px;
   border-top: 1px solid var(--line);
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
 }
 
 .footer a {
@@ -149,10 +149,10 @@ body {
   margin: 0 0 18px;
   padding: 8px 8px 8px 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--bg);
   text-align: left;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .notice-text {
@@ -170,7 +170,7 @@ body {
 .card .notice .btn {
   width: auto;
   padding: 8px 16px;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .notice-link {
@@ -229,7 +229,7 @@ body {
 .breath-count {
   align-self: start;
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -252,7 +252,7 @@ body {
 }
 
 .intention-label {
-  font-size: 0.9375rem;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
@@ -262,7 +262,7 @@ body {
   padding: 9px 12px;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--ink);
   font: inherit;
 }
@@ -283,7 +283,7 @@ body {
 
 .countdown-text {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-base);
   color: var(--ink-soft);
 }
 
@@ -411,7 +411,7 @@ body {
 
   .host,
   .layout-split .host {
-    font-size: 1.5rem;
+    font-size: var(--text-xl);
     margin-bottom: 16px;
   }
 
@@ -428,7 +428,7 @@ body {
 /* Daily allowance used up: why the wait is longer, and where to change it. */
 .limit {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--ink-soft);
 }
 

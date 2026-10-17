@@ -1,0 +1,122 @@
+/* Steer Clear toolbar popup. */
+
+@import url("../shared/tokens.css");
+@import url("../shared/base.css");
+
+body {
+  /*
+   * A desktop popup sizes to its content; min-width keeps it from collapsing
+   * to a narrow column. It is below the phone width: Firefox for Android
+   * opens the popup as a full tab, where anything wider scrolls sideways.
+   */
+  min-width: 320px;
+  padding: var(--space-4);
+}
+
+.popup {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.head h1 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+}
+
+h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.hint {
+  margin: var(--space-2) 0 0;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.today {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.today p {
+  margin: 0;
+}
+
+.today-figure {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.today-detail,
+.today-days {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.today .today-days {
+  margin-top: var(--space-2);
+}
+
+.quick-add,
+.listed {
+  margin: 0 0 var(--space-4);
+}
+
+.listed {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.btn-block {
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.snooze {
+  margin-bottom: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.snooze-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.snooze-options .btn {
+  padding-inline: var(--space-2);
+}
+
+.snooze-remaining {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.status {
+  margin: 0 0 var(--space-2);
+}
+
+.status:empty {
+  min-height: 0;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* Ratings banner fits the narrow popup on one column. */
+.rating {
+  margin-bottom: var(--space-4);
+}
