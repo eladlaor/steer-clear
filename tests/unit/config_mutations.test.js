@@ -16,10 +16,11 @@ import {
   planUpdateSite,
   planRemoveSite,
   planUpdateDefaults,
+  planImport,
 } from '../../src/background/config_mutations.js';
 import { assembleConfig, siteKey } from '../../src/background/sync_layout.js';
 import { defaultSettings } from '../../src/background/settings_schema.js';
-import { PauseStyle } from '../../src/constants.js';
+import { PauseStyle, SCHEMA_VERSION } from '../../src/constants.js';
 
 const NOW = 1_700_000_000_000;
 
@@ -221,4 +222,48 @@ test('stale-copy race: an add, then an update built from an older read, keeps bo
 test('defaults written by planUpdateDefaults validate when read back', () => {
   const items = apply(v3Items(), planUpdateDefaults(v3Items(), { patch: { pauseStyle: PauseStyle.ROTATE } }));
   assert.deepEqual(assembleConfig(items).defaults, { ...defaultSettings(), pauseStyle: PauseStyle.ROTATE });
+});
+
+/* planImport -------------------------------------------------------------------- */
+
+function imported(...ids) {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    defaults: { ...defaultSettings(), bypassMinutes: 30 },
+    sites: ids.map((id, order) => newSite(`${id}.example`, { id, order, now: NOW })),
+  };
+}
+
+test('planImport replaces settings and sites, removing only the sites it replaces', () => {
+  const items = { ...v3Items(), [siteKey('stray')]: { broken: true } };
+  const { plan, siteCount } = planImport(items, { config: imported('a', 'n') });
+  assert.equal(siteCount, 2);
+  assert.deepEqual(Object.keys(plan.set).sort(), ['schema', 'settings', siteKey('a'), siteKey('n')].sort());
+  assert.deepEqual(plan.set.settings.defaults.bypassMinutes, 30);
+  // b was listed and is not in the file; a is overwritten; the unreadable
+  // stray item was never listed, so it is left alone.
+  assert.deepEqual(plan.remove, [siteKey('b')]);
+});
+
+test('planImport over legacy data never writes or removes config', () => {
+  const { plan } = planImport({ config: legacy }, { config: imported('n') });
+  assert.equal('config' in plan.set, false);
+  assert.deepEqual(plan.remove, []);
+  const items = apply({ config: legacy }, plan);
+  assert.deepEqual(assembleConfig(items).sites.map((s) => s.id), ['n']);
+  assert.deepEqual(items.config, legacy);
+});
+
+test('planImport re-validates what the page sent', () => {
+  const bad = imported('a');
+  bad.defaults.bypassMinutes = 7;
+  assert.throws(() => planImport(v3Items(), { config: bad }), /defaults\.bypassMinutes/);
+  assert.throws(() => planImport(v3Items(), { config: { ...imported('a'), schemaVersion: 2 } }), /schemaVersion/);
+  assert.throws(() => planImport(v3Items(), {}), /config must be an object/);
+});
+
+test('planImport of an empty list removes every listed site', () => {
+  const { plan, siteCount } = planImport(v3Items(), { config: imported() });
+  assert.equal(siteCount, 0);
+  assert.deepEqual(plan.remove.sort(), [siteKey('a'), siteKey('b')]);
 });

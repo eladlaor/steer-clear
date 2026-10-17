@@ -7,7 +7,8 @@
  * from an older copy can never overwrite a change made elsewhere.
  *
  * Safety rules, enforced here:
- * - write only what changed; remove only the site the user removed;
+ * - write only what changed; remove only the site the user removed (or, for
+ *   a confirmed import, the listed sites it replaces);
  * - never write or remove the legacy `config` item;
  * - the first write of any kind materializes the legacy sites as `site:<id>`
  *   items and sets the `schema` marker. It does not write `settings`.
@@ -17,6 +18,7 @@ import { MAX_SITES, SCHEMA_VERSION, StorageKey } from '../constants.js';
 import { normalizePattern } from './rules.js';
 import { PER_SITE_FIELDS, validateSettings, validateSite } from './settings_schema.js';
 import { assembleConfig, isV3SitesMode, siteKey } from './sync_layout.js';
+import { validateImportedConfig } from './settings_io.js';
 
 /** Site fields a settings edit may change. `pattern` and `id` are fixed. */
 const EDITABLE_SITE_FIELDS = Object.freeze(['displayName', 'includeSubdomains', 'enabled']);
@@ -187,4 +189,32 @@ export function planUpdateDefaults(items, { patch }) {
   const defaults = { ...config.defaults, ...structuredClone(patch) };
   validateSettings(defaults, { partial: false, path: 'defaults' });
   return { set: { ...base, [StorageKey.SETTINGS]: { defaults } }, remove: [] };
+}
+
+/**
+ * Replace every setting and site with an imported config. The user has
+ * confirmed the replacement in the page; the config is validated again here.
+ *
+ * Removes only the listed sites the import does not carry. A site item that
+ * could not be read was never listed, so it is left for the user to see.
+ *
+ * @param {object} items
+ * @param {{config: object}} request A v3 config (from parseImport).
+ * @returns {{plan: {set: object, remove: string[]}, siteCount: number}}
+ */
+export function planImport(items, { config } = {}) {
+  validateImportedConfig(config);
+  const current = assembleConfig(items);
+
+  const set = {
+    [StorageKey.SCHEMA_MARKER]: SCHEMA_VERSION,
+    [StorageKey.SETTINGS]: { defaults: structuredClone(config.defaults) },
+  };
+  for (const site of config.sites) set[siteKey(site.id)] = structuredClone(site);
+
+  // Legacy-mode sites live only in `config`, which is never removed.
+  const remove = isV3SitesMode(items)
+    ? current.sites.map((site) => siteKey(site.id)).filter((key) => !(key in set))
+    : [];
+  return { plan: { set, remove }, siteCount: config.sites.length };
 }

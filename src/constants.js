@@ -95,6 +95,7 @@ export const MessageType = Object.freeze({
   SET_SNOOZE: 'SET_SNOOZE',
   CLEAR_SNOOZE: 'CLEAR_SNOOZE',
   GET_STATUS: 'GET_STATUS',
+  IMPORT_SETTINGS: 'IMPORT_SETTINGS',
 });
 
 /**
@@ -391,3 +392,18 @@ export const EDGE_UA_BRAND = 'Microsoft Edge';
 
 /** Protocols a source URL on the reminder page may have. */
 export const SOURCE_URL_PROTOCOLS = Object.freeze(['http:', 'https:']);
+
+/**
+ * Settings export file. Statistics and lifecycle flags are never exported:
+ * they describe one device's history.
+ */
+export const EXPORT_FORMAT = 'steer-clear-settings';
+export const EXPORT_VERSION = 1;
+/** Largest import file accepted, in UTF-8 bytes (256 KB). */
+export const MAX_IMPORT_BYTES = 262144;
+/** Export file name: `<prefix>YYYY-MM-DD.json`, by the local date. */
+export const EXPORT_FILE_PREFIX = 'steer-clear-settings-';
+export const EXPORT_FILE_EXTENSION = '.json';
+export const EXPORT_MIME_TYPE = 'application/json';
+/** Indentation of the exported JSON, so the file is readable and editable by hand. */
+export const EXPORT_JSON_INDENT = 2;

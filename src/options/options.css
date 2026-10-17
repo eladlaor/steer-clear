@@ -387,3 +387,24 @@ textarea:focus {
   width: auto;
   flex: 1 1 7rem;
 }
+
+/* Your data: export and import ------------------------------------------- */
+
+.data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.data-confirm {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+}
+
+.data-summary {
+  margin: 0 0 10px;
+  font-size: var(--text-md);
+  font-weight: 500;
+}

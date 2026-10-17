@@ -8,6 +8,7 @@ import { MessageType } from '../constants.js';
 import { mutateConfig } from './config.js';
 import {
   planAddSites,
+  planImport,
   planRemoveSite,
   planUpdateDefaults,
   planUpdateSite,
@@ -94,6 +95,13 @@ const HANDLERS = Object.freeze({
   [MessageType.UPDATE_DEFAULTS]: async (message) => {
     await mutateConfig(MessageType.UPDATE_DEFAULTS, (items) => planUpdateDefaults(items, message));
     return {};
+  },
+
+  // Replaces everything, after the page showed the counts and the user
+  // confirmed. The worker validates the config again before writing.
+  [MessageType.IMPORT_SETTINGS]: async (message) => {
+    const { siteCount } = await mutateConfig(MessageType.IMPORT_SETTINGS, (items) => planImport(items, message));
+    return { siteCount };
   },
 });
 

@@ -50,6 +50,35 @@
         <p class="empty" id="empty">No sites yet. Add one above.</p>
       </section>
 
+      <section class="panel" aria-labelledby="data-heading">
+        <h2 id="data-heading">Your data</h2>
+        <p class="hint">
+          Move your sites and defaults to another browser with a file. Your
+          statistics stay on this device and are not exported.
+        </p>
+
+        <div class="data-actions">
+          <button type="button" class="btn btn-ghost" id="export-settings">Export settings</button>
+          <button type="button" class="btn btn-ghost" id="import-settings">Import settings</button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden />
+        </div>
+
+        <div class="data-confirm" id="import-preview" hidden>
+          <p class="data-summary" id="import-summary"></p>
+          <p class="hint" id="import-duplicates" hidden></p>
+          <p class="hint">Your current sites and defaults are replaced; nothing is merged.</p>
+          <div class="data-actions">
+            <button type="button" class="btn btn-primary" id="import-confirm">Replace</button>
+            <button type="button" class="btn btn-ghost" id="import-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-confirm" id="import-access" hidden>
+          <p class="data-summary" id="import-access-text"></p>
+          <button type="button" class="btn btn-primary" id="import-grant">Grant all</button>
+        </div>
+      </section>
+
       <p class="status" id="status" role="status" aria-live="polite"></p>
 
       <footer class="footer">

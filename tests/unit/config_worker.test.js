@@ -16,6 +16,7 @@ import { handleMessage } from '../../src/background/message_handlers.js';
 import { applyMutation, readConfig } from '../../src/background/config.js';
 import { newSite } from '../../src/background/config_mutations.js';
 import { siteKey } from '../../src/background/sync_layout.js';
+import { buildExport, parseImport } from '../../src/background/settings_io.js';
 import { MessageType, PauseStyle, StorageKey } from '../../src/constants.js';
 import { createFakeChrome } from './helpers/fake_chrome.js';
 
@@ -161,4 +162,32 @@ test('one corrupt site item leaves the others working and continue on it still w
   // Editing another site never rewrites or removes the corrupt item.
   await send({ type: MessageType.UPDATE_SITE, siteId: 'y', fields: { enabled: false } });
   assert.deepEqual(syncStore()[siteKey('r')], { id: 42, pattern: '' });
+});
+
+/* Import (G5-B) --------------------------------------------------------------------- */
+
+test('IMPORT_SETTINGS replaces sites and settings and leaves the 1.0.0 item alone', async () => {
+  install({ [StorageKey.CONFIG]: realConfig() });
+  const before = JSON.stringify(syncStore().config);
+  const source = {
+    schemaVersion: 3,
+    defaults: { ...(await readConfig()).defaults, bypassMinutes: 30 },
+    sites: [newSite('youtube.com', { id: 'y', order: 0, now: NOW })],
+  };
+  const { config } = parseImport(JSON.stringify(buildExport(source, '2.0.0', NOW)));
+
+  assert.deepEqual(await send({ type: MessageType.IMPORT_SETTINGS, config }), { siteCount: 1 });
+  const after = await readConfig();
+  assert.deepEqual(after.sites.map((site) => site.id), ['y']);
+  assert.equal(after.defaults.bypassMinutes, 30);
+  assert.equal(JSON.stringify(syncStore().config), before);
+});
+
+test('an invalid import is refused and changes nothing', async () => {
+  install({ schema: 3, [siteKey('r')]: newSite('reddit.com', { id: 'r', order: 0, now: NOW }) });
+  const before = structuredClone(syncStore());
+  const config = { schemaVersion: 3, defaults: { bypassMinutes: 7 }, sites: [] };
+  await assert.rejects(send({ type: MessageType.IMPORT_SETTINGS, config }), /defaults\.bypassMinutes/);
+  assert.deepEqual(syncStore(), before);
+  assert.deepEqual(fake.calls.syncSets, []);
 });

@@ -141,6 +141,24 @@ function auditStates(base) {
         for (const summary of await page.locator('details > summary').all()) await summary.click();
       },
     },
+    {
+      name: 'settings (import preview, with duplicates)',
+      url: `${base}/options/options.html`,
+      prepare: chooseImportFile,
+      expect: '#import-duplicates',
+    },
+    {
+      name: 'settings (imported; sites need access)',
+      init: () => {
+        chrome.permissions.contains = async () => false;
+      },
+      url: `${base}/options/options.html`,
+      prepare: async (page) => {
+        await chooseImportFile(page);
+        await page.click('#import-confirm');
+      },
+      expect: '#import-grant',
+    },
     { name: 'stats (with the rating banner)', url: `${base}/stats/stats.html`, expect: '.rating' },
     { name: 'onboarding (sites synced from another device)', url: `${base}/onboarding/onboarding.html`, expect: '#synced' },
     { name: 'popup (on its own tab: no quick-add)', url: `${base}/popup/popup.html`, expect: '.rating' },
@@ -255,6 +273,24 @@ function measurePage({ deviceWidth, minTarget, tolerance }) {
   }
 
   return { problems, checked };
+}
+
+/**
+ * Pick an import file on the settings page: the current settings exported,
+ * plus a second entry for the first site so the duplicate note shows too.
+ *
+ * @param {object} page The settings page.
+ */
+async function chooseImportFile(page) {
+  const text = await page.evaluate(async () => {
+    const { readConfig } = await import('/background/config.js');
+    const { buildExport } = await import('/background/settings_io.js');
+    const config = await readConfig();
+    config.sites.push({ ...config.sites[0], id: 'duplicate-entry', order: config.sites.length });
+    return JSON.stringify(buildExport(config, chrome.runtime.getManifest().version, Date.now()));
+  });
+  await page.setInputFiles('#import-file', { name: 'settings.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+  await page.waitForSelector('#import-preview:not([hidden])');
 }
 
 /**

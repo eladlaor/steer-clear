@@ -11,6 +11,7 @@ import { readConfig } from '../background/config.js';
 import { sendMessage } from '../shared/messaging.js';
 import { createSettingsForm } from './settings_form.js';
 import { createSiteList } from './site_list.js';
+import { createDataPanel } from './data_panel.js';
 
 /** How long a success message stays, in ms. */
 const STATUS_CLEAR_MS = 2000;
@@ -63,6 +64,21 @@ const siteList = createSiteList({
   addForm: $('add-form'),
   addPattern: $('add-pattern'),
   addReason: $('add-reason'),
+  setStatus,
+});
+
+createDataPanel({
+  exportButton: $('export-settings'),
+  importButton: $('import-settings'),
+  fileInput: $('import-file'),
+  preview: $('import-preview'),
+  summary: $('import-summary'),
+  duplicates: $('import-duplicates'),
+  confirm: $('import-confirm'),
+  cancel: $('import-cancel'),
+  access: $('import-access'),
+  accessText: $('import-access-text'),
+  grant: $('import-grant'),
   setStatus,
 });
 
