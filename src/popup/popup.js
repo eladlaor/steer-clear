@@ -18,6 +18,7 @@ import { steeredClearDays, todaySummary } from '../background/progress.js';
 import { sendMessage } from '../shared/messaging.js';
 import { mountRatingBanner } from '../shared/rating_banner.js';
 import { quickAdd, quickAddOffer } from './quick_add.js';
+import { SitesNotAddedError } from '../shared/site_access.js';
 import { listedText, minutesLeft, snoozeOptionLabel, steeredDaysText, todayText } from './popup_text.js';
 
 /** How often the snooze's time left is refreshed while the popup is open, in ms. */
@@ -65,6 +66,9 @@ function renderToday(stats) {
   const text = todayText(todaySummary(stats, now));
   el.todayFigure.textContent = text.figure;
   el.todayDetail.textContent = text.detail;
+  // Until any pause has an outcome, "0 of the last 7 days" would read as a
+  // failure for someone who has simply not been paused yet.
+  el.steeredDays.hidden = stats.outcomesSince === null;
   el.steeredDays.textContent = steeredDaysText(steeredClearDays(stats, now, STEERED_DAYS_WINDOW));
 }
 
@@ -82,7 +86,7 @@ function renderSnooze(until, { focus = false } = {}) {
   el.snoozeOn.hidden = !snoozed;
   if (snoozed) {
     const at = new Date(until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    el.snoozeRemaining.textContent = `Reminders are off until ${at} (${minutesLeft(until, Date.now())} min left).`;
+    el.snoozeRemaining.textContent = `Pauses are off until ${at} (${minutesLeft(until, Date.now())} min left).`;
   }
   if (focus) (snoozed ? el.resume : el.snoozeOptions.querySelector('button'))?.focus();
 }
@@ -117,7 +121,7 @@ async function resume() {
   try {
     await sendMessage({ type: MessageType.CLEAR_SNOOZE });
     renderSnooze(null, { focus: true });
-    setStatus('Reminders are back on.');
+    setStatus('Pauses are back on.');
   } catch (error) {
     console.error('[steer-clear] resume failed', { error: error.message });
     setStatus(`Could not resume: ${error.message}`, true);
@@ -173,7 +177,11 @@ function handleQuickAdd() {
         !ok
       );
     })
-    .catch((error) => setStatus(`Could not ask for access: ${error.message}`, true));
+    .catch((error) => {
+      // Nothing was stored when the add failed; offer it again.
+      if (error instanceof SitesNotAddedError) el.quickAdd.hidden = false;
+      setStatus(error instanceof SitesNotAddedError ? error.message : `Could not ask for access: ${error.message}`, true);
+    });
 }
 
 /** @returns {Promise<object|null>} The config, or null when it cannot be read (GET_STATUS says why). */

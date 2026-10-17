@@ -47,21 +47,44 @@ export async function readConfig() {
 }
 
 /**
- * Write one planned mutation: quota check, then one set and one remove.
+ * Write one planned mutation: quota check, then one remove and one set.
  * Only the worker's mutation queue (mutateConfig) calls this.
+ *
+ * The removal goes first. The browser checks its total quota at the set,
+ * while the items being replaced are still stored, so set-then-remove would
+ * refuse a replacement (an import from another browser) whose final state
+ * fits. If the set then fails, the removed items are written back, so a
+ * failed mutation leaves the settings as they were.
  *
  * @param {{set: object, remove: string[]}} plan
  * @param {object} currentItems The items the plan was made from.
  * @returns {Promise<void>}
- * @throws {Error} On a quota violation, before anything is written.
+ * @throws {Error} On a quota violation, before anything is written; or when
+ *   a write fails, after the removed items were restored. A failed restore
+ *   says so.
  */
 export async function applyMutation(plan, currentItems) {
   assertSyncQuota(plan.set, currentItems, plan.remove);
-  if (Object.keys(plan.set).length > 0) {
-    await chrome.storage.sync.set(plan.set);
-  }
+  const removed = Object.fromEntries(
+    plan.remove.filter((key) => key in currentItems).map((key) => [key, currentItems[key]])
+  );
   if (plan.remove.length > 0) {
     await chrome.storage.sync.remove(plan.remove);
+  }
+  if (Object.keys(plan.set).length === 0) return;
+  try {
+    await chrome.storage.sync.set(plan.set);
+  } catch (error) {
+    if (Object.keys(removed).length === 0) throw error;
+    try {
+      await chrome.storage.sync.set(removed);
+    } catch (restoreError) {
+      throw new Error(
+        `[steer-clear] writing the settings failed (${error.message}) after ${plan.remove.join(', ')} ` +
+          `were removed, and restoring them also failed (${restoreError.message})`
+      );
+    }
+    throw new Error(`[steer-clear] writing the settings failed (${error.message}); the removed items were restored`);
   }
 }
 

@@ -14,18 +14,14 @@
           Sites listed here show you a pause instead of loading. Everything
           stays in your browser.
         </p>
+        <nav class="page-nav" aria-label="On this page">
+          <a href="#sites-heading">Sites</a>
+          <a href="#defaults-heading">Defaults</a>
+          <a href="#data-heading">Your data</a>
+        </nav>
       </header>
 
       <div class="config-error" id="config-error" role="alert" hidden></div>
-
-      <section class="panel" aria-labelledby="defaults-heading">
-        <h2 id="defaults-heading">Defaults</h2>
-        <p class="hint">
-          Used by any site that doesn't set its own. Customize a site below
-          when you want something different.
-        </p>
-        <div id="defaults-form"></div>
-      </section>
 
       <section class="panel" aria-labelledby="sites-heading">
         <h2 id="sites-heading">Sites</h2>
@@ -39,7 +35,7 @@
 
             <label class="field">
               <span class="label">Remind me why <span class="opt">optional</span></span>
-              <input type="text" id="add-reason" maxlength="280" placeholder="Using the default above" />
+              <input type="text" id="add-reason" maxlength="280" placeholder="Using your default reason" />
             </label>
           </div>
 
@@ -48,6 +44,15 @@
 
         <ul class="sites" id="sites"></ul>
         <p class="empty" id="empty">No sites yet. Add one above.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="defaults-heading">
+        <h2 id="defaults-heading">Defaults</h2>
+        <p class="hint">
+          Used by any site that doesn't set its own. Customize a site above
+          when you want something different.
+        </p>
+        <div id="defaults-form"></div>
       </section>
 
       <section class="panel" aria-labelledby="data-heading">
@@ -94,9 +99,11 @@
             <span class="sr-only">Enabled</span>
           </label>
           <span class="site-name"></span>
+          <span class="site-actions">
+            <button type="button" class="link site-expand">Customize</button>
+            <button type="button" class="link danger site-remove">Remove</button>
+          </span>
           <span class="site-pattern"></span>
-          <button type="button" class="link site-expand">Customize</button>
-          <button type="button" class="link danger site-remove">Remove</button>
         </div>
 
         <div class="site-warning" hidden>

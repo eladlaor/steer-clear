@@ -27,9 +27,10 @@ const noonDaysAgo = (daysAgo) => new Date(2026, 2, 15 - daysAgo, 12, 0).getTime(
 
 let nextId = 0;
 /** One event; `outcome` undefined makes a legacy (pre-1.1) event. */
-function ev(outcome, { host = 'reddit.com', at = NOW } = {}) {
+function ev(outcome, { host = 'reddit.com', at = NOW, continuedAt } = {}) {
   nextId += 1;
-  return outcome === undefined ? { host, at } : { id: `e${nextId}`, host, at, outcome };
+  if (outcome === undefined) return { host, at };
+  return continuedAt === undefined ? { id: `e${nextId}`, host, at, outcome } : { id: `e${nextId}`, host, at, outcome, continuedAt };
 }
 
 /** A stats record holding exactly these events. */
@@ -57,6 +58,15 @@ test('continuesToday counts that host\'s continues since local midnight', () => 
   assert.equal(continuesToday(log, 'reddit.com', NOW), 2);
   assert.equal(continuesToday(log, 'youtube.com', NOW), 1);
   assert.equal(continuesToday(log, 'x.com', NOW), 0);
+});
+
+test('continuesToday counts a continue after midnight on a pause shown before it as today\'s', () => {
+  const midnight = startOfLocalDay(NOW);
+  const log = stats([
+    ev(CONTINUED, { at: midnight - 2 * 60_000, continuedAt: midnight + 2 * 60_000 }), // 23:58 view, 00:02 continue
+    ev(CONTINUED, { at: midnight - 10 * 60_000, continuedAt: midnight - 60_000 }), // both yesterday
+  ]);
+  assert.equal(continuesToday(log, 'reddit.com', NOW), 1);
 });
 
 test('startOfLocalDay is local midnight of the same day', () => {

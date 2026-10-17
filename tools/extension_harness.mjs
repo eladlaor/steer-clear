@@ -129,7 +129,7 @@ export async function seedDemoData(page, demo) {
       const recorded = recordView(stats, { viewId, host, now: at });
       stats = recorded.stats;
       // A view merged into an earlier one keeps that one's outcome.
-      if (outcome && recorded.eventId === viewId) stats = applyOutcome(stats, viewId, outcome);
+      if (outcome && recorded.eventId === viewId) stats = applyOutcome(stats, viewId, outcome, at);
     }
 
     await chrome.storage.local.clear();

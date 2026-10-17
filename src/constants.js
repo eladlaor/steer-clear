@@ -35,6 +35,12 @@ export const StorageKey = Object.freeze({
   SNOOZE: 'snooze',
   BYPASSES: 'bypasses',
   /**
+   * storage.session: the device's UTC offset (Date#getTimezoneOffset, in
+   * minutes) when the schedule alarm was last set, so a timezone or DST
+   * change can be noticed and the alarm recomputed.
+   */
+  SCHEDULE_TZ_OFFSET: 'scheduleTzOffset',
+  /**
    * Interception history. Lives in storage.local, never storage.sync: this is
    * a record of browsing urges, and sync would copy it to every machine on the
    * Chrome profile and through Google's servers. It stays on the device it
@@ -197,6 +203,15 @@ export const DAYS_PER_WEEK = 7;
 /** chrome.alarms name for the next schedule start or end, which triggers a rebuild. */
 export const SCHEDULE_ALARM = 'schedule-boundary';
 
+/**
+ * chrome.alarms name and period of the check for a changed UTC offset while
+ * a timed schedule is in use. The schedule alarm is an absolute moment
+ * computed in the old offset, so a move across timezones (or a DST change)
+ * would otherwise keep the old rules until it fires.
+ */
+export const TIMEZONE_CHECK_ALARM = 'timezone-check';
+export const TIMEZONE_CHECK_PERIOD_MINUTES = 15;
+
 /** Path of the settings page, relative to the extension root. */
 export const OPTIONS_PATH = 'options/options.html';
 
@@ -356,7 +371,7 @@ export const OVER_LIMIT_PAUSE_SECONDS = 30;
  * allowance and is not counted as a continue. Wherever snooze is offered,
  * this line says so.
  */
-export const SNOOZE_ALLOWANCE_NOTE = 'Pauses all reminders, including your daily limit.';
+export const SNOOZE_ALLOWANCE_NOTE = 'Turns off every pause for a while, including your daily limit.';
 
 /** Snooze lengths the popup offers, in minutes. */
 export const SNOOZE_OPTIONS_MINUTES = Object.freeze([15, 30, 60]);
@@ -369,6 +384,20 @@ export const SETTINGS_SAVE_DELAY_MS = 400;
 
 /** Upper bound on listed sites; the sync quota is the binding limit in practice. */
 export const MAX_SITES = 200;
+
+/** How long a destructive button stays armed for its confirming second click, in ms. */
+export const CONFIRM_ARM_MS = 5000;
+
+/**
+ * Longest host a site can name. Each rule's regexFilter embeds the host, and
+ * Chromium refuses a regex over its RE2 memory limit (measured: a
+ * subdomain-inclusive filter fails from an 88-character host), which would
+ * fail the whole rule update. Real hostnames are far shorter.
+ */
+export const MAX_PATTERN_HOST_LENGTH = 80;
+
+/** A hostname of dot-separated labels (letters, digits, '-', '_'; the last label no '_'). */
+export const HOSTNAME_PATTERN = /^(?:[a-z0-9_-]{1,63}\.)+[a-z0-9-]{1,63}$/;
 
 /** storage.sync quotas, in UTF-8 bytes of key plus JSON value. */
 export const SYNC_QUOTA_BYTES = 102400;

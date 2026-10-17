@@ -164,17 +164,38 @@ textarea:focus {
   min-height: var(--target-min);
 }
 
-/* Grows to fill the row, but never below 8rem: on a phone the actions wrap
-   to the next line instead of squeezing the domain into a column. */
-.site-pattern {
+/* The name grows to fill the row, but never below 8rem: on a phone the
+   actions wrap to the next line together, the same way on every row,
+   instead of squeezing the domain into a column. */
+.site-name {
   flex: 1 1 8rem;
   min-width: 0;
-  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
+.site-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* Only a site with a display name shows its pattern, on a line of its own
+   under the name (indented past the toggle). */
+.site-pattern {
+  order: 1;
+  flex-basis: 100%;
+  padding-left: calc(var(--target-min) + 10px);
+  overflow-wrap: anywhere;
+}
+
+.site-pattern:empty {
+  display: none;
+}
+
+/* A turned-off site: struck through and muted, at full text contrast. */
+.site.disabled .site-name,
 .site.disabled .site-pattern {
-  opacity: 0.45;
+  color: var(--ink-soft);
   text-decoration: line-through;
 }
 
@@ -204,15 +225,44 @@ textarea:focus {
   display: none;
 }
 
+/* Every change on this long page reports here, so the line stays in view
+   at the bottom of the window instead of far below the control. */
 .status {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   margin: 16px 0 0;
+  padding: 8px 12px;
+  background: var(--bg);
   text-align: center;
+}
+
+.status:empty {
+  min-height: 0;
+  padding: 0;
+}
+
+.page-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+
+.page-nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--target-min);
+  min-height: var(--target-min);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
 }
 
 /* Site display name and permission banner -------------------------------- */
 
 .site-name {
   font-weight: 600;
+  font-size: var(--text-md);
 }
 
 .site-pattern:not(:empty) {

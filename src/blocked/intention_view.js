@@ -15,7 +15,7 @@ const INTENTION_INPUT_ID = 'intention-input';
  *
  * @param {HTMLElement} container Where to render.
  * @param {{onInput: (text: string) => void}} options Called on every edit.
- * @returns {void}
+ * @returns {HTMLInputElement} The field, which the page focuses first.
  */
 export function mountIntentionView(container, { onInput }) {
   const root = document.createElement('div');
@@ -37,4 +37,5 @@ export function mountIntentionView(container, { onInput }) {
 
   root.append(label, input);
   container.replaceChildren(root);
+  return input;
 }

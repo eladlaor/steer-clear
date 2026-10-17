@@ -39,7 +39,7 @@ export function todayText(today) {
     figure: `${today.intercepted} ${pauses} today`,
     detail:
       today.intercepted === 0
-        ? 'Nothing has caught you today.'
+        ? 'No pauses yet today.'
         : `${today.steeredClear} steered clear, ${today.continued} continued`,
   };
 }

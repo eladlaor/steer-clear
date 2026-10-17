@@ -138,7 +138,7 @@ test('a view of the same host 61 s later is a new event', () => {
 
 test('a view right after a continued view is a new event', () => {
   const first = recordView(emptyStats(), { viewId: 'v1', host: 'reddit.com', now: NOW });
-  const continued = applyOutcome(first.stats, 'v1', Outcome.CONTINUED);
+  const continued = applyOutcome(first.stats, 'v1', Outcome.CONTINUED, NOW);
   const next = recordView(continued, { viewId: 'v2', host: 'reddit.com', now: NOW + 10 * SECOND });
   assert.equal(next.eventId, 'v2');
   assert.equal(next.stats.events.length, 2);
@@ -180,6 +180,13 @@ test('recordView rejects a missing view id, host or time', () => {
 
 /* applyOutcome ------------------------------------------------------------------ */
 
+test('a continue records when it happened, and needs that time', () => {
+  const stats = applyOutcome(view(emptyStats(), 'a.com', NOW - 60_000, 'x'), 'x', Outcome.CONTINUED, NOW);
+  assert.equal(stats.events[0].continuedAt, NOW);
+  assert.equal(stats.events[0].at, NOW - 60_000, 'the view keeps its own time');
+  assert.throws(() => applyOutcome(view(emptyStats(), 'a.com', NOW, 'y'), 'y', Outcome.CONTINUED), /time it happened/);
+});
+
 test('applyOutcome updates exactly one event', () => {
   let stats = view(emptyStats(), 'a.com', NOW - DAY, 'x');
   stats = view(stats, 'a.com', NOW, 'y');
@@ -195,18 +202,18 @@ test('applyOutcome throws on an unknown event id', () => {
 });
 
 test('applyOutcome rejects steered after continued', () => {
-  const stats = applyOutcome(view(emptyStats(), 'a.com', NOW, 'x'), 'x', Outcome.CONTINUED);
+  const stats = applyOutcome(view(emptyStats(), 'a.com', NOW, 'x'), 'x', Outcome.CONTINUED, NOW);
   assert.throws(() => applyOutcome(stats, 'x', Outcome.STEERED), /continued/);
 });
 
 test('applyOutcome lets continued follow steered', () => {
   const steered = applyOutcome(view(emptyStats(), 'a.com', NOW, 'x'), 'x', Outcome.STEERED);
-  assert.equal(applyOutcome(steered, 'x', Outcome.CONTINUED).events[0].outcome, Outcome.CONTINUED);
+  assert.equal(applyOutcome(steered, 'x', Outcome.CONTINUED, NOW).events[0].outcome, Outcome.CONTINUED);
 });
 
 test('applying the outcome an event already has changes nothing', () => {
-  const continued = applyOutcome(view(emptyStats(), 'a.com', NOW, 'x'), 'x', Outcome.CONTINUED);
-  assert.equal(applyOutcome(continued, 'x', Outcome.CONTINUED), continued);
+  const continued = applyOutcome(view(emptyStats(), 'a.com', NOW, 'x'), 'x', Outcome.CONTINUED, NOW);
+  assert.equal(applyOutcome(continued, 'x', Outcome.CONTINUED, NOW), continued);
 });
 
 test('applyOutcome rejects an outcome a view cannot move to', () => {
@@ -274,9 +281,9 @@ test('pruning keeps lifetime totals intact', () => {
 test('pruning keeps working on outcome-tagged events', () => {
   let stats = view(emptyStats(), 'a.com', NOW - (STATS_RETENTION_DAYS + 1) * DAY, 'old');
   stats = view(stats, 'a.com', NOW - DAY, 'kept');
-  stats = applyOutcome(stats, 'kept', Outcome.CONTINUED);
+  stats = applyOutcome(stats, 'kept', Outcome.CONTINUED, NOW);
   const pruned = pruneEvents(stats, NOW);
-  assert.deepEqual(pruned.events, [{ id: 'kept', host: 'a.com', at: NOW - DAY, outcome: Outcome.CONTINUED }]);
+  assert.deepEqual(pruned.events, [{ id: 'kept', host: 'a.com', at: NOW - DAY, outcome: Outcome.CONTINUED, continuedAt: NOW }]);
   assert.equal(pruned.totals['a.com'], 2);
   assert.equal(pruned.outcomesSince, stats.outcomesSince);
 });

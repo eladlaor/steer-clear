@@ -17,6 +17,8 @@ import {
   INTERSTITIAL_PATH,
   PARAM_FROM,
   MAX_REGEX_RULES,
+  HOSTNAME_PATTERN,
+  MAX_PATTERN_HOST_LENGTH,
 } from '../constants.js';
 import { isScheduleActiveAt } from './schedule.js';
 import { resolveSettings } from './settings_schema.js';
@@ -51,6 +53,28 @@ export function normalizePattern(pattern) {
   if (host === '' || !host.includes('.')) {
     throw new Error(
       `normalizePattern: "${pattern}" does not contain a valid hostname`
+    );
+  }
+
+  // Browsers match and grant internationalized hosts in their ASCII
+  // (punycode) form, so that is the form a rule and a permission must use.
+  if (/[^\x00-\x7f]/.test(host)) {
+    try {
+      host = new URL(`http://${host}`).hostname;
+    } catch {
+      throw new Error(`normalizePattern: "${pattern}" does not contain a valid hostname`);
+    }
+  }
+
+  // Anything else left over (a second wildcard, spaces, brackets) would make
+  // an origin pattern the browser rejects, and one rejected origin fails the
+  // permission check and the rule update for every site.
+  if (!HOSTNAME_PATTERN.test(host)) {
+    throw new Error(`normalizePattern: "${pattern}" does not contain a valid hostname`);
+  }
+  if (host.length > MAX_PATTERN_HOST_LENGTH) {
+    throw new Error(
+      `normalizePattern: "${pattern}" names a host of ${host.length} characters; at most ${MAX_PATTERN_HOST_LENGTH} are supported`
     );
   }
 

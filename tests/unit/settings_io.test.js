@@ -213,6 +213,28 @@ test('a legacy config that is not a 1.x shape is refused, naming the field', () 
   rejects(envelope({ schemaVersion: 2, globalTarget: '', sites: [] }), /defaults\.target/);
 });
 
+test('a pattern that names no usable host is refused, naming the site', () => {
+  // "*.*.bad.com" keeps a wildcard once "*." is stripped: the browser rejects
+  // its origin, which used to stop every site from pausing.
+  for (const pattern of ['*.*.bad.com', `${'a'.repeat(60)}.${'b'.repeat(60)}.com`, 'not a domain']) {
+    const config = v3Config();
+    config.sites[1].pattern = pattern;
+    rejects(envelope(config), /sites\[1\]\.pattern .* is not a usable domain/);
+  }
+});
+
+test('a destination that is not an http(s) address is refused, naming the field', () => {
+  for (const target of ['javascript:document.title=1', 'chrome://extensions', 'file:///etc/hosts', 'example.com']) {
+    const defaults = v3Config();
+    defaults.defaults.target = target;
+    rejects(envelope(defaults), /defaults\.target must be an http\(s\) address/);
+
+    const site = v3Config();
+    site.sites[0].overrides.target = target;
+    rejects(envelope(site), /sites\[0\]\.overrides\.target must be an http\(s\) address/);
+  }
+});
+
 /* The worker re-validates what the page sends -------------------------------------- */
 
 test('validateImportedConfig accepts only a complete v3 config', () => {

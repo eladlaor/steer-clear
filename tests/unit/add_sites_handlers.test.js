@@ -16,7 +16,7 @@ import assert from 'node:assert/strict';
 
 import { quickAdd, quickAddHost, quickAddOffer } from '../../src/popup/quick_add.js';
 import { turnOn } from '../../src/onboarding/turn_on.js';
-import { addSitesThenRequestAccess } from '../../src/shared/site_access.js';
+import { SitesNotAddedError, addSitesThenRequestAccess } from '../../src/shared/site_access.js';
 import { originPatternsFor } from '../../src/background/permissions.js';
 import { LifecycleEvent, MessageType } from '../../src/constants.js';
 
@@ -162,15 +162,41 @@ test('addSitesThenRequestAccess rejects an empty list without prompting', () => 
   assert.deepEqual(log, []);
 });
 
-test('a failed worker message is logged, and the prompt still opened', async () => {
+test('a failed add rejects naming the worker error, and hands back the access just granted', async () => {
+  // Nothing was stored, so "added" would be false, and access to a site that
+  // is not listed is an over-reach.
   globalThis.chrome.runtime.sendMessage = (message) => {
     log.push({ call: 'sendMessage', message });
-    return Promise.resolve({ ok: false, error: 'quota' });
+    return Promise.resolve({ ok: false, error: 'at most 200 sites can be listed' });
+  };
+  globalThis.chrome.permissions.remove = (request) => {
+    log.push({ call: 'permissions.remove', origins: request.origins });
+    return Promise.resolve(true);
   };
   const errors = [];
   console.error = (...args) => errors.push(args);
-  assert.equal(await addSitesThenRequestAccess([{ host: 'reddit.com' }]), true);
-  await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(calls(), ['sendMessage', 'permissions.request']);
+
+  const pending = addSitesThenRequestAccess([{ host: 'reddit.com' }]);
+  assert.deepEqual(calls(), ['sendMessage', 'permissions.request'], 'the prompt still opened in the same tick');
+  await assert.rejects(pending, (error) => {
+    assert.ok(error instanceof SitesNotAddedError);
+    assert.match(error.message, /Could not add reddit\.com: at most 200 sites/);
+    return true;
+  });
+  assert.deepEqual(log[2], { call: 'permissions.remove', origins: originPatternsFor('reddit.com') });
   assert.ok(errors.some(([line]) => String(line).includes('[steer-clear]')), 'the failure is logged');
+});
+
+test('a failed add with a refused prompt revokes nothing', async () => {
+  grant = false;
+  globalThis.chrome.runtime.sendMessage = () => Promise.resolve({ ok: false, error: 'quota' });
+  globalThis.chrome.permissions.remove = () => assert.fail('nothing was granted');
+  await assert.rejects(quickAdd('reddit.com'), SitesNotAddedError);
+});
+
+test('Turn on surfaces a failed add through its granted promise', async () => {
+  globalThis.chrome.runtime.sendMessage = () => Promise.resolve({ ok: false, error: 'quota' });
+  globalThis.chrome.permissions.remove = () => Promise.resolve(true);
+  const { granted } = turnOn({ chips: ['reddit.com'], typedHosts: [], reasons: {} });
+  await assert.rejects(granted, SitesNotAddedError);
 });

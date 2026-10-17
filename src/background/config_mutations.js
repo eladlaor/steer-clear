@@ -163,23 +163,49 @@ export function planUpdateSite(items, { siteId, fields = {}, setOverrides = {}, 
 }
 
 /**
+ * The hosts whose access should be given back after sites are removed: each
+ * removed pattern's host, once, unless a site still listed uses the same
+ * host (1.x and imports allow a host twice).
+ *
+ * @param {unknown[]} removedPatterns Patterns of the removed sites (raw:
+ *   a damaged item's may not be a string).
+ * @param {object[]} remainingSites The sites still listed afterwards.
+ * @returns {string[]}
+ */
+export function hostsToRevoke(removedPatterns, remainingSites) {
+  const kept = new Set(remainingSites.map(hostOf));
+  const hosts = [];
+  for (const pattern of removedPatterns) {
+    if (typeof pattern !== 'string') continue;
+    const host = hostOf({ pattern });
+    if (host !== null && !kept.has(host) && !hosts.includes(host)) hosts.push(host);
+  }
+  return hosts;
+}
+
+/**
  * Remove one site, or one damaged site item the settings page reported.
  *
  * @param {object} items
  * @param {{siteId: string}} request
- * @returns {{set: object, remove: string[]}}
+ * @returns {{plan: {set: object, remove: string[]}, revokeHosts: string[]}}
+ *   `revokeHosts`: the access the page should give back once this succeeds.
  */
 export function planRemoveSite(items, { siteId }) {
   const { config, base } = startPlan(items);
   // A damaged item is not listed, but the settings page names it and offers
   // to remove it; this is the only way to clear it.
   if (config.invalidSites.some((entry) => entry.key === siteKey(siteId))) {
-    return { set: { ...base }, remove: [siteKey(siteId)] };
+    return {
+      plan: { set: { ...base }, remove: [siteKey(siteId)] },
+      revokeHosts: hostsToRevoke([items[siteKey(siteId)]?.pattern], config.sites),
+    };
   }
-  findSite(config, siteId);
+  const site = findSite(config, siteId);
   const set = { ...base };
   delete set[siteKey(siteId)];
-  return { set, remove: [siteKey(siteId)] };
+  const remaining = config.sites.filter((listed) => listed.id !== siteId);
+  return { plan: { set, remove: [siteKey(siteId)] }, revokeHosts: hostsToRevoke([site.pattern], remaining) };
 }
 
 /**
@@ -208,7 +234,8 @@ export function planUpdateDefaults(items, { patch }) {
  *
  * @param {object} items
  * @param {{config: object}} request A v3 config (from parseImport).
- * @returns {{plan: {set: object, remove: string[]}, siteCount: number}}
+ * @returns {{plan: {set: object, remove: string[]}, siteCount: number, revokeHosts: string[]}}
+ *   `revokeHosts`: access to give back for the sites the import replaced.
  */
 export function planImport(items, { config } = {}) {
   validateImportedConfig(config);
@@ -224,5 +251,9 @@ export function planImport(items, { config } = {}) {
   const remove = isV3SitesMode(items)
     ? current.sites.map((site) => siteKey(site.id)).filter((key) => !(key in set))
     : [];
-  return { plan: { set, remove }, siteCount: config.sites.length };
+  return {
+    plan: { set, remove },
+    siteCount: config.sites.length,
+    revokeHosts: hostsToRevoke(current.sites.map((site) => site.pattern), config.sites),
+  };
 }

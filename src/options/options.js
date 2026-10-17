@@ -8,6 +8,7 @@
 
 import { MessageType, SettingsFormMode, StorageArea, StorageKey } from '../constants.js';
 import { readConfig } from '../background/config.js';
+import { revokeHostPermission } from '../background/permissions.js';
 import { sendMessage } from '../shared/messaging.js';
 import { createSettingsForm } from './settings_form.js';
 import { createSiteList } from './site_list.js';
@@ -85,7 +86,12 @@ createDataPanel({
 /** Remove one damaged site item, by the key the error named. */
 async function removeDamaged(key) {
   try {
-    await sendMessage({ type: MessageType.REMOVE_SITE, siteId: key.slice(StorageKey.SITE_PREFIX.length) });
+    const { revokeHosts } = await sendMessage({
+      type: MessageType.REMOVE_SITE,
+      siteId: key.slice(StorageKey.SITE_PREFIX.length),
+    });
+    // Its access goes back too, unless another listed site uses the host.
+    for (const host of revokeHosts) await revokeHostPermission(host);
     setStatus('Removed the damaged item');
   } catch (error) {
     console.error('[steer-clear] removing a damaged site item failed', { key, error: error.message });

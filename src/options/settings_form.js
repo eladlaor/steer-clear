@@ -25,9 +25,8 @@ import {
   PauseStyle,
   SETTINGS_SAVE_DELAY_MS,
   SettingsFormMode,
-  SOURCE_URL_PROTOCOLS,
 } from '../constants.js';
-import { PER_SITE_FIELDS, resolveSettings } from '../background/settings_schema.js';
+import { PER_SITE_FIELDS, isWebUrl, resolveSettings } from '../background/settings_schema.js';
 import { createReasonsEditor } from './reasons_editor.js';
 import { createScheduleEditor } from './schedule_editor.js';
 
@@ -123,7 +122,11 @@ export function createSettingsForm(container, { mode, idPrefix, onPatch, onClear
     useDefault.addEventListener('click', () => onClear(field.key));
     const tag = el('span', { className: 'field-tag' });
     const head = el('div', { className: 'field-head' }, [control.label, ...(isSite ? [tag, useDefault] : [])]);
-    const hint = el('p', { className: 'hint field-hint', textContent: field.hint ?? '' });
+    const hint = el('p', { className: 'hint field-hint', id: `${id}-hint`, textContent: field.hint ?? '' });
+    // Screen readers read the hint (and a style's description) with the control.
+    if (control.described) {
+      control.described.setAttribute('aria-describedby', [hint.id, ...(control.describedBy ?? [])].join(' '));
+    }
     const wrapper = el('div', { className: `field field-${field.kind}` }, [head, control.input, hint]);
     (field.advanced ? advancedBody : main).append(wrapper);
     controls.set(field.key, { ...control, wrapper, useDefault, tag, hint, field });
@@ -161,7 +164,9 @@ export function createSettingsForm(container, { mode, idPrefix, onPatch, onClear
 /**
  * Build one field's control.
  *
- * @returns {{label: HTMLElement, input: HTMLElement, set: (value: unknown, force?: boolean) => void}}
+ * @returns {{label: HTMLElement, input: HTMLElement, set: (value: unknown, force?: boolean) => void,
+ *   described?: HTMLElement, describedBy?: string[]}} `described`: the element
+ *   the field's hint describes; `describedBy`: further description ids.
  */
 function buildControl(field, id, { save, saveLater, onError, isSite }) {
   const label = el('label', { className: 'label', htmlFor: id, textContent: field.label });
@@ -182,11 +187,11 @@ function buildControl(field, id, { save, saveLater, onError, isSite }) {
         return isWebUrl(value) ? '' : 'The destination must be a full web address, like https://example.com';
       };
       input.addEventListener('input', () => saveLater(field.key, input.value.trim(), check));
-      return { label, input, set: (value, force) => typing(input, force) || (input.value = value) };
+      return { label, input, described: input, set: (value, force) => typing(input, force) || (input.value = value) };
     }
     case 'style': {
       const select = el('select', { id }, STYLE_CHOICES.map(([value, text]) => el('option', { value, textContent: text })));
-      const describe = el('p', { className: 'hint style-hint' });
+      const describe = el('p', { className: 'hint style-hint', id: `${id}-style` });
       const box = el('div', {}, [select, describe]);
       const sync = () => {
         describe.textContent = STYLE_CHOICES.find(([value]) => value === select.value)[2];
@@ -195,12 +200,12 @@ function buildControl(field, id, { save, saveLater, onError, isSite }) {
         sync();
         save(field.key, select.value);
       });
-      return { label, input: box, set: (value) => { select.value = value; sync(); } };
+      return { label, input: box, described: select, describedBy: [describe.id], set: (value) => { select.value = value; sync(); } };
     }
     case 'bypass': {
       const select = el('select', { id }, BYPASS_MINUTES_OPTIONS.map((m) => el('option', { value: String(m), textContent: `${m} minute${m === 1 ? '' : 's'}` })));
       select.addEventListener('change', () => save(field.key, Number(select.value)));
-      return { label, input: select, set: (value) => { select.value = String(value); } };
+      return { label, input: select, described: select, set: (value) => { select.value = String(value); } };
     }
     case 'schedule': {
       const groupLabel = el('span', { className: 'label', id: `${id}-label`, textContent: field.label });
@@ -210,7 +215,7 @@ function buildControl(field, id, { save, saveLater, onError, isSite }) {
         onChange: (schedule) => save(field.key, schedule),
         onError,
       });
-      return { label: groupLabel, input: editor.element, set: (value, force) => typing(editor.element, force) || editor.set(value) };
+      return { label: groupLabel, input: editor.element, described: editor.element, set: (value, force) => typing(editor.element, force) || editor.set(value) };
     }
     case 'number': {
       const input = el('input', { type: 'number', id, min: field.min, max: field.max, step: 1, placeholder: field.placeholder ?? '' });
@@ -227,28 +232,17 @@ function buildControl(field, id, { save, saveLater, onError, isSite }) {
         }
         save(field.key, value);
       });
-      return { label, input, set: (value, force) => typing(input, force) || (input.value = value === null ? '' : String(value)) };
+      return { label, input, described: input, set: (value, force) => typing(input, force) || (input.value = value === null ? '' : String(value)) };
     }
     case 'checkbox': {
       const input = el('input', { type: 'checkbox', id });
       input.addEventListener('change', () => save(field.key, input.checked));
       const box = el('label', { className: 'check', htmlFor: id }, [input, el('span', { textContent: field.label })]);
       // The checkbox's own label carries the text; the field head stays empty.
-      return { label: el('span'), input: box, set: (value) => { input.checked = value; } };
+      return { label: el('span'), input: box, described: input, set: (value) => { input.checked = value; } };
     }
     default:
       throw new Error(`settings_form: unknown field kind "${field.kind}"`);
   }
 }
 
-/**
- * @param {string} value
- * @returns {boolean} Whether it parses as an http(s) URL.
- */
-function isWebUrl(value) {
-  try {
-    return SOURCE_URL_PROTOCOLS.includes(new URL(value).protocol);
-  } catch {
-    return false;
-  }
-}

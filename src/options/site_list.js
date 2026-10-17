@@ -7,9 +7,9 @@
  * tab or device never steals focus or collapses an open row.
  */
 
-import { MessageType, SETTINGS_SAVE_DELAY_MS, SettingsFormMode } from '../constants.js';
+import { CONFIRM_ARM_MS, MessageType, SETTINGS_SAVE_DELAY_MS, SettingsFormMode } from '../constants.js';
 import { sendMessage } from '../shared/messaging.js';
-import { addSitesThenRequestAccess } from '../shared/site_access.js';
+import { SitesNotAddedError, addSitesThenRequestAccess } from '../shared/site_access.js';
 import { normalizePattern } from '../background/rules.js';
 import {
   hasHostPermission,
@@ -28,15 +28,29 @@ export function createSiteList(dom) {
   const rows = new Map();
   let current = null;
 
+  /** @returns {Promise<object|null>} The worker's answer, or null when the change failed (shown). */
   const send = async (message, done) => {
     try {
-      await sendMessage(message);
+      const response = await sendMessage(message);
       if (done) dom.setStatus(done);
+      return response;
     } catch (error) {
       console.error('[steer-clear] settings change failed', { type: message.type, error: error.message });
       dom.setStatus(`Could not save: ${error.message}`, true);
+      return null;
     }
   };
+
+  /** Mark the add field as wrong (or clear it), so the error is tied to it. */
+  const markAddInvalid = (invalid) => {
+    if (invalid) {
+      dom.addPattern.setAttribute('aria-invalid', 'true');
+      dom.addPattern.focus();
+    } else {
+      dom.addPattern.removeAttribute('aria-invalid');
+    }
+  };
+  dom.addPattern.addEventListener('input', () => markAddInvalid(false));
 
   /**
    * Add a site. The worker message leaves first, then the permission prompt
@@ -52,17 +66,22 @@ export function createSiteList(dom) {
     } catch (error) {
       console.warn('[steer-clear] add rejected an invalid domain', { raw, error: error.message });
       dom.setStatus(`"${raw}" doesn't look like a domain`, true);
+      markAddInvalid(true);
       return;
     }
     if (current.sites.some((site) => safeHost(site) === host)) {
       dom.setStatus(`${host} is already on the list`, true);
+      markAddInvalid(true);
       return;
     }
+    markAddInvalid(false);
     addSitesThenRequestAccess([{ host, reason: dom.addReason.value }])
       .then((granted) => {
         dom.setStatus(granted ? `${host} added` : `Added ${host}, but it needs access before it can work`, !granted);
       })
-      .catch((error) => dom.setStatus(`Could not ask for access: ${error.message}`, true));
+      .catch((error) =>
+        dom.setStatus(error instanceof SitesNotAddedError ? error.message : `Could not ask for access: ${error.message}`, true)
+      );
     dom.addForm.reset();
   });
 
@@ -118,14 +137,30 @@ export function createSiteList(dom) {
     });
     row.expand.addEventListener('click', () => {
       row.detail.hidden = !row.detail.hidden;
-      row.expand.textContent = row.detail.hidden ? 'Customize' : 'Done';
+      labelRowButtons(row);
       row.expand.setAttribute('aria-expanded', String(!row.detail.hidden));
     });
-    q('.site-remove').addEventListener('click', async () => {
-      await send({ type: MessageType.REMOVE_SITE, siteId }, 'Removed');
+    // Two steps, like erasing statistics: removing drops the site's reasons,
+    // schedule and overrides and gives back its access.
+    row.removeArmed = null;
+    const disarmRemove = () => {
+      window.clearTimeout(row.removeArmed);
+      row.removeArmed = null;
+      labelRowButtons(row);
+    };
+    row.remove.addEventListener('click', async () => {
+      if (row.removeArmed === null) {
+        row.removeArmed = window.setTimeout(disarmRemove, CONFIRM_ARM_MS);
+        row.remove.textContent = 'Click again to remove';
+        row.remove.setAttribute('aria-label', `Click again to remove ${siteName(row.site)}`);
+        return;
+      }
+      disarmRemove();
+      const response = await send({ type: MessageType.REMOVE_SITE, siteId }, 'Removed');
+      if (response === null) return;
       // Keeping access to a site the user removed would be a quiet over-reach.
-      const host = safeHost(row.site);
-      if (host) await revokeHostPermission(host);
+      // The worker names only hosts no other listed site still uses.
+      for (const host of response.revokeHosts) await revokeHostPermission(host);
     });
     q('.site-grant').addEventListener('click', () => handleGrant(row));
 
@@ -161,17 +196,29 @@ export function createSiteList(dom) {
     }
   }
 
+  /**
+   * Every row has the same buttons; their names say which site they act on,
+   * and start with the visible text so voice control can say it.
+   */
+  function labelRowButtons(row) {
+    const name = siteName(row.site);
+    const expanded = !row.detail.hidden;
+    row.expand.textContent = expanded ? 'Done' : 'Customize';
+    row.expand.setAttribute('aria-label', expanded ? `Done customizing ${name}` : `Customize ${name}`);
+    row.remove.textContent = 'Remove';
+    row.remove.setAttribute('aria-label', `Remove ${name}`);
+  }
+
   /** Write a site's stored values into its row, sparing the focused input. */
   function fillRow(row, site, defaults) {
     row.site = site;
     const label = site.displayName?.trim();
     row.name.textContent = label || site.pattern;
     row.pattern.textContent = label ? site.pattern : '';
-    // Every row has the same buttons; their names say which site they act on.
-    const name = label || site.pattern;
+    const name = siteName(site);
     row.enabled.setAttribute('aria-label', `Pause ${name}`);
-    row.expand.setAttribute('aria-label', `Customize ${name}`);
-    row.remove.setAttribute('aria-label', `Remove ${name}`);
+    // An armed Remove keeps its "Click again" text until it fires or times out.
+    if (row.removeArmed === null) labelRowButtons(row);
     row.grant.setAttribute('aria-label', `Grant access to ${name}`);
     row.enabled.checked = site.enabled;
     row.subdomains.checked = site.includeSubdomains;
@@ -213,6 +260,14 @@ export function createSiteList(dom) {
       for (const row of rows.values()) refreshPermission(row);
     },
   };
+}
+
+/**
+ * @param {object} site
+ * @returns {string} What the row calls the site: its name, else its pattern.
+ */
+function siteName(site) {
+  return site.displayName?.trim() || site.pattern;
 }
 
 /**

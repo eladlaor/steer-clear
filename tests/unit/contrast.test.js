@@ -58,3 +58,24 @@ test('consecutive palettes look different', () => {
     assert.notEqual(a['--accent'], b['--accent']);
   }
 });
+
+test('no stylesheet fades text with opacity, except for controls that are unavailable', async () => {
+  // The token pairs above pass AA, but opacity lowers the drawn contrast
+  // (".btn-sub" at 0.75 measured 3.3:1). Disabled controls are exempt from
+  // the contrast requirement and may fade.
+  const { readdirSync } = await import('node:fs');
+  const srcDir = new URL('../../src/', import.meta.url);
+  const sheets = readdirSync(srcDir, { recursive: true }).filter((file) => file.endsWith('.css'));
+  const offenders = [];
+  for (const file of sheets) {
+    const css = readFileSync(new URL(file, srcDir), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const opacity = body.match(/(?:^|;)\s*opacity\s*:\s*([\d.]+)/);
+      if (!opacity || Number(opacity[1]) >= 1) continue;
+      if (/disabled/.test(selector)) continue;
+      offenders.push(`${file}: ${selector.trim()} { opacity: ${opacity[1]} }`);
+    }
+  }
+  assert.ok(sheets.length > 0, 'found the stylesheets');
+  assert.deepEqual(offenders, []);
+});

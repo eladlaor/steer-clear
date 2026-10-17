@@ -17,7 +17,7 @@ import {
   MessageType,
 } from '../constants.js';
 import { readConfig } from '../background/config.js';
-import { originPatternsFor } from '../background/permissions.js';
+import { originPatternsFor, revokeHostPermission } from '../background/permissions.js';
 import { buildExport, exportFileName, importedHosts, parseImport } from '../background/settings_io.js';
 import { sendMessage } from '../shared/messaging.js';
 import { accessText, duplicatesText, exportedText, importedText, replaceSummary } from './data_text.js';
@@ -116,15 +116,27 @@ export function createDataPanel(dom) {
   async function confirmImport() {
     if (!pending) return;
     const { config } = pending;
+    let result;
     try {
-      const { siteCount } = await sendMessage({ type: MessageType.IMPORT_SETTINGS, config });
-      resetPreview();
-      dom.setStatus(importedText(siteCount));
-      console.info('[steer-clear] settings imported', { siteCount });
+      result = await sendMessage({ type: MessageType.IMPORT_SETTINGS, config });
+    } catch (error) {
+      // The worker writes nothing, or puts back what it removed, before
+      // reporting a failure; its message says if a restore also failed.
+      console.error('[steer-clear] import failed', { error: error.message });
+      dom.setStatus(`Not imported: ${error.message}`, true);
+      return;
+    }
+    const { siteCount, revokeHosts } = result;
+    resetPreview();
+    dom.setStatus(importedText(siteCount));
+    console.info('[steer-clear] settings imported', { siteCount, revokedHosts: revokeHosts });
+    try {
+      // The replaced sites give their access back, as the Remove button does.
+      for (const host of revokeHosts) await revokeHostPermission(host);
       await offerAccess(config);
     } catch (error) {
-      console.error('[steer-clear] import failed', { error: error.message });
-      dom.setStatus(`Not imported, nothing changed: ${error.message}`, true);
+      console.error('[steer-clear] import access update failed', { error: error.message });
+      dom.setStatus(`Imported, but checking site access failed: ${error.message}`, true);
     }
   }
 

@@ -117,6 +117,9 @@ it closes:
   badge, so the badge can be cleared when the pass ends (tab numbers only, no
   addresses)
 - `snooze` — when a snooze you started from the toolbar popup ends
+- `scheduleTzOffset` — only while a site has a schedule: your device's
+  offset from UTC (for example, three hours ahead), so a change of timezone
+  or daylight saving time moves the schedule's switch-over to the right moment
 - `liftedRules` — only if your saved settings cannot be read (for example,
   settings saved by a newer version on another device): the redirect rules a
   "continue anyway" removed, so they can be put back when the pass ends
@@ -168,7 +171,7 @@ extension package.
 |---|---|
 | `declarativeNetRequest` | To redirect navigations to the domains you configure toward the extension's own pause page. Rules are given to the browser declaratively; the extension does not observe or receive the requests themselves. |
 | `storage` | To save your settings, your interception history and the one-time flags, and to hold the temporary state listed above for the current browser session. |
-| `alarms` | To bring a reminder back when a "continue anyway" pass or a snooze ends, to count down the minutes in the toolbar badge, to switch reminders on and off at the edges of a schedule, and to delete history older than 90 days. |
+| `alarms` | To bring a reminder back when a "continue anyway" pass or a snooze ends, to count down the minutes in the toolbar badge, to switch reminders on and off at the edges of a schedule (and, while one is set, to check every 15 minutes for a change of timezone), and to delete history older than 90 days. |
 | `activeTab` | Only when you click the toolbar button: to read the address of the tab you are on, so the popup can offer "Steer clear of" that site. Nothing is stored unless you add the site, and adding it asks for access to that site alone. |
 | Site access (optional host permissions) | A browser only lets an extension redirect a site it has access to. Steer Clear asks for access to each site individually, when you add it, and holds no access to any site you have not entered. Removing a site gives its access back. The access is used only to redirect and, as described above, to find tabs on that site; Steer Clear injects no scripts and reads no page content on any site. |
 

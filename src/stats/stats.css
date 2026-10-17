@@ -65,6 +65,13 @@ h2:first-child {
   overflow-wrap: anywhere;
 }
 
+/* A name rather than a number: smaller, so a host fits a phone-width card,
+   and broken only at its dots. */
+.card-value-text {
+  font-size: var(--text-xl);
+  overflow-wrap: break-word;
+}
+
 .card-label {
   color: var(--ink-soft);
   font-size: var(--text-sm);
@@ -99,8 +106,11 @@ h2:first-child {
 }
 
 .bar-label {
+  min-width: 0;
   font-size: var(--text-sm);
-  overflow-wrap: anywhere;
+  /* Host names break only at their dots (<wbr>), unless one label is
+     longer than the whole line. */
+  overflow-wrap: break-word;
 }
 
 .bar-track {
@@ -204,8 +214,15 @@ h2:first-child {
     padding: 16px;
   }
 
+  /* The label gets its own line above the bar, so a host name is not
+     squeezed into a narrow column. */
   .bar-row {
-    grid-template-columns: minmax(64px, 96px) 1fr auto;
+    grid-template-columns: 1fr auto;
+    row-gap: 2px;
+  }
+
+  .bar-label {
+    grid-column: 1 / -1;
   }
 
   .hours {

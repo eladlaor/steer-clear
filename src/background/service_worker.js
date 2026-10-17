@@ -15,13 +15,15 @@ import {
   SNOOZE_ALARM,
   STATS_PRUNE_ALARM,
   StorageArea,
+  TIMEZONE_CHECK_ALARM,
   StorageKey,
   TAB_STATUS_COMPLETE,
 } from '../constants.js';
 import { readConfig } from './config.js';
 import { isSiteKey } from './sync_layout.js';
 import { endSnooze, expireBypass, readActiveBypasses, rebuildRules } from './rule_sync.js';
-import { handleInstalled } from './install.js';
+import { ensurePruneAlarm, handleInstalled, handleStartup } from './install.js';
+import { timezoneChangedSinceRebuild } from './timezone_watch.js';
 import { refreshBadges } from './bypass_badges.js';
 import { hasBadgeWork } from './bypass_tabs.js';
 import { handleMessage } from './message_handlers.js';
@@ -56,6 +58,12 @@ async function refreshAllBadges() {
 }
 
 /**
+ * Every worker start: the retention alarm may have been dropped by a
+ * browser restart (Firefox never keeps alarms across sessions).
+ */
+ensurePruneAlarm().catch(() => {});
+
+/**
  * First install opens onboarding and writes nothing; an update opens
  * nothing. install.js logs any failure with its context.
  */
@@ -63,23 +71,9 @@ chrome.runtime.onInstalled.addListener((details) => {
   handleInstalled(details).catch(() => {});
 });
 
-/**
- * Rebuild on browser startup — session bypasses and a snooze are gone by
- * definition, so their leftovers are cleared too.
- */
-chrome.runtime.onStartup.addListener(async () => {
-  try {
-    await chrome.storage.session.remove([
-      StorageKey.BYPASSES,
-      StorageKey.BADGED_TABS,
-      StorageKey.LIFTED_RULES,
-      StorageKey.SNOOZE,
-    ]);
-    await chrome.alarms.clear(SNOOZE_ALARM);
-    await rebuildRules();
-  } catch (error) {
-    console.error('[steer-clear] onStartup failed', { error: error.message });
-  }
+/** Browser startup; install.js logs each failure with its context. */
+chrome.runtime.onStartup.addListener(() => {
+  handleStartup(Date.now()).catch(() => {});
 });
 
 /** Any change to a config item re-derives the rule set. */
@@ -140,6 +134,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       // A schedule started or ended; the rebuild reads the clock and sets
       // the alarm for the boundary after this one.
       await rebuildRules();
+    } else if (alarm.name === TIMEZONE_CHECK_ALARM) {
+      // The schedule alarm was computed in the old UTC offset.
+      if (await timezoneChangedSinceRebuild(Date.now())) await rebuildRules();
     } else if (alarm.name === SNOOZE_ALARM) {
       await endSnooze();
     } else if (alarm.name === BYPASS_TICK_ALARM) {

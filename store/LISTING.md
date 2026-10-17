@@ -168,9 +168,10 @@ erase all of it.
 
 storage.session holds state that must end with the browser: running "continue
 anyway" passes ("bypasses"), which tabs show the minutes left ("badgedTabs",
-tab numbers only), a running snooze ("snooze"), and, only when saved settings
-cannot be read, the rules a pass removed so they can be restored
-("liftedRules"). No data is transmitted anywhere.
+tab numbers only), a running snooze ("snooze"), while a schedule is set the
+device's UTC offset so a timezone change re-times it ("scheduleTzOffset"),
+and, only when saved settings cannot be read, the rules a pass removed so they
+can be restored ("liftedRules"). No data is transmitted anywhere.
 ```
 
 ### `alarms`
@@ -181,7 +182,8 @@ corresponding redirect rule is removed. An alarm at the expiry time reinstates
 it; without it the pass would never end. Alarms also: tick the toolbar badge
 once a minute to show the minutes left on a pass; end a snooze the user
 started from the toolbar popup; switch reminders on and off at the start and
-end of a per-site schedule; and delete history older than 90 days.
+end of a per-site schedule, and every 15 minutes while a schedule is set check
+whether the device changed timezone; and delete history older than 90 days.
 ```
 
 ### `activeTab`
@@ -245,6 +247,7 @@ The same facts as `store/PRIVACY_POLICY.md`, for reviewers on every store.
 | `badgedTabs` | `storage.session` | Tab numbers showing a badge |
 | `snooze` | `storage.session` | When a snooze ends |
 | `liftedRules` | `storage.session` | Only when settings cannot be read |
+| `scheduleTzOffset` | `storage.session` | Device's UTC offset, only while a schedule is set |
 
 | Permission | Use |
 |---|---|

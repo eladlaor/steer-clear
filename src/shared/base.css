@@ -32,6 +32,9 @@ body {
   color: var(--ink);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", sans-serif;
+  /* Chrome gives extension pages a 75% (12px) body font and Firefox 16px;
+     set it so text that inherits it is the same size everywhere. */
+  font-size: var(--text-base);
   line-height: 1.55;
 }
 
@@ -82,6 +85,13 @@ body {
 .btn-ghost:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* A button that stays focusable while it cannot act yet (aria-disabled, so
+   its reason can still be read) must also look unavailable. */
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .btn.danger {
@@ -150,7 +160,11 @@ body {
 }
 
 .chip[aria-pressed="true"]::before {
+  /* The empty alternative keeps the mark out of the button's name:
+     aria-pressed already says it is selected. The first line is for a
+     browser without alternative text for generated content. */
   content: "\2713";
+  content: "\2713" / "";
   font-weight: 700;
 }
 

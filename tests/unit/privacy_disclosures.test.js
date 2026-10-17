@@ -30,6 +30,7 @@ const DEVICE_KEYS = [
   StorageKey.BADGED_TABS,
   StorageKey.LIFTED_RULES,
   StorageKey.SNOOZE,
+  StorageKey.SCHEDULE_TZ_OFFSET,
 ];
 
 /** Every `chrome.tabs.<method>` called under src/. */

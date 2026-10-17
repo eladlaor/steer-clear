@@ -30,7 +30,8 @@ export function emptyStats() {
     /** Per-host lifetime counts; survives event pruning. */
     totals: {},
     /**
-     * Recent events: `{ id, host, at, outcome }`, `at` in epoch ms. Events
+     * Recent events: `{ id, host, at, outcome, continuedAt? }`, times in
+     * epoch ms; `continuedAt` is set when the view was continued. Events
      * recorded before outcome tracking (1.0) have only `host` and `at`.
      */
     events: [],
@@ -135,12 +136,19 @@ export function recordView(stats, { viewId, host, now }) {
  * @param {object} stats
  * @param {string} eventId An id returned by recordView.
  * @param {string} outcome Outcome.STEERED or Outcome.CONTINUED.
+ * @param {number} [now] Epoch ms; required for a continue, which records
+ *   `continuedAt` so the daily allowance counts it on the day it happened,
+ *   not the day of the view (a pause shown before midnight).
  * @returns {object} The updated stats.
- * @throws {Error} On an unknown event id or an outcome the event cannot move to.
+ * @throws {Error} On an unknown event id, an outcome the event cannot move
+ *   to, or a continue without a time.
  */
-export function applyOutcome(stats, eventId, outcome) {
+export function applyOutcome(stats, eventId, outcome, now) {
   if (outcome !== Outcome.STEERED && outcome !== Outcome.CONTINUED) {
     throw new Error(`applyOutcome: outcome must be steered or continued, got ${JSON.stringify(outcome)}`);
+  }
+  if (outcome === Outcome.CONTINUED && !Number.isFinite(now)) {
+    throw new Error(`applyOutcome: a continue needs the time it happened, got ${now}`);
   }
   const base = normalizeStats(stats);
   const index = base.events.findIndex((event) => event.id === eventId);
@@ -155,7 +163,7 @@ export function applyOutcome(stats, eventId, outcome) {
     throw new Error(`applyOutcome: event "${eventId}" is ${event.outcome}; it cannot become ${outcome}`);
   }
   const events = [...base.events];
-  events[index] = { ...event, outcome };
+  events[index] = outcome === Outcome.CONTINUED ? { ...event, outcome, continuedAt: now } : { ...event, outcome };
   return { ...base, events };
 }
 

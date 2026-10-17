@@ -16,6 +16,7 @@ import { handleMessage } from '../../src/background/message_handlers.js';
 import { applyMutation, readConfig } from '../../src/background/config.js';
 import { newSite } from '../../src/background/config_mutations.js';
 import { siteKey } from '../../src/background/sync_layout.js';
+import { defaultSettings } from '../../src/background/settings_schema.js';
 import { buildExport, parseImport } from '../../src/background/settings_io.js';
 import { MessageType, PauseStyle, StorageKey } from '../../src/constants.js';
 import { createFakeChrome } from './helpers/fake_chrome.js';
@@ -26,8 +27,8 @@ const realConfig = () => JSON.parse(readFileSync(new URL('./fixtures/config_v2_r
 let fake;
 const quiet = {};
 
-function install(sync) {
-  fake = createFakeChrome({ sync });
+function install(sync, options = {}) {
+  fake = createFakeChrome({ sync, ...options });
   globalThis.chrome = fake.chrome;
 }
 
@@ -90,6 +91,47 @@ test('applyMutation checks the quota before writing anything', async () => {
   const huge = { ...newSite('a.com', { id: 'a', order: 0, now: NOW }), overrides: { reasons: ['א'.repeat(4500)] } };
   await assert.rejects(applyMutation({ set: { [siteKey('a')]: huge }, remove: [] }, {}), /site:a is \d+ bytes/);
   assert.deepEqual(fake.calls.syncSets, []);
+});
+
+/** `count` sites with five long Hebrew reasons each, under ids `${prefix}<n>`. */
+function heavySites(prefix, count) {
+  const reasons = Array.from({ length: 5 }, (_, k) => 'אבגדהוזחטי'.repeat(14).slice(k));
+  return Array.from({ length: count }, (_, n) => ({
+    ...newSite(`site${n}.example.com`, { id: `${prefix}${n}`, order: n, now: NOW }),
+    overrides: { reasons },
+  }));
+}
+
+test('an import that replaces every site fits when its final state fits, even if old plus new would not', async () => {
+  // Chrome checks the total at the set: writing the new sites before removing
+  // the old ones refused an import from another browser whose result fits.
+  const current = { schema: 3 };
+  for (const site of heavySites('old', 30)) current[siteKey(site.id)] = site;
+  const config = { schemaVersion: 3, defaults: defaultSettings(), sites: heavySites('new', 30) };
+  const bytes = (items) => Object.entries(items).reduce((sum, [key, value]) => sum + new TextEncoder().encode(key + JSON.stringify(value)).length, 0);
+  const quota = Math.ceil(bytes(current) * 1.5);
+  install(structuredClone(current), { syncQuotaBytes: quota });
+
+  assert.equal((await send({ type: MessageType.IMPORT_SETTINGS, config })).siteCount, 30);
+  assert.deepEqual((await readConfig()).sites.map((site) => site.id), config.sites.map((site) => site.id));
+});
+
+test('when the write fails after the removal, the removed sites are put back and the error says so', async () => {
+  const current = { schema: 3, [siteKey('r')]: newSite('reddit.com', { id: 'r', order: 0, now: NOW }) };
+  install(structuredClone(current));
+  const realSet = fake.chrome.storage.sync.set;
+  let failNext = true;
+  fake.chrome.storage.sync.set = async (items) => {
+    if (failNext) {
+      failNext = false;
+      throw new Error('MAX_WRITE_OPERATIONS_PER_MINUTE');
+    }
+    return realSet(items);
+  };
+  const config = { schemaVersion: 3, defaults: defaultSettings(), sites: [newSite('youtube.com', { id: 'y', order: 0, now: NOW })] };
+
+  await assert.rejects(send({ type: MessageType.IMPORT_SETTINGS, config }), /\[steer-clear\].*MAX_WRITE.*restored/);
+  assert.deepEqual(syncStore(), current, 'the settings are as they were');
 });
 
 /* Upgrade from 1.0.0 (M1) --------------------------------------------------------- */
@@ -176,7 +218,7 @@ test('IMPORT_SETTINGS replaces sites and settings and leaves the 1.0.0 item alon
   };
   const { config } = parseImport(JSON.stringify(buildExport(source, '2.0.0', NOW)));
 
-  assert.deepEqual(await send({ type: MessageType.IMPORT_SETTINGS, config }), { siteCount: 1 });
+  assert.deepEqual(await send({ type: MessageType.IMPORT_SETTINGS, config }), { siteCount: 1, revokeHosts: ['reddit.com', 'ynet.co.il', 'x.com'] });
   const after = await readConfig();
   assert.deepEqual(after.sites.map((site) => site.id), ['y']);
   assert.equal(after.defaults.bypassMinutes, 30);

@@ -29,7 +29,7 @@ test('minutesLeft rounds up and never goes negative', () => {
 test('today reads naturally for none, one and several pauses', () => {
   assert.deepEqual(todayText({ intercepted: 0, steeredClear: 0, continued: 0 }), {
     figure: '0 pauses today',
-    detail: 'Nothing has caught you today.',
+    detail: 'No pauses yet today.',
   });
   assert.equal(todayText({ intercepted: 1, steeredClear: 1, continued: 0 }).figure, '1 pause today');
   assert.equal(todayText({ intercepted: 3, steeredClear: 2, continued: 1 }).detail, '2 steered clear, 1 continued');

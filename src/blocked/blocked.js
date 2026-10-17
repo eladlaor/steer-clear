@@ -79,7 +79,7 @@ function render(resolved) {
   elements.goTarget.href = resolved.target;
   elements.goTargetLabel.textContent = resolved.targetName;
   elements.bypassLabel.textContent = resolved.siteName;
-  elements.bypassMinutes.textContent = `${resolved.bypassMinutes} min`;
+  elements.bypassMinutes.textContent = `for ${resolved.bypassMinutes} min`;
   if (resolved.reason) {
     elements.note.textContent = resolved.reason;
     elements.reason.hidden = false;
@@ -96,6 +96,7 @@ function render(resolved) {
  *
  * @param {object} resolved
  * @param {() => void} onBreathsDone Runs after the last breath.
+ * @returns {HTMLElement|null} The exercise's field to focus first, if any.
  */
 function mountExercise(resolved, onBreathsDone) {
   if (resolved.pauseStyle === PauseStyle.BREATHING) {
@@ -109,12 +110,13 @@ function mountExercise(resolved, onBreathsDone) {
     });
   } else if (resolved.pauseStyle === PauseStyle.INTENTION) {
     elements.exercise.hidden = false;
-    mountIntentionView(elements.exercise, {
+    return mountIntentionView(elements.exercise, {
       onInput: (text) => {
         gateState.intentionText = text;
       },
     });
   }
+  return null;
 }
 
 /** Re-evaluate the continue gate on a timer, from the moment of render. */
@@ -187,6 +189,8 @@ async function handleSteer(event) {
 
 async function dismissNotice() {
   elements.notice.hidden = true;
+  // The button that had focus just disappeared; keep keyboard focus on the page.
+  elements.goTarget.focus({ preventScroll: true });
   try {
     await sendMessage({ type: MessageType.RECORD_LIFECYCLE_EVENT, event: LifecycleEvent.VARIATION_NOTICE_SEEN });
   } catch (error) {
@@ -231,11 +235,12 @@ async function init() {
 
     // With breathing, auto-continue waits for the last breath.
     const autoContinueAfterBreaths = resolved.autoContinue && resolved.pauseStyle === PauseStyle.BREATHING;
-    mountExercise(resolved, () => {
+    const exerciseField = mountExercise(resolved, () => {
       if (autoContinueAfterBreaths) autoContinue(resolved);
     });
     startGate(resolved);
-    elements.goTarget.focus({ preventScroll: true });
+    // The intention style is about the question, so its field comes first.
+    (exerciseField ?? elements.goTarget).focus({ preventScroll: true });
 
     if (resolved.autoContinue && !autoContinueAfterBreaths) {
       autoContinue(resolved);

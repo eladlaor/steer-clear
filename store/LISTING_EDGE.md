@@ -133,7 +133,7 @@ The same facts as `store/PRIVACY_POLICY.md`.
 |---|---|
 | Settings and sites (`schema`, `settings`, `site:<id>`; 1.x `config` read only) | `storage.sync`, synced only by Edge's own sync |
 | `stats` (domain, time, choice, random page id; 90 days) and `lifecycle` (one-time flags) | `storage.local`, this device only |
-| `bypasses`, `badgedTabs`, `snooze`, `liftedRules` | `storage.session`, gone when Edge closes |
+| `bypasses`, `badgedTabs`, `snooze`, `liftedRules`, `scheduleTzOffset` | `storage.session`, gone when Edge closes |
 
 | Permission or function | Use |
 |---|---|

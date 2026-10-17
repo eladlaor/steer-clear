@@ -168,6 +168,7 @@ input[aria-invalid="true"] {
 }
 
 .picked-host {
+  font-size: var(--text-md);
   font-weight: 600;
   overflow-wrap: anywhere;
 }

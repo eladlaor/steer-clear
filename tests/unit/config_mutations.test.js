@@ -15,6 +15,7 @@ import {
   planAddSites,
   planUpdateSite,
   planRemoveSite,
+  hostsToRevoke,
   planUpdateDefaults,
   planImport,
 } from '../../src/background/config_mutations.js';
@@ -150,20 +151,20 @@ test('planUpdateSite on a legacy site materializes, with the edit applied', () =
 /* planRemoveSite ---------------------------------------------------------------------- */
 
 test('planRemoveSite in v3 mode removes exactly one key and sets nothing', () => {
-  const plan = planRemoveSite(v3Items(), { siteId: 'a' });
+  const { plan } = planRemoveSite(v3Items(), { siteId: 'a' });
   assert.deepEqual(plan.set, {});
   assert.deepEqual(plan.remove, [siteKey('a')]);
 });
 
 test('planRemoveSite never removes a key the request did not name, even stray ones', () => {
   const items = { ...v3Items(), [siteKey('stray')]: { broken: true } };
-  const plan = planRemoveSite(items, { siteId: 'b' });
+  const { plan } = planRemoveSite(items, { siteId: 'b' });
   assert.deepEqual(plan.remove, [siteKey('b')]);
 });
 
 test('planRemoveSite removes a damaged site item the user named', () => {
   const items = { ...v3Items(), [siteKey('bad')]: { broken: true } };
-  const plan = planRemoveSite(items, { siteId: 'bad' });
+  const { plan } = planRemoveSite(items, { siteId: 'bad' });
   assert.deepEqual(plan, { set: {}, remove: [siteKey('bad')] });
   assert.throws(() => planRemoveSite(items, { siteId: 'nope' }), /no listed site/);
 });
@@ -172,22 +173,39 @@ test('removing the last site item before the schema marker synced never resurrec
   // Sync can deliver a site item before the marker. Removing that last item
   // without writing the marker would flip reads back to the legacy config.
   const partial = { config: legacy, [siteKey('a')]: newSite('a.com', { id: 'a', order: 0, now: NOW }) };
-  const plan = planRemoveSite(partial, { siteId: 'a' });
+  const { plan } = planRemoveSite(partial, { siteId: 'a' });
   assert.deepEqual(plan.set, { schema: SCHEMA_VERSION });
   assert.deepEqual(plan.remove, [siteKey('a')]);
   assert.deepEqual(assembleConfig(apply(partial, plan)).sites, []);
 
   const damaged = { config: legacy, [siteKey('bad')]: { broken: true } };
-  const damagedPlan = planRemoveSite(damaged, { siteId: 'bad' });
+  const { plan: damagedPlan } = planRemoveSite(damaged, { siteId: 'bad' });
   assert.deepEqual(damagedPlan, { set: { schema: SCHEMA_VERSION }, remove: [siteKey('bad')] });
   assert.deepEqual(assembleConfig(apply(damaged, damagedPlan)).sites, []);
 });
 
 test('planRemoveSite on legacy data materializes the remaining sites only', () => {
-  const plan = planRemoveSite({ config: legacy }, { siteId: 'old1' });
+  const { plan } = planRemoveSite({ config: legacy }, { siteId: 'old1' });
   assert.deepEqual(Object.keys(plan.set).sort(), ['schema', siteKey('old2')].sort());
   const after = assembleConfig(apply({ config: legacy }, plan));
   assert.deepEqual(after.sites.map((s) => s.id), ['old2']);
+});
+
+test('planRemoveSite gives back the removed host\'s access unless another listed site uses it', () => {
+  const twice = { ...v3Items(), [siteKey('a2')]: newSite('a.com', { id: 'a2', order: 5, now: NOW }) };
+  assert.deepEqual(planRemoveSite(v3Items(), { siteId: 'a' }).revokeHosts, ['a.com']);
+  assert.deepEqual(planRemoveSite(twice, { siteId: 'a' }).revokeHosts, [], 'a.com is still listed');
+});
+
+test('planRemoveSite of a damaged item gives back its access when its pattern still names a host', () => {
+  const items = { ...v3Items(), [siteKey('bad')]: { pattern: 'gone.com', enabled: 'broken' } };
+  assert.deepEqual(planRemoveSite(items, { siteId: 'bad' }).revokeHosts, ['gone.com']);
+  const unreadable = { ...v3Items(), [siteKey('bad')]: { broken: true } };
+  assert.deepEqual(planRemoveSite(unreadable, { siteId: 'bad' }).revokeHosts, []);
+});
+
+test('hostsToRevoke lists each host once and skips patterns that name none', () => {
+  assert.deepEqual(hostsToRevoke(['x.com', 'https://x.com/a', 'nohost', 42, 'y.com'], [{ pattern: 'y.com' }]), ['x.com']);
 });
 
 /* planUpdateDefaults ---------------------------------------------------------------------- */
@@ -218,7 +236,7 @@ test('no planner writes or removes the legacy config item', () => {
   const plans = [
     planAddSites(items, { entries: [{ host: 'n.com' }] }, { newId: idSource('n'), now: NOW }).plan,
     planUpdateSite(items, { siteId: 'old1', fields: { enabled: false } }),
-    planRemoveSite(items, { siteId: 'old2' }),
+    planRemoveSite(items, { siteId: 'old2' }).plan,
     planUpdateDefaults(items, { patch: { varyPresentation: false } }),
   ];
   for (const plan of plans) {
@@ -282,6 +300,14 @@ test('planImport re-validates what the page sent', () => {
   assert.throws(() => planImport(v3Items(), { config: bad }), /defaults\.bypassMinutes/);
   assert.throws(() => planImport(v3Items(), { config: { ...imported('a'), schemaVersion: 2 } }), /schemaVersion/);
   assert.throws(() => planImport(v3Items(), {}), /config must be an object/);
+});
+
+test('planImport gives back access to the replaced sites the file does not list', () => {
+  // v3Items lists a.com and b.com; the file lists a.example and b.com.
+  const config = imported('a');
+  config.sites.push(newSite('b.com', { id: 'other', order: 1, now: NOW }));
+  assert.deepEqual(planImport(v3Items(), { config }).revokeHosts, ['a.com']);
+  assert.deepEqual(planImport({ config: legacy }, { config: imported() }).revokeHosts.sort(), ['old1.com', 'old2.com']);
 });
 
 test('planImport of an empty list removes every listed site', () => {

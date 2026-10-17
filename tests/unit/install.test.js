@@ -12,12 +12,12 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { handleInstalled } from '../../src/background/install.js';
+import { handleInstalled, handleStartup } from '../../src/background/install.js';
 import { readConfig } from '../../src/background/config.js';
 import { defaultSettings } from '../../src/background/settings_schema.js';
 import { newSite } from '../../src/background/config_mutations.js';
 import { siteKey } from '../../src/background/sync_layout.js';
-import { ONBOARDING_PATH, STATS_PRUNE_ALARM, StorageKey } from '../../src/constants.js';
+import { MS_PER_DAY, ONBOARDING_PATH, STATS_PRUNE_ALARM, STATS_RETENTION_DAYS, StorageKey } from '../../src/constants.js';
 import { createFakeChrome } from './helpers/fake_chrome.js';
 
 const NOW = 1_700_000_000_000;
@@ -144,4 +144,32 @@ test('an install handler failure is reported, not swallowed', async () => {
     throw new Error('tabs unavailable');
   };
   await assert.rejects(handleInstalled({ reason: 'install' }), /tabs unavailable/);
+});
+
+test('a browser restart that dropped the alarms recreates the prune alarm and prunes old history', async () => {
+  // Firefox keeps no alarms across sessions; without this, a user who is
+  // never paused again keeps history past the 90 days the policy promises.
+  const old = { id: 'old', host: 'reddit.com', at: NOW - (STATS_RETENTION_DAYS + 1) * MS_PER_DAY, outcome: 'left' };
+  const recent = { id: 'new', host: 'reddit.com', at: NOW - MS_PER_DAY, outcome: 'left' };
+  const fake = createFakeChrome({
+    sync: v3Items(),
+    local: { [StorageKey.STATS]: { totals: { 'reddit.com': 2 }, events: [old, recent], since: old.at, outcomesSince: old.at } },
+    session: { [StorageKey.BYPASSES]: { 'reddit.com': NOW + 60000 } },
+  });
+  globalThis.chrome = fake.chrome;
+  assert.deepEqual(fake.calls.alarms, {}, 'the restart left no alarms');
+
+  await handleStartup(NOW);
+
+  assert.deepEqual(fake.calls.alarms[STATS_PRUNE_ALARM], { periodInMinutes: 24 * 60 });
+  const stored = fake.chrome.storage.local.store[StorageKey.STATS];
+  assert.deepEqual(stored.events.map((event) => event.id), ['new']);
+  assert.equal(fake.chrome.storage.session.store[StorageKey.BYPASSES], undefined, 'session bypasses are cleared');
+});
+
+test('an existing prune alarm is left alone, so its period does not restart', async () => {
+  const fake = install({});
+  fake.calls.alarms[STATS_PRUNE_ALARM] = { periodInMinutes: 24 * 60, marker: 'kept' };
+  await handleStartup(NOW);
+  assert.equal(fake.calls.alarms[STATS_PRUNE_ALARM].marker, 'kept');
 });

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- The settings page opens on the site list, with Defaults below it and a short
+  "Sites · Defaults · Your data" index at the top; its status line stays in
+  view at the bottom of the window.
+- Removing a site asks for a second click ("Click again to remove").
+- Pages use one body text size in every browser (Chrome used 12px), and
+  settings rows wrap the same way at phone width; statistics stack each site
+  name above its bar on a phone and break host names only at dots.
+- Clearer wording: "Snooze pauses", "No pauses yet today", the continue button
+  says "for 5 min", the daily-limit line says the limit was reached, and the
+  rating prompt counts what it says it counts.
+
+### Fixed
+
+- Rule updates and bypass changes that overlapped (granting access while the
+  worker also rebuilt, alarms firing together, an expiry during a continue)
+  could fail with a duplicate rule id or drop a running pass; they now queue.
+- A file listing a pattern such as `*.*.bad.com`, or a host too long for a
+  rule, could stop every site from pausing; such patterns are refused, and a
+  site whose permission check fails no longer blocks the others.
+- An import that replaces a mid-sized list from another browser no longer
+  fails on the sync quota when the result fits; a failed write puts the
+  removed sites back.
+- Adding a site that could not be stored (quota, site limit) no longer reports
+  it as added, and gives back the access just granted.
+- Importing, or removing a damaged item, now gives back access to the sites
+  it removes; removing a site keeps access when another listed entry uses the
+  same host, and only revokes once the removal succeeded.
+- The stats-retention alarm is recreated after a browser restart (Firefox
+  keeps no alarms), and old history is pruned at startup.
+- Schedules follow a change of timezone or daylight saving time within 15
+  minutes.
+- A continue after midnight on a pause shown before it counts toward today's
+  allowance.
+- An imported destination must be an http(s) address.
+- Keyboard focus moves to Stop when auto-continue starts, to the field in the
+  intention style, and stays on the page after "Got it"; settings hints are
+  read with their fields; the continue button's minutes label meets AA
+  contrast; "Turn on" looks unavailable until a site is picked; chip check
+  marks are no longer read aloud.
+
 ## [2.0.0] - 2026-10-17
 
 ### Added

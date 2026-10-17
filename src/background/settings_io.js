@@ -25,7 +25,7 @@ import {
 } from '../constants.js';
 import { migrateLegacyConfig } from './config_migration.js';
 import { normalizePattern } from './rules.js';
-import { SITE_FIELDS, validateSettings, validateSite } from './settings_schema.js';
+import { SITE_FIELDS, isWebUrl, validateSettings, validateSite } from './settings_schema.js';
 
 const encoder = new TextEncoder();
 
@@ -80,6 +80,20 @@ export function exportFileName(now) {
 }
 
 /**
+ * The settings form accepts only full http(s) destinations; so does a file,
+ * which could otherwise point the pause page's button at javascript: or
+ * file: and record a steer that went nowhere.
+ *
+ * @param {unknown} value
+ * @param {string} path
+ */
+function assertWebTarget(value, path) {
+  if (!isWebUrl(value)) {
+    throw new Error(`${path} must be an http(s) address, got ${JSON.stringify(value)}`);
+  }
+}
+
+/**
  * Check a complete v3 config `{ schemaVersion: 3, defaults, sites }`. Used on
  * the parsed file in the page and again by the worker, which never trusts
  * what a page sends.
@@ -101,12 +115,24 @@ export function validateImportedConfig(config) {
   if (config.sites.length > MAX_SITES) {
     throw new Error(`config.sites holds ${config.sites.length} sites; at most ${MAX_SITES} can be listed`);
   }
+  assertWebTarget(config.defaults.target, 'defaults.target');
   const seen = new Map();
   config.sites.forEach((site, index) => {
     validateSite(site, `sites[${index}]`);
     const unknown = Object.keys(site).find((key) => !SITE_FIELDS.includes(key));
     if (unknown !== undefined) {
       throw new Error(`sites[${index}].${unknown} is not a site field`);
+    }
+    // Stored 1.x data may hold patterns that name no host; a file may not.
+    // One such pattern used to fail the permission check, and so the rule
+    // update, for every site.
+    try {
+      normalizePattern(site.pattern);
+    } catch (error) {
+      throw new Error(`sites[${index}].pattern ${JSON.stringify(site.pattern)} is not a usable domain (${error.message})`);
+    }
+    if (site.overrides && 'target' in site.overrides) {
+      assertWebTarget(site.overrides.target, `sites[${index}].overrides.target`);
     }
     if (seen.has(site.id)) {
       throw new Error(`sites[${index}].id "${site.id}" repeats sites[${seen.get(site.id)}].id`);

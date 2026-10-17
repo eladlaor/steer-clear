@@ -90,7 +90,7 @@ export function recordOutcome(eventId, outcome) {
   return statsQueue.run(async () => {
     try {
       const stats = await readStats();
-      const next = applyOutcome(stats, eventId, outcome);
+      const next = applyOutcome(stats, eventId, outcome, Date.now());
       if (next !== stats) await writeStats(next);
     } catch (error) {
       console.error('[steer-clear] recordOutcome failed; continuing', { eventId, outcome, error: error.message });

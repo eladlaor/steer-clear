@@ -85,14 +85,10 @@ test('continueGate rejects rotate and unknown styles', () => {
 
 /* The over-limit line on the pause page ------------------------------------------- */
 
-test('the over-limit line names the site, today\'s count, the limit and the wait', async () => {
+test('the over-limit line names the site and the limit, without repeating the gate\'s seconds', async () => {
   const { overLimitMessage } = await import('../../src/blocked/continue_view.js');
-  assert.equal(
-    overLimitMessage({ siteName: 'reddit.com', continuesToday: 2, dailyContinueLimit: 2, pauseSeconds: 30 }),
-    "You've opened reddit.com 2 times today, past your daily limit of 2, so continue unlocks after 30 s."
-  );
-  assert.match(
-    overLimitMessage({ siteName: 'x.com', continuesToday: 1, dailyContinueLimit: 1, pauseSeconds: 45 }),
-    /1 time today.*after 45 s/
-  );
+  // Reached, not "past": the line shows once continues today equal the limit.
+  const line = overLimitMessage({ siteName: 'reddit.com', continuesToday: 2, dailyContinueLimit: 2, pauseSeconds: 30 });
+  assert.equal(line, "You've reached your daily limit of 2 for reddit.com, so the pause is longer today.");
+  assert.doesNotMatch(line, /past|30 s/);
 });

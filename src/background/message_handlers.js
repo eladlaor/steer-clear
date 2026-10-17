@@ -87,9 +87,11 @@ const HANDLERS = Object.freeze({
     return {};
   },
 
+  // The page gives back `revokeHosts` access once this succeeds: removing
+  // needs no prompt, but only a page holds the permissions API's full use.
   [MessageType.REMOVE_SITE]: async (message) => {
-    await mutateConfig(MessageType.REMOVE_SITE, (items) => planRemoveSite(items, message));
-    return {};
+    const { revokeHosts } = await mutateConfig(MessageType.REMOVE_SITE, (items) => planRemoveSite(items, message));
+    return { revokeHosts };
   },
 
   [MessageType.UPDATE_DEFAULTS]: async (message) => {
@@ -100,8 +102,10 @@ const HANDLERS = Object.freeze({
   // Replaces everything, after the page showed the counts and the user
   // confirmed. The worker validates the config again before writing.
   [MessageType.IMPORT_SETTINGS]: async (message) => {
-    const { siteCount } = await mutateConfig(MessageType.IMPORT_SETTINGS, (items) => planImport(items, message));
-    return { siteCount };
+    const { siteCount, revokeHosts } = await mutateConfig(MessageType.IMPORT_SETTINGS, (items) =>
+      planImport(items, message)
+    );
+    return { siteCount, revokeHosts };
   },
 });
 

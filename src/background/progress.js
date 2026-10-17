@@ -49,12 +49,14 @@ export function steerCount(stats) {
  * @param {object} stats
  * @param {string} host The configured host.
  * @param {number} now Epoch ms.
- * @returns {number} The host's continues since local midnight.
+ * @returns {number} The host's continues since local midnight, counted by
+ *   when the continue happened (events from before `continuedAt` was
+ *   recorded fall back to the view's time).
  */
 export function continuesToday(stats, host, now) {
   const midnight = startOfLocalDay(now);
   return stats.events.filter(
-    (event) => event.host === host && event.outcome === Outcome.CONTINUED && event.at >= midnight
+    (event) => event.host === host && event.outcome === Outcome.CONTINUED && (event.continuedAt ?? event.at) >= midnight
   ).length;
 }
 

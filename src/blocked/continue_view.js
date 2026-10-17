@@ -29,19 +29,16 @@ export function gateMessage(gate) {
 }
 
 /**
- * The line shown once the daily allowance is used up. It says why the wait
- * is longer; continue itself stays on the page.
+ * The line shown once the daily allowance is used up (continues today at or
+ * over the limit). It says why the wait is longer; the gate line above it
+ * already gives the seconds, and continue itself stays on the page.
  *
- * @param {{siteName: string, continuesToday: number, dailyContinueLimit: number,
- *   pauseSeconds: number}} view The GET_RESOLVED_SITE response.
+ * @param {{siteName: string, dailyContinueLimit: number}} view The
+ *   GET_RESOLVED_SITE response.
  * @returns {string}
  */
-export function overLimitMessage({ siteName, continuesToday, dailyContinueLimit, pauseSeconds }) {
-  const times = continuesToday === 1 ? 'time' : 'times';
-  return (
-    `You've opened ${siteName} ${continuesToday} ${times} today, past your daily limit of ` +
-    `${dailyContinueLimit}, so continue unlocks after ${pauseSeconds} s.`
-  );
+export function overLimitMessage({ siteName, dailyContinueLimit }) {
+  return `You've reached your daily limit of ${dailyContinueLimit} for ${siteName}, so the pause is longer today.`;
 }
 
 /**

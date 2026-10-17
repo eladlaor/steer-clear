@@ -14,6 +14,7 @@ import { PRESETS, normalizeOnboardingSelection } from '../background/presets.js'
 import { normalizePattern } from '../background/rules.js';
 import { sendWithoutAwait } from '../shared/messaging.js';
 import { turnOn } from './turn_on.js';
+import { SitesNotAddedError } from '../shared/site_access.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -187,6 +188,14 @@ function handleTurnOn() {
   result.granted
     .then((granted) => showDone(result.hosts, granted))
     .catch((error) => {
+      if (error instanceof SitesNotAddedError) {
+        // Nothing was stored: stay on the picker so the user can try again.
+        console.error('[steer-clear] onboarding could not add the sites', { error: error.message });
+        turnedOn = false;
+        renderSelection();
+        setStatus(error.message, true);
+        return;
+      }
       console.error('[steer-clear] onboarding access request failed', { error: error.message });
       showDone(result.hosts, false);
     });

@@ -27,6 +27,7 @@ export function createReasonsEditor({ id, onChange }) {
 
   const hint = document.createElement('p');
   hint.className = 'hint';
+  hint.id = `${id}-limit`;
   hint.textContent = `Up to ${MAX_REASONS_PER_SITE}. One is shown each time, taking turns.`;
 
   const element = document.createElement('div');
@@ -44,6 +45,7 @@ export function createReasonsEditor({ id, onChange }) {
       if (index === 0) input.id = id;
       else input.removeAttribute('id');
       input.setAttribute('aria-label', `Reason ${index + 1}`);
+      input.setAttribute('aria-describedby', hint.id);
     });
   };
 

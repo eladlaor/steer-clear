@@ -29,11 +29,14 @@ function storageArea(store) {
 
 /**
  * @param {{sync?: object, local?: object, session?: object,
- *   tabs?: Array<{id: number, url: string}>, badge?: boolean}} [initial]
+ *   tabs?: Array<{id: number, url: string}>, badge?: boolean,
+ *   syncQuotaBytes?: number}} [initial]
  *   `badge: false` simulates a browser without a toolbar badge.
+ *   `syncQuotaBytes` makes sync.set refuse, as Chrome does, a write that
+ *   would take the stored total over it (counted as key plus JSON value).
  * @returns {{chrome: object, calls: object}}
  */
-export function createFakeChrome({ sync = {}, local = {}, session = {}, tabs = [], badge = true } = {}) {
+export function createFakeChrome({ sync = {}, local = {}, session = {}, tabs = [], badge = true, syncQuotaBytes = Infinity } = {}) {
   const calls = {
     badges: [],
     tabUpdates: [],
@@ -46,7 +49,11 @@ export function createFakeChrome({ sync = {}, local = {}, session = {}, tabs = [
   };
   const syncArea = storageArea(sync);
   const originalSet = syncArea.set;
+  const encoder = new TextEncoder();
   syncArea.set = async (items) => {
+    const after = { ...sync, ...items };
+    const total = Object.entries(after).reduce((sum, [key, value]) => sum + encoder.encode(key + JSON.stringify(value)).length, 0);
+    if (total > syncQuotaBytes) throw new Error('Resource::kQuotaBytes quota exceeded');
     calls.syncSets.push(Object.keys(items));
     return originalSet(items);
   };
@@ -82,6 +89,7 @@ export function createFakeChrome({ sync = {}, local = {}, session = {}, tabs = [
       },
     },
     alarms: {
+      get: async (name) => (name in calls.alarms ? { name, ...calls.alarms[name] } : undefined),
       create: async (name, info) => {
         calls.alarms[name] = info;
       },

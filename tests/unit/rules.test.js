@@ -17,7 +17,7 @@ import {
   hostnameOf,
 } from '../../src/background/rules.js';
 import { defaultSettings } from '../../src/background/settings_schema.js';
-import { WEEKDAY_WORK_SCHEDULE } from '../../src/constants.js';
+import { MAX_PATTERN_HOST_LENGTH, WEEKDAY_WORK_SCHEDULE } from '../../src/constants.js';
 
 const BASE_URL = 'chrome-extension://abcdefghijklmnop/';
 
@@ -74,6 +74,27 @@ test('normalizePattern rejects malformed input', () => {
   assert.throws(() => normalizePattern('   '), /empty/);
   assert.throws(() => normalizePattern('notadomain'), /valid hostname/);
   assert.throws(() => normalizePattern(42), /expected string/);
+});
+
+test('normalizePattern rejects a host the browser would refuse as an origin', () => {
+  // "*.*.bad.com" keeps a wildcard after the leading "*." is stripped; Chrome
+  // rejects the origin pattern, which used to fail every site's rebuild.
+  for (const bad of ['*.*.bad.com', 'a b.com', 'bad.com.', '-[x].com', 'a..com', 'exa$mple.com']) {
+    assert.throws(() => normalizePattern(bad), /valid hostname/, bad);
+  }
+});
+
+test('normalizePattern rejects a host too long for a rule regex', () => {
+  const longest = `${'a'.repeat(40)}.${'b'.repeat(MAX_PATTERN_HOST_LENGTH - 45)}.com`;
+  assert.equal(longest.length, MAX_PATTERN_HOST_LENGTH);
+  assert.equal(normalizePattern(longest), longest);
+  assert.throws(() => normalizePattern(`a${longest}`), /at most/);
+  assert.throws(() => normalizePattern(`${'a'.repeat(60)}.${'a'.repeat(60)}.${'a'.repeat(60)}.com`), /at most/);
+});
+
+test('normalizePattern keeps underscores, digits and hyphens, and turns an IDN into punycode', () => {
+  assert.equal(normalizePattern('my_host.example-1.co.il'), 'my_host.example-1.co.il');
+  assert.equal(normalizePattern('בית.example.com'), 'xn--5dbq5c.example.com');
 });
 
 test('escapeForRegex escapes dots', () => {

@@ -9,7 +9,7 @@ import { MS_PER_SECOND } from '../constants.js';
 /**
  * @param {{countdown: HTMLElement, countdownTarget: HTMLElement,
  *   countdownSeconds: HTMLElement, goTarget: HTMLElement,
- *   continueGroup: HTMLElement, status: HTMLElement}} elements
+ *   continueGroup: HTMLElement, status: HTMLElement, stop: HTMLElement}} elements
  * @param {{seconds: number, targetName: string, onArrive: () => void}} options
  *   `onArrive` runs when the countdown reaches zero.
  * @returns {{stop: () => void}} `stop` does nothing once the countdown has
@@ -23,8 +23,11 @@ export function startCountdown(elements, { seconds, targetName, onArrive }) {
   elements.goTarget.hidden = true;
   elements.continueGroup.hidden = true;
   // Announced once through the live status line, not every second: the
-  // seconds themselves are not a live region.
-  elements.status.textContent = `Going to ${targetName} in ${seconds} seconds. Press Stop or Escape to stay.`;
+  // seconds themselves are not a live region. No number here, so it never
+  // disagrees with the ticking one above it.
+  elements.status.textContent = `Going to ${targetName} shortly. Press Stop or Escape to stay.`;
+  // The focused destination button was just hidden; Stop is the one action.
+  elements.stop.focus({ preventScroll: true });
 
   let timer = window.setInterval(() => {
     remaining -= 1;

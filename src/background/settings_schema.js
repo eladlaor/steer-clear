@@ -33,8 +33,25 @@ import {
   MIN_DAILY_CONTINUE_LIMIT,
   MIN_PAUSE_SECONDS,
   PauseStyle,
+  SOURCE_URL_PROTOCOLS,
 } from '../constants.js';
 import { validateSchedule } from './schedule.js';
+
+/**
+ * Whether a value is a full http(s) address: the settings form's rule for a
+ * destination, and the import's. Stored data is not held to it (see above).
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export function isWebUrl(value) {
+  if (typeof value !== 'string') return false;
+  try {
+    return SOURCE_URL_PROTOCOLS.includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
 
 const PAUSE_STYLES = Object.freeze(Object.values(PauseStyle));
 

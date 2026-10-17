@@ -150,7 +150,7 @@ The same facts as `store/PRIVACY_POLICY.md`.
 |---|---|
 | Settings and sites (`schema`, `settings`, `site:<id>`; 1.x `config` read only) | `storage.sync`: Firefox Sync on desktop; kept on the device on Firefox for Android |
 | `stats` (domain, time, choice, random page id; 90 days) and `lifecycle` (one-time flags) | `storage.local`, this device only |
-| `bypasses`, `badgedTabs`, `snooze`, `liftedRules` | `storage.session`, gone when Firefox closes |
+| `bypasses`, `badgedTabs`, `snooze`, `liftedRules`, `scheduleTzOffset` | `storage.session`, gone when Firefox closes |
 
 | Permission or function | Use |
 |---|---|

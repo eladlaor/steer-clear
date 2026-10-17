@@ -100,21 +100,26 @@ export async function revokeHostPermission(host) {
 /**
  * The subset of the given hosts the extension can currently act on.
  *
+ * A host whose check throws (the browser rejected its origin pattern) counts
+ * as not granted and is logged: one bad entry must not fail the rule update
+ * for every other site.
+ *
  * @param {string[]} hosts Normalized bare hostnames.
  * @returns {Promise<Set<string>>} Those with permission granted.
  */
 export async function grantedHostsAmong(hosts) {
-  try {
-    const results = await Promise.all(
-      hosts.map(async (host) => [host, await hasHostPermission(host)])
-    );
-    return new Set(
-      results.filter(([, granted]) => granted).map(([host]) => host)
-    );
-  } catch (error) {
-    console.error('[steer-clear] grantedHostsAmong failed', {
-      error: error.message,
-    });
-    throw error;
-  }
+  const results = await Promise.all(
+    hosts.map(async (host) => {
+      try {
+        return [host, await hasHostPermission(host)];
+      } catch (error) {
+        console.error('[steer-clear] grantedHostsAmong: permission check failed; treating the host as not granted', {
+          host,
+          error: error.message,
+        });
+        return [host, false];
+      }
+    })
+  );
+  return new Set(results.filter(([, granted]) => granted).map(([host]) => host));
 }

@@ -86,8 +86,9 @@ body {
   font-size: var(--text-base);
 }
 
+/* Smaller, not fainter: the button's own colour already meets AA contrast,
+   and a lowered opacity would take it below. */
 .btn-sub {
-  opacity: 0.75;
   font-size: var(--text-sm);
 }
 
@@ -98,11 +99,6 @@ body {
 }
 
 /* Continue stays focusable while locked, so its reason can be read. */
-.btn[aria-disabled="true"] {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
 .gate {
   margin: 0;
   font-size: var(--text-sm);
@@ -265,6 +261,7 @@ body {
   border-radius: var(--radius-md);
   color: var(--ink);
   font: inherit;
+  font-size: var(--text-base);
 }
 
 .intention-input:focus {

@@ -9,7 +9,7 @@
  * bundled dependency would be more code than the thing it draws.
  */
 
-import { MessageType } from '../constants.js';
+import { CONFIRM_ARM_MS, MessageType } from '../constants.js';
 import { sendMessage } from '../shared/messaging.js';
 import {
   summarize,
@@ -71,6 +71,22 @@ let clearArmed = false;
  * @param {Array<{label: string, count: number, detail?: string}>} rows
  *   `detail` is an optional line under the bar.
  */
+/**
+ * Fill an element with a host name that may wrap only after its dots, so a
+ * narrow column breaks "breathe.example.net" between labels, never inside one.
+ *
+ * @param {HTMLElement} element
+ * @param {string} text
+ */
+function setBreakableHost(element, text) {
+  const parts = text.split('.');
+  element.replaceChildren(
+    ...parts.flatMap((part, index) =>
+      index < parts.length - 1 ? [`${part}.`, document.createElement('wbr')] : [part]
+    )
+  );
+}
+
 function renderBars(container, rows) {
   container.replaceChildren();
 
@@ -82,7 +98,7 @@ function renderBars(container, rows) {
 
     const label = document.createElement('span');
     label.className = 'bar-label';
-    label.textContent = row.label;
+    setBreakableHost(label, row.label);
 
     const track = document.createElement('span');
     track.className = 'bar-track';
@@ -190,7 +206,7 @@ function render(stats) {
 
   elements.total.textContent = String(summary.total);
   elements.last7.textContent = String(summary.last7);
-  elements.topHost.textContent = summary.topHost ?? '—';
+  setBreakableHost(elements.topHost, summary.topHost ?? '—');
 
   elements.since.textContent = summary.since
     ? `Counting since ${new Date(summary.since).toLocaleDateString()}`
@@ -243,7 +259,7 @@ async function handleClear() {
         clearArmed = false;
         elements.clear.textContent = 'Erase my statistics';
         elements.status.textContent = '';
-      }, 5000);
+      }, CONFIRM_ARM_MS);
       return;
     }
 

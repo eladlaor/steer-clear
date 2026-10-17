@@ -47,7 +47,9 @@ function buildBanner(steers, storeUrl) {
   const text = document.createElement('p');
   text.className = 'rating-text';
   text.id = 'rating-text';
-  text.textContent = `You've steered clear ${steers} times. If Steer Clear is helping, a rating helps others find it.`;
+  // Worded by what it counts (choosing the destination), so it never
+  // disagrees with the "steered clear" figures, which also count leaving.
+  text.textContent = `You've picked your destination over a listed site ${steers} ${steers === 1 ? 'time' : 'times'}. If Steer Clear is helping, a rating helps others find it.`;
 
   const rate = document.createElement('a');
   rate.className = 'btn btn-primary btn-small';

@@ -5,6 +5,14 @@
  * The worker is the sole owner of declarativeNetRequest dynamic rules. Rules
  * are always derivable from storage (config, bypasses, host permissions), so
  * a full rebuild is always safe and cannot drift.
+ *
+ * Every rule-table change, and every change to the session state rules are
+ * derived from (bypasses, lifted rules, snooze), runs through one queue. Two
+ * rebuilds that overlap would share one snapshot of the installed rules and
+ * fail on duplicate ids, or the one that read older storage would finish
+ * last and win; two bypass edits that overlap would write back a stale map.
+ * The exported functions queue; the `...Now` helpers they call do not, and
+ * must only run inside the queue.
  */
 
 import { BYPASS_ALARM_PREFIX, SCHEDULE_ALARM, SNOOZE_ALARM, StorageKey } from '../constants.js';
@@ -17,6 +25,11 @@ import { grantedHostsAmong } from './permissions.js';
 import { bypassExpiresAt } from './bypass_tabs.js';
 import { endBypassBadges, returnExpiredTabs, showBypassBadge } from './bypass_badges.js';
 import { snoozeEndsAt } from './snooze.js';
+import { createCoalescedTask, createSerialQueue } from './serial_queue.js';
+import { syncTimezoneWatch } from './timezone_watch.js';
+
+/** The one queue for rule-table and rule-state changes. */
+const ruleQueue = createSerialQueue();
 
 /**
  * Read the currently-active bypasses, dropping any that have expired.
@@ -68,18 +81,20 @@ async function syncScheduleAlarm(config, now) {
   } else {
     await chrome.alarms.create(SCHEDULE_ALARM, { when });
   }
+  await syncTimezoneWatch(when !== null, now);
   return when;
 }
 
 /**
- * Rebuild the entire dynamic rule set from storage.
+ * Rebuild the entire dynamic rule set from storage. Runs only inside
+ * ruleQueue.
  *
  * Full replacement rather than diffing: the rule count is small (one per
  * site) and a full rebuild cannot drift out of sync with storage.
  *
  * @returns {Promise<void>}
  */
-export async function rebuildRules() {
+async function rebuildNow() {
   try {
     const now = Date.now();
     const [config, bypasses, snoozedUntil] = await Promise.all([
@@ -123,6 +138,39 @@ export async function rebuildRules() {
     console.error('[steer-clear] rebuildRules failed', { error: error.message });
     throw error;
   }
+}
+
+/**
+ * Rebuild the rule set from storage, queued behind every other rule change.
+ * Calls made while a rebuild is still waiting share it: it has not read
+ * storage yet, so it sees what each of them wanted.
+ *
+ * @returns {Promise<void>}
+ */
+export const rebuildRules = createCoalescedTask(ruleQueue, rebuildNow);
+
+/**
+ * Browser startup: session bypasses, lifted rules and a snooze are gone by
+ * definition, so their leftovers are cleared, then the rules rebuilt.
+ *
+ * @returns {Promise<void>}
+ */
+export function resetSessionRules() {
+  return ruleQueue.run(async () => {
+    try {
+      await chrome.storage.session.remove([
+        StorageKey.BYPASSES,
+        StorageKey.BADGED_TABS,
+        StorageKey.LIFTED_RULES,
+        StorageKey.SNOOZE,
+      ]);
+      await chrome.alarms.clear(SNOOZE_ALARM);
+      await rebuildNow();
+    } catch (error) {
+      console.error('[steer-clear] resetSessionRules failed', { error: error.message });
+      throw error;
+    }
+  });
 }
 
 /**
@@ -202,7 +250,12 @@ async function restoreLiftedRules(lifted) {
  * @param {number|undefined} tabId The pause page's tab, which gets the badge.
  * @returns {Promise<{expiresAt: number}>}
  */
-export async function grantBypass(rawHost, tabId) {
+export function grantBypass(rawHost, tabId) {
+  return ruleQueue.run(() => grantBypassNow(rawHost, tabId));
+}
+
+/** grantBypass's body, inside ruleQueue. */
+async function grantBypassNow(rawHost, tabId) {
   try {
     let config;
     try {
@@ -224,7 +277,7 @@ export async function grantBypass(rawHost, tabId) {
     const expiresAt = bypassExpiresAt(Date.now(), config.defaults.bypassMinutes);
 
     await storeBypass(host, expiresAt);
-    await rebuildRules();
+    await rebuildNow();
     await showBypassBadge(host, site, expiresAt, tabId);
 
     console.info('[steer-clear] bypass granted', { host, expiresAt, bypassMinutes: config.defaults.bypassMinutes });
@@ -246,7 +299,12 @@ export async function grantBypass(rawHost, tabId) {
  * @param {string} host The bypassed host (the alarm's suffix).
  * @returns {Promise<void>}
  */
-export async function expireBypass(host) {
+export function expireBypass(host) {
+  return ruleQueue.run(() => expireBypassNow(host));
+}
+
+/** expireBypass's body, inside ruleQueue. */
+async function expireBypassNow(host) {
   try {
     const bypasses = await readActiveBypasses();
     delete bypasses[host];
@@ -258,7 +316,7 @@ export async function expireBypass(host) {
     await chrome.storage.session.set({ [StorageKey.LIFTED_RULES]: liftedRules });
 
     try {
-      await rebuildRules();
+      await rebuildNow();
     } catch (error) {
       await endBypassBadges(host, bypasses);
       if (!lifted) throw error;
@@ -290,18 +348,20 @@ export async function expireBypass(host) {
  * @param {number} minutes One of SNOOZE_OPTIONS_MINUTES.
  * @returns {Promise<{until: number}>}
  */
-export async function startSnooze(minutes) {
-  try {
-    const until = snoozeEndsAt(minutes, Date.now());
-    await chrome.storage.session.set({ [StorageKey.SNOOZE]: { until } });
-    await chrome.alarms.create(SNOOZE_ALARM, { when: until });
-    await rebuildRules();
-    console.info('[steer-clear] snooze started', { minutes, until });
-    return { until };
-  } catch (error) {
-    console.error('[steer-clear] startSnooze failed', { minutes, error: error.message });
-    throw error;
-  }
+export function startSnooze(minutes) {
+  return ruleQueue.run(async () => {
+    try {
+      const until = snoozeEndsAt(minutes, Date.now());
+      await chrome.storage.session.set({ [StorageKey.SNOOZE]: { until } });
+      await chrome.alarms.create(SNOOZE_ALARM, { when: until });
+      await rebuildNow();
+      console.info('[steer-clear] snooze started', { minutes, until });
+      return { until };
+    } catch (error) {
+      console.error('[steer-clear] startSnooze failed', { minutes, error: error.message });
+      throw error;
+    }
+  });
 }
 
 /**
@@ -309,14 +369,16 @@ export async function startSnooze(minutes) {
  *
  * @returns {Promise<void>}
  */
-export async function endSnooze() {
-  try {
-    await chrome.storage.session.remove(StorageKey.SNOOZE);
-    await chrome.alarms.clear(SNOOZE_ALARM);
-    await rebuildRules();
-    console.info('[steer-clear] snooze ended');
-  } catch (error) {
-    console.error('[steer-clear] endSnooze failed', { error: error.message });
-    throw error;
-  }
+export function endSnooze() {
+  return ruleQueue.run(async () => {
+    try {
+      await chrome.storage.session.remove(StorageKey.SNOOZE);
+      await chrome.alarms.clear(SNOOZE_ALARM);
+      await rebuildNow();
+      console.info('[steer-clear] snooze ended');
+    } catch (error) {
+      console.error('[steer-clear] endSnooze failed', { error: error.message });
+      throw error;
+    }
+  });
 }
