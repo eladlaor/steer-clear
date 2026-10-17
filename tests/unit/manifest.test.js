@@ -72,6 +72,7 @@ test('host access covers both http and https', () => {
 test('every file the manifest references exists', () => {
   const referenced = [
     manifest.background.service_worker,
+    ...(manifest.background.scripts ?? []),
     manifest.options_page,
     manifest.action?.default_popup,
     ...Object.values(manifest.icons ?? {}),
@@ -144,5 +145,55 @@ test('the interstitial is web-accessible', () => {
   assert.ok(
     resources.some((resource) => resource.includes('blocked')),
     'blocked.html is not listed in web_accessible_resources'
+  );
+});
+
+// Cross-browser background ----------------------------------------------------
+//
+// One manifest loads unpacked in Chrome and Firefox. Chrome (121+) runs
+// `service_worker` and ignores `scripts`; Firefox runs `scripts` as an event
+// page and ignores `service_worker`. Both must start the same code, or the two
+// browsers silently run different extensions.
+
+test('both background keys start the same existing file', () => {
+  const { service_worker: worker, scripts } = manifest.background;
+
+  assert.equal(typeof worker, 'string', 'background.service_worker missing');
+  assert.deepEqual(scripts, [worker], 'background.scripts must be exactly [service_worker]');
+  assert.ok(existsSync(join(SRC, worker)), `background file missing: ${worker}`);
+});
+
+test('the background is an ES module in both browsers', () => {
+  assert.equal(manifest.background.type, 'module');
+});
+
+test('declares the Chrome floor that accepts both background keys', () => {
+  // Chrome before 121 rejects a manifest that has background.scripts.
+  assert.equal(manifest.minimum_chrome_version, '121');
+});
+
+// Firefox ------------------------------------------------------------------------
+
+test('declares a fixed gecko id', () => {
+  // The id is permanent once published to AMO; changing it orphans every user.
+  assert.equal(manifest.browser_specific_settings?.gecko?.id, 'steer-clear@eladlaor');
+});
+
+test('declares the Firefox desktop and Android floors', () => {
+  const settings = manifest.browser_specific_settings;
+
+  // 140 is the first desktop version with data_collection_permissions, and it
+  // covers DNR (113), storage.session (115) and optional host access (128).
+  assert.equal(settings.gecko.strict_min_version, '140.0');
+  // 142 is the first Android version with data_collection_permissions.
+  assert.equal(settings.gecko_android?.strict_min_version, '142.0');
+});
+
+test('declares that no data is collected', () => {
+  // AMO requires this for new extensions. "none" is the truthful value: the
+  // extension transmits nothing; storage.sync is the browser's own transport.
+  assert.deepEqual(
+    manifest.browser_specific_settings.gecko.data_collection_permissions,
+    { required: ['none'] }
   );
 });
