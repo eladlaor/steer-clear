@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Summary](#summary)
+- [Release-readiness status (2026-10-17)](#release-readiness-status-2026-10-17)
 - [Why these five goals](#why-these-five-goals)
 - [Release plan: 1.0.0 on Edge, 1.1.0, then 2.0.0](#release-plan-100-on-edge-110-then-200)
 - [Verified platform facts and minimum versions](#verified-platform-facts-and-minimum-versions)
@@ -86,6 +87,42 @@ needs a field not listed here amends this plan first, then the code.
 pass (`node --test tests/unit/*.js`), CI is green, the manual checks listed for
 the goal pass in the named browsers, `CHANGELOG.md` has entries under
 `[Unreleased]`, and no file exceeds about 500 lines.
+
+---
+
+## Release-readiness status (2026-10-17)
+
+**Verdict: code-complete and ready to package; every goal is Partial only
+because its hand-run browser checks or store steps are still open.** No goal
+has missing code. 1.1.0 was not cut separately (see the G5 implementation
+notes); everything ships as 2.0.0.
+
+Checked on branch `v2-competitive-upgrade`:
+
+- `node --test tests/unit/*.js`: 569 tests, all pass.
+- `node tools/build.mjs`: `steer-clear-chrome-2.0.0.zip` and
+  `steer-clear-firefox-2.0.0.zip`.
+- `npx --yes web-ext@10.7.0 lint --source-dir dist/firefox --warnings-as-errors`:
+  0 errors, 0 warnings, 0 notices.
+- `node tools/mobile_audit.mjs`: every page and state passes at 360×740.
+- `node tools/screenshots.mjs`: regenerated and committed after the settings
+  and pause-page polish.
+- `src/manifest.json` is 2.0.0 and matches the newest `CHANGELOG.md` release;
+  the post-release review fixes were folded into `[2.0.0]` because 2.0.0 is
+  not tagged or uploaded. Privacy policy, the three listings, README and the
+  four usage guides describe the 2.0 features. `.github/workflows/ci.yml` is
+  present; it has not run on GitHub because the branch is not pushed.
+- No file under `src/`, `tools/` or `tests/` exceeds 500 lines (largest:
+  `src/constants.js`, 445).
+
+| Goal | Status | Done | Still open |
+|---|---|---|---|
+| G1 Reach and CI | **Partial** | Cross-browser manifest, build, lint, phone-width audit, CI workflow; acceptance 1–9 | Acceptance 10 (CI green on GitHub, after push); manual M1–M6, including the Firefox for Android spike; Edge listing of 1.0.0 |
+| G2 Pause screens and bypasses | **Partial** | All code and unit criteria; variation, styles, reasons, pause length, bypass length, badge, return on expiry | Manual M1–M7 in Chrome and Firefox |
+| G3 Schedules, allowance, progress | **Partial** | All code and unit criteria; schedules (with timezone follow-up), allowance, outcomes, progress | Manual M1–M5 |
+| G4 Onboarding, popup, a11y, rating | **Partial** | All code and unit criteria; mobile audit and screenshots (acceptance 8–9) | Manual M1–M9, including the onboarding timing and Chrome prompt wording; VoiceOver pass; Edge review URL (`STORE_REVIEW_URL.edge` stays `null` until the Edge listing exists) |
+| G5-A Schema v3 and degraded safety | **Partial** | All code and unit criteria; M1–M4 automated in Chromium by `tools/upgrade_check.mjs` | M1–M4 by hand in Firefox desktop |
+| G5-B Export/import, docs, store | **Partial** | Export/import, privacy policy, three listings, usage guides, screenshots and promo tile, version 2.0.0; M2 and the export half of M1 automated | M1 import in Firefox; uploads to the three stores; AMO data-collection question; hosted privacy policy updates only when `main` is updated; comparison re-check on submission day; promo video, Featured nomination and category test (after 2.0.0 is live); icons redrawn for 16 px |
 
 ---
 
@@ -651,6 +688,9 @@ Tool-only constants (`tools/`): `MOBILE_VIEWPORT = { width: 360, height: 740 }`,
 
 ## G1 — Reach: Firefox, Firefox for Android, Edge, phone-width UI, CI
 
+**Status (2026-10-17): Partial** — code-complete; open items are in
+[Release-readiness status](#release-readiness-status-2026-10-17).
+
 **Ships in 1.1.0.** The Edge listing of 1.0.0 happens before G1 starts.
 
 **Goal.** One source tree runs on Chrome, Edge, Firefox desktop and Firefox for
@@ -738,6 +778,9 @@ on Firefox for Android, stop and amend this plan. There is no silent fallback.
 
 ## G2 — Pause screens that resist habituation, and bypasses that end
 
+**Status (2026-10-17): Partial** — code-complete; open items are in
+[Release-readiness status](#release-readiness-status-2026-10-17).
+
 **Goal.** By default the pause screen changes visibly on every interception
 while always showing the user's own reason, and it explains why once. The user
 can pick a style and a pause length. A bypass shows its time left and, if the
@@ -823,6 +866,9 @@ user opts in, ends even on single-page sites.
 ---
 
 ## G3 — Schedules, daily allowance, outcomes and progress
+
+**Status (2026-10-17): Partial** — code-complete; open items are in
+[Release-readiness status](#release-readiness-status-2026-10-17).
 
 **Goal.** A site can be paused only when it matters (work hours), the user can
 opt into a daily allowance that adds friction once used up, and the stats page
@@ -919,6 +965,9 @@ answers "is this working?" with honest numbers.
 ---
 
 ## G4 — Onboarding, toolbar popup, accessibility, rating prompt
+
+**Status (2026-10-17): Partial** — code-complete; open items are in
+[Release-readiness status](#release-readiness-status-2026-10-17).
 
 **Goal.** A new user reaches their first pause in 60 seconds or less, with at
 most 4 clicks. Everyday actions live one click from the toolbar. Every surface
@@ -1021,8 +1070,9 @@ asked once for a rating, where they will see it.
 - `nextRatingState` takes a `RatingEvent` (`shown`, `rated`, `dismissed`);
   `applyLifecycleEvent` maps the three rating `LifecycleEvent`s onto it.
   Lifecycle writes run through a serial queue, like stats writes.
-- `STORE_REVIEW_URL.edge` and `.firefox` stay `null` (prompt hidden, logged at
-  info level) until the Edge listing URL and the AMO slug are confirmed.
+- `STORE_REVIEW_URL.edge` stays `null` (prompt hidden, logged at info level)
+  until the Edge listing URL exists. `.firefox` points at the `steer-clear`
+  AMO slug, confirmed free on 2026-10-17.
 - Snooze timing is pure in `src/background/snooze.js`; `GET_STATUS` is
   answered by `src/background/status.js`. Browser startup clears a leftover
   snooze and its alarm.
@@ -1036,6 +1086,9 @@ G5 is split: **G5-A** is the 2.0 foundation that lands first in the 2.0 cycle
 last, with a 1.1 subset.
 
 ### G5-A — Schema v3, storage layout, worker as sole writer, degraded safety
+
+**Status (2026-10-17): Partial** — code-complete; open items are in
+[Release-readiness status](#release-readiness-status-2026-10-17).
 
 **Scope — files:**
 
@@ -1128,6 +1181,9 @@ last, with a 1.1 subset.
   pause page (if its rule is still installed) still works.
 
 ### G5-B — Export/import, docs, store presence, version
+
+**Status (2026-10-17): Partial** — code-complete; open items are in
+[Release-readiness status](#release-readiness-status-2026-10-17).
 
 **Scope — files:**
 
