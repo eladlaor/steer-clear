@@ -72,13 +72,13 @@ Numbered criteria correspond to the success criteria in
 | # | Check | Expected |
 |---|---|---|
 | 1 | Add `example.com`, visit `https://example.com` | Reminder page appears |
-| 2 | Visit `https://example.com/some/path?q=1` | Full URL shown on the reminder page |
-| 3 | Leave the site's target blank | "Go where I meant to" uses the global default |
+| 2 | Visit `https://example.com/some/path?q=1`, then continue | Lands on that exact URL |
+| 3 | Leave the site's destination blank | The destination button uses the default destination |
 | 4 | Set a per-site target | Button uses that instead |
 | 5 | Set a per-site reason | That reason is shown, not the default one |
 | 6 | With subdomains on, visit `www.example.com` | Reminder page appears |
 | 7 | With subdomains off, visit `www.example.com` | Site loads normally |
-| 8 | Click "Continue anyway" | Site loads |
+| 8 | Click the continue button ("example.com for 5 min") | Site loads |
 | 9 | Wait 5 minutes, revisit | Reminder page returns |
 | 10 | Bypass, restart Chrome, revisit | Reminder page returns |
 | 11 | Restart Chrome | Settings still present |
@@ -101,7 +101,7 @@ chrome.declarativeNetRequest.getDynamicRules().then(console.table)
 node --test tests/unit/*.js
 ```
 
-539 tests covering pattern normalization, regex generation, subdomain matching,
+569 tests covering pattern normalization, regex generation, subdomain matching,
 lookalike-domain rejection, rule construction (schedules and snooze included),
 schedules, outcome-tagged statistics and progress figures, the daily
 allowance, the settings schema, legacy
@@ -138,7 +138,7 @@ blocked.html asks the worker (GET_RESOLVED_SITE)
         ├── per-site overrides ──► fall back to the defaults
         ├── settings unreadable ──► defaults, degraded: continue still works
         │
-        └── renders: your reason, [Go where I meant to], [Continue anyway]
+        └── renders: your reason, [<destination>], [<site> for N min]
 ```
 
 **Why regex rules rather than the simpler domain condition:** declarativeNetRequest
@@ -180,6 +180,8 @@ steer-clear/
 │   │   ├── sync_layout.js      # Config across sync items, quota check
 │   │   ├── config_mutations.js # Pure planners for every config change
 │   │   ├── config.js           # Storage read, serialized writes
+│   │   ├── serial_queue.js     # One-at-a-time queue for rule and config changes
+│   │   ├── timezone_watch.js   # Rebuilds schedules after a timezone/DST change
 │   │   ├── settings_io.js      # Pure export file and import parsing
 │   │   ├── install.js          # First install opens onboarding; never writes
 │   │   ├── presets.js          # Onboarding's site chips

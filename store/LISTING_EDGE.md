@@ -80,8 +80,8 @@ STAYS NOTICEABLE AFTER THE FIRST WEEK
 • Pause styles: your reason, a paced breath, or "What did you come here for?"
 • Schedules per site, a snooze, and an optional daily limit that makes the
   pause longer once you have continued enough times
-• "Continue anyway" lasts 1, 5, 15 or 30 minutes, with the minutes left on the
-  toolbar badge
+• Continuing lets you through for 1, 5, 15 or 30 minutes, with the minutes
+  left on the toolbar badge
 • A statistics page shows how often you steered clear, kept on your device
 
 PRIVATE BY CONSTRUCTION
@@ -156,7 +156,7 @@ bundled in the package (blocked/blocked.html). It asks for host access one
 site at a time, when the user adds it (optional_host_permissions); nothing is
 granted at install. To test: install, add example.com on the welcome page and
 accept the access prompt, then open https://example.com. The pause page
-appears; "Continue anyway" loads the site. No network requests, no remote
+appears; its "example.com for 5 min" button loads the site. No network requests, no remote
 code, no accounts.
 ```
 

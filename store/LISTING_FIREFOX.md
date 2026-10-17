@@ -92,8 +92,8 @@ Stays noticeable after the first week
 • Pause styles: your reason, a paced breath, or "What did you come here for?"
 • Schedules per site, a snooze, and an optional daily limit that makes the
   pause longer once you have continued enough times
-• "Continue anyway" lasts 1, 5, 15 or 30 minutes, with the minutes left on the
-  toolbar badge (desktop)
+• Continuing lets you through for 1, 5, 15 or 30 minutes, with the minutes
+  left on the toolbar badge (desktop)
 • A statistics page shows how often you steered clear, kept on your device
 
 Private by construction
@@ -173,8 +173,8 @@ repository's src/ directory with the manifest stripped for Firefox
 (tools/build.mjs). Source: https://github.com/eladlaor/steer-clear
 
 To test: install, add example.com on the welcome page and accept the access
-prompt, then open https://example.com. The pause page appears; "Continue
-anyway" loads the site. Host access is requested one site at a time
+prompt, then open https://example.com. The pause page appears; its "example.com
+for 5 min" button loads the site. Host access is requested one site at a time
 (optional_host_permissions); nothing is granted at install. No network
 requests, no remote code, no accounts.
 ```

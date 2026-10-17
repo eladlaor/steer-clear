@@ -5,7 +5,7 @@
 - [Summary](#summary)
 - [How do I start?](#how-do-i-start)
 - [What happens when I open a listed site?](#what-happens-when-i-open-a-listed-site)
-- [How long does "Continue anyway" last?](#how-long-does-continue-anyway-last)
+- [How long does a pass through to the site last?](#how-long-does-a-pass-through-to-the-site-last)
 - [Why did the site stay open after my time ran out?](#why-did-the-site-stay-open-after-my-time-ran-out)
 - [Why does the pause screen look different every time?](#why-does-the-pause-screen-look-different-every-time)
 - [Can I make it pause only at certain times?](#can-i-make-it-pause-only-at-certain-times)
@@ -23,11 +23,11 @@
 ## Summary
 
 - Steer Clear shows you a short pause, in your own words, before a site you
-  listed loads, with one click to somewhere better and a "Continue anyway"
-  that always works. It is a nudge, not a lock.
+  listed loads, with one click to somewhere better and a second button that
+  always lets you through to the site. It is a nudge, not a lock.
 - Add sites from the welcome page, the toolbar button ("Steer clear of this
   site") or the settings page. Each site asks for access to that site only.
-- On single-page sites (Reddit, YouTube, X), a "Continue anyway" pass does not
+- On single-page sites (Reddit, YouTube, X), a pass through to the site does not
   end by itself while the tab stays open; the toolbar badge shows the minutes
   left, and "When my time is up, bring the pause back" makes the end real.
 - Private windows are not paused unless you allow the extension there.
@@ -54,13 +54,14 @@ settings page (right-click the toolbar icon → Options).
 ## What happens when I open a listed site?
 
 Instead of the page you see a pause: the site, the reason you wrote, a button
-to your chosen destination, and **Continue anyway**. Depending on your
+to your chosen destination, and a button that continues to the site for a
+set time (for example **reddit.com for 5 min**). Depending on your
 settings the pause shows your reason, a paced breath, or asks "What did you
 come here for?" (what you type there is never saved).
 
 ---
 
-## How long does "Continue anyway" last?
+## How long does a pass through to the site last?
 
 5 minutes by default; choose 1, 5, 15 or 30 in settings. It also ends when you
 close the browser. While it runs, the toolbar badge on that tab shows the
@@ -99,7 +100,7 @@ Outside those times the site loads normally, and the switch happens on its own.
 
 ## What is the daily limit?
 
-An optional number of "Continue anyway" clicks per site per day. After that,
+An optional number of times per site per day you continue to the site. After that,
 the pause waits at least 30 seconds before you can continue, until midnight.
 It never removes the button.
 
@@ -181,4 +182,4 @@ Nothing is ever sent anywhere. The full details are in the privacy policy.
   damaged item** next to it, then add the site again.
 - **"Saved by a newer version; update the extension"**: another device runs a
   newer Steer Clear. Update this one. Until then, pauses still appear with
-  default settings and "Continue anyway" still works.
+  default settings and continuing to the site still works.

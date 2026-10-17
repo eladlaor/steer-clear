@@ -68,6 +68,8 @@ under about 500 lines.
 | `src/background/sync_layout.js` | Pure: assembling the config from sync items; the byte-measured quota check |
 | `src/background/config_mutations.js` | Pure: one planner per change (`planAddSites`, `planUpdateSite`, `planRemoveSite`, `planUpdateDefaults`, `planImport`) |
 | `src/background/config.js` | Storage I/O: `readConfig` (never writes) and `applyMutation`, behind the worker's serial queue |
+| `src/background/serial_queue.js` | The one-at-a-time queue that config mutations and rule rebuilds run through |
+| `src/background/timezone_watch.js` | Notices a timezone or DST change while a schedule is set, so the worker rebuilds |
 | `src/background/settings_io.js` | Pure: the export file and import parsing |
 | `src/background/rules.js`, `pause.js`, `schedule.js`, `stats.js`, `progress.js` | Pure: rules, pause-screen decisions, schedules, event log, progress figures |
 | `src/blocked/` | The pause page and its style views |

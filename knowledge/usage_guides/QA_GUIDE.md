@@ -83,7 +83,7 @@ Firefox for Android.
 |---|---|---|
 | M1 Chrome | Load `dist/chrome` | README checks 1–12 pass |
 | M2 Edge | Load `dist/chrome` (and the 1.0.0 zip before listing it) | Add a site, see the reminder, continue; the bypass expires |
-| M3 Firefox desktop | `about:debugging` → load `dist/firefox`; add a site | The prompt appears; `https://example.com/a?x=1&y=2#frag` shows the reminder with that exact URL; continue works; the bypass expires; revoking access in the Add-ons Manager shows "needs access" |
+| M3 Firefox desktop | `about:debugging` → load `dist/firefox`; add a site | The prompt appears; `https://example.com/a?x=1&y=2#frag` shows the reminder and continuing lands on that exact URL; the bypass expires; revoking access in the Add-ons Manager shows "needs access" |
 | M4 Firefox for Android | `web-ext run -t firefox-android`, phone about 360 CSS px wide | Add, grant, navigate, see the reminder, continue, all by tapping, without zoom or sideways scroll, every control at least 44×44 CSS px |
 | M5 Private windows | Firefox private window without "Run in Private Windows"; Chrome incognito with "Allow in Incognito" off | A listed site loads normally (documented in the user guide) |
 | M6 Raw source | Chrome: load `src/` unpacked | Works; the `browser_specific_settings` warning is expected |
@@ -160,6 +160,7 @@ Firefox desktop (`about:debugging` → reload after replacing the folder).
 | 2026-10-17 | G5-A M1–M4 (`tools/upgrade_check.mjs`) | Playwright Chromium build 1248 | Pass | 1.0.0 from the `v1.0.0` tag; reload via chrome://extensions in developer mode |
 | 2026-10-17 | G5-B M2 and M1 export half (`tools/import_export_check.mjs`) | Playwright Chromium build 1248 | Pass | Message: "defaults.bypassMinutes must be one of 1, 5, 15, 30, got 7" |
 | 2026-10-17 | Phone-width audit incl. import states | Playwright Chromium build 1248 | Pass | 23 states |
+| 2026-10-17 | Release-readiness: unit suite, both builds, `web-ext@10.7.0 lint --warnings-as-errors`, phone-width audit, screenshots regenerated | Node 26.11.1; Playwright Chromium | Pass | 569 unit tests; lint 0 errors, 0 warnings, 0 notices |
 | — | G1, G2, G3, G4 M1–M9, G5-A in Firefox, G5-B M1 import in Firefox | — | Not run yet | Onboarding timings and prompt wording still to record |
 
 ---

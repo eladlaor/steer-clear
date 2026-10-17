@@ -99,8 +99,8 @@ STAYS NOTICEABLE AFTER THE FIRST WEEK
 • Pause styles: your reason, a paced breath, or "What did you come here for?"
 • Schedules per site (say, weekdays 9 to 5), a snooze, and an optional daily
   limit that makes the pause longer once you have continued enough times
-• "Continue anyway" lasts 1, 5, 15 or 30 minutes; the toolbar badge shows the
-  minutes left, and the pause can come back when the time is up
+• Continuing lets you through for 1, 5, 15 or 30 minutes; the toolbar badge
+  shows the minutes left, and the pause can come back when the time is up
 • A statistics page shows how often you steered clear, kept on your device
 
 PRIVATE BY CONSTRUCTION

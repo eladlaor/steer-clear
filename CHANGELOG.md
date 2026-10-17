@@ -7,48 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Changed
-
-- The settings page opens on the site list, with Defaults below it and a short
-  "Sites · Defaults · Your data" index at the top; its status line stays in
-  view at the bottom of the window.
-- Removing a site asks for a second click ("Click again to remove").
-- Pages use one body text size in every browser (Chrome used 12px), and
-  settings rows wrap the same way at phone width; statistics stack each site
-  name above its bar on a phone and break host names only at dots.
-- Clearer wording: "Snooze pauses", "No pauses yet today", the continue button
-  says "for 5 min", the daily-limit line says the limit was reached, and the
-  rating prompt counts what it says it counts.
-
-### Fixed
-
-- Rule updates and bypass changes that overlapped (granting access while the
-  worker also rebuilt, alarms firing together, an expiry during a continue)
-  could fail with a duplicate rule id or drop a running pass; they now queue.
-- A file listing a pattern such as `*.*.bad.com`, or a host too long for a
-  rule, could stop every site from pausing; such patterns are refused, and a
-  site whose permission check fails no longer blocks the others.
-- An import that replaces a mid-sized list from another browser no longer
-  fails on the sync quota when the result fits; a failed write puts the
-  removed sites back.
-- Adding a site that could not be stored (quota, site limit) no longer reports
-  it as added, and gives back the access just granted.
-- Importing, or removing a damaged item, now gives back access to the sites
-  it removes; removing a site keeps access when another listed entry uses the
-  same host, and only revokes once the removal succeeded.
-- The stats-retention alarm is recreated after a browser restart (Firefox
-  keeps no alarms), and old history is pruned at startup.
-- Schedules follow a change of timezone or daylight saving time within 15
-  minutes.
-- A continue after midnight on a pause shown before it counts toward today's
-  allowance.
-- An imported destination must be an http(s) address.
-- Keyboard focus moves to Stop when auto-continue starts, to the field in the
-  intention style, and stays on the page after "Got it"; settings hints are
-  read with their fields; the continue button's minutes label meets AA
-  contrast; "Turn on" looks unavailable until a site is picked; chip check
-  marks are no longer read aloud.
-
 ## [2.0.0] - 2026-10-17
 
 ### Added
@@ -57,14 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   example Chrome to Firefox): the settings page's new "Your data" panel shows
   "Replace N sites with M sites?" before anything changes, notes sites listed
   twice, refuses a damaged or newer file with a message naming the exact field
-  (such as `defaults.bypassMinutes`), and asks for access to every imported
-  site with one "Grant all". Statistics are never exported.
+  (such as `defaults.bypassMinutes`) or a destination that is not an http(s)
+  address, and asks for access to every imported site with one "Grant all".
+  Statistics are never exported.
 - A saved site that cannot be read is listed on the settings page with a
   "Remove damaged item" button; the other sites keep working.
 - Listings for Edge Add-ons and Firefox Add-ons (addons.mozilla.org, at
   `steer-clear`); the rating prompt in Firefox links to its reviews page.
 - A user guide (private windows, bypasses on single-page sites, updating on
-  every device, moving between browsers) and a developer guide.
+  every device, moving between browsers), and developer, DevOps and QA guides.
 - Reproducible generation of Web Store screenshots at 1280×800.
 - Firefox (desktop 140+) and Firefox for Android (142+) support from the same
   source tree; Edge installs the Chrome package.
@@ -90,8 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Per-site schedules: pick days and up to four time ranges (with "Always" and
   "Weekdays 9–17" presets, and ranges that run past midnight); outside them
   the site loads normally, and reminders switch on and off at the boundaries
-  without any action. A bypass that ends outside the schedule leaves the
-  site's tabs where they are.
+  without any action, following a change of timezone or daylight saving time
+  within 15 minutes. A bypass that ends outside the schedule leaves the site's
+  tabs where they are.
 - An opt-in daily allowance: after a chosen number of continues of a site in a
   day, its pause lasts at least 30 seconds until midnight. The pause page says
   why and links straight to the setting; continue is never removed.
@@ -114,7 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   to this browser's store page; it never returns after you answer or after
   three showings.
 - Escape stops a running auto-continue countdown, and the countdown is
-  announced once when it starts and when it stops.
+  announced once when it starts and when it stops. Keyboard focus moves to
+  Stop when auto-continue starts and to the field in the intention style.
 
 ### Changed
 
@@ -126,13 +87,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The settings page groups each form into the main fields (reasons,
   destination, pause style) and a collapsed Advanced section; each site's
   customized fields show "Use default" to inherit again.
+- The settings page opens on the site list, with Defaults below it and a
+  "Sites · Defaults · Your data" index at the top; its status line stays in
+  view at the bottom of the window.
 - The add-site form takes a domain and an optional reason; other per-site
-  settings are under "Customize".
+  settings are under "Customize". Removing a site asks for a second click.
 - A site with its own destination but no name for it shows that
   destination's address on the button, not the default destination's name.
+- The continue button says how long the pass lasts ("reddit.com for 5 min").
 - The pause page still opens, with default settings, when saved settings
   cannot be read (damaged, or saved by a newer version on another device), and
-  "Continue anyway" still lets you through: it lifts the matching reminder
+  continuing still lets you through: it lifts the matching reminder
   directly and puts it back when your time is up.
 - The privacy policy and listings now cover Edge and Firefox (including how
   each browser syncs settings), the choice recorded with each pause, the
@@ -145,7 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   that works in every browser: the site is saved first, then the browser asks
   for access, so a refused or interrupted prompt leaves the site listed as
   "needs access" instead of losing it.
-- Pages share one type scale, spacing scale and corner radii; buttons in
+- Pages share one type scale (one body text size in every browser), spacing
+  scale and corner radii; buttons in
   each site row name their site for screen readers, and charts on the
   statistics page describe themselves in words.
 - Store screenshots now cover the breathing style and the popup, and a
@@ -154,8 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   every button, field, checkbox and standalone link is at least 44×44 CSS px.
 - The statistics popup's minimum width is now the phone width (360 px), so it
   also fits when Firefox for Android opens it as a full tab.
-- Pages share one set of colour tokens and base styles, and show a visible
-  focus ring for keyboard users.
+- Pages share one set of colour tokens and base styles that meet WCAG AA
+  contrast, and show a visible focus ring for keyboard users.
 - The minimum supported Chrome and Edge version is 121.
 - An interception is counted once per pause-page view: reloading it, restoring
   the session, or retyping the address within a minute no longer adds to the
@@ -166,6 +132,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Rule updates and bypass changes that overlap (granting access while the
+  worker rebuilds, alarms firing together, a pass expiring during a continue)
+  now queue instead of failing with a duplicate rule id or dropping a running
+  pass.
+- A host too long for a rule, or a site whose access check fails, no longer
+  stops every other site from pausing.
+- Adding a site that cannot be stored (sync quota, site limit) is reported as
+  failed, and the access just granted for it is given back.
+- Removing a site gives back its access only after the removal succeeded, and
+  keeps it while another listed entry uses the same host.
 - Opening settings at a linked field (such as "Turn this off in Settings")
   shows that field's saved value instead of an empty field.
 - The reminder page keeps the full original address, including everything

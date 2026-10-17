@@ -84,7 +84,7 @@ field.
 | 0–5 s | Typing `reddit.com` in the address bar, out of habit | You didn't decide to open that site. Your fingers did. |
 | 5–15 s | The pause page with the user's own reason | Steer Clear shows you your own reason first. |
 | 15–25 s | One click on the destination button; the chosen page opens | One click to somewhere better. |
-| 25–35 s | Back on the pause page; "Continue anyway"; the site loads; the badge shows `5m` | And when you mean it, you're through. It always lets you through. |
+| 25–35 s | Back on the pause page; "reddit.com for 5 min"; the site loads; the badge shows `5m` | And when you mean it, you're through. It always lets you through. |
 | 35–45 s | Settings: adding a site, the per-site prompt for that site only | It asks for access only to the sites you add. |
 | 45–55 s | The statistics page: steered clear vs continued | Your patterns stay on your device. No accounts. No servers. |
 | 55–60 s | Logo and name | Steer Clear. A nudge, not a wall. |
