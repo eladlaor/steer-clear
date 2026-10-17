@@ -7,8 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-17
+
 ### Added
 
+- Export your settings to a file and import them in another browser (for
+  example Chrome to Firefox): the settings page's new "Your data" panel shows
+  "Replace N sites with M sites?" before anything changes, notes sites listed
+  twice, refuses a damaged or newer file with a message naming the exact field
+  (such as `defaults.bypassMinutes`), and asks for access to every imported
+  site with one "Grant all". Statistics are never exported.
+- A saved site that cannot be read is listed on the settings page with a
+  "Remove damaged item" button; the other sites keep working.
+- Listings for Edge Add-ons and Firefox Add-ons (addons.mozilla.org, at
+  `steer-clear`); the rating prompt in Firefox links to its reviews page.
+- A user guide (private windows, bypasses on single-page sites, updating on
+  every device, moving between browsers) and a developer guide.
 - Reproducible generation of Web Store screenshots at 1280×800.
 - Firefox (desktop 140+) and Firefox for Android (142+) support from the same
   source tree; Edge installs the Chrome package.
@@ -75,7 +89,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - A site with its own destination but no name for it shows that
   destination's address on the button, not the default destination's name.
 - The pause page still opens, with default settings, when saved settings
-  cannot be read.
+  cannot be read (damaged, or saved by a newer version on another device), and
+  "Continue anyway" still lets you through: it lifts the matching reminder
+  directly and puts it back when your time is up.
+- The privacy policy and listings now cover Edge and Firefox (including how
+  each browser syncs settings), the choice recorded with each pause, the
+  toolbar badge, each use of tabs, the temporary state kept until the browser
+  closes, and export files.
 - Installing no longer writes default settings to sync storage, and opens the
   welcome page instead of settings; an update opens no tab.
 - The toolbar button opens the new popup instead of the statistics page.
@@ -192,5 +212,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   permissions, which the manifest did not declare. Chrome installed the rules
   and silently ignored them. Declared `http://*/*` and `https://*/*`.
 
-[Unreleased]: https://github.com/eladlaor/steer-clear/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/eladlaor/steer-clear/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/eladlaor/steer-clear/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/eladlaor/steer-clear/releases/tag/v1.0.0

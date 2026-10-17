@@ -1216,6 +1216,31 @@ last, with a 1.1 subset.
 - M3 Screenshots regenerated and committed. Listings for the three stores are
   ready to paste.
 
+**Implementation notes (G5):**
+
+- Most of G5-A (schema v3, migration, sync layout, planners, worker split)
+  landed with G2–G4, which needed it first. G5 added `degraded.js` and the
+  degraded `grantBypass` (rules lifted into `session.liftedRules`, restored at
+  expiry if a rebuild still fails), the defined fixtures, and worker-level
+  tests for the queue, the untouched legacy item, 40+ sites and a corrupt item.
+- `config_v2_real.json` is captured from a real 1.0.0 install by
+  `tools/upgrade_check.mjs --capture`. That tool also runs G5-A M1–M4 in
+  Chromium (swapping the `v1.0.0` tag and `src/` in one unpacked directory and
+  reloading from `chrome://extensions` in developer mode); Firefox stays a hand
+  run. `tools/import_export_check.mjs` runs G5-B M2.
+- Addition to the contract: `REMOVE_SITE` also accepts the id of a site item
+  reported in `invalidSites`, and the settings page offers "Remove damaged
+  item" for each, because nothing else could clear one.
+- `IMPORT_SETTINGS` removes only the listed (valid) sites the file does not
+  carry; a damaged item is left for the user to see and remove.
+- **1.1.0 was not cut as a separate release.** The branch implemented the 1.1
+  and 2.0 work interleaved (G2–G4 each landed whole), so no commit holds the
+  1.1 slice alone. The version goes from 1.0.0 to 2.0.0; `CHANGELOG.md` has one
+  `[2.0.0]` section. Shipping a 1.1.0 first would need a release branch from
+  the G1 commits plus cherry-picks.
+- The comparison sentence was last verified on 2026-10-16 (research notes);
+  re-verify on the 2.0.0 submission date and record it in `STORE_PRESENCE.md`.
+
 ---
 
 ## Implementation order and file ownership

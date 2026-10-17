@@ -208,9 +208,21 @@ test('declares that no data is collected', () => {
 
 // Toolbar popup and onboarding (2.0) ------------------------------------------------
 
+/** The release this tree builds. Bump with the CHANGELOG's newest version heading. */
+const RELEASE_VERSION = '2.0.0';
+
 test('declares exactly the permissions the privacy docs describe', () => {
-  // Adding one means updating this list, the privacy policy and the listing together.
+  // 1.1.0 declared declarativeNetRequest, storage and alarms; 2.0.0 adds
+  // activeTab for the popup's quick-add. Adding one means updating this
+  // list, the privacy policy and the listings together.
   assert.deepEqual(manifest.permissions, ['declarativeNetRequest', 'storage', 'alarms', 'activeTab']);
+});
+
+test('the version is the release, and the changelog\'s newest release matches it', () => {
+  assert.equal(manifest.version, RELEASE_VERSION);
+  const changelog = readFileSync(join(SRC, '../CHANGELOG.md'), 'utf8');
+  const [, newest] = changelog.match(/^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/m) ?? [];
+  assert.equal(newest, RELEASE_VERSION);
 });
 
 test('the toolbar button opens the popup, which exists', () => {

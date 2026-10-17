@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Steer Clear",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Catch the reflex. Sites you'd rather not open show you your own reason first — and a one-click way somewhere better.",
   "minimum_chrome_version": "121",
   "permissions": [
