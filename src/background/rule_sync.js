@@ -11,7 +11,8 @@ import { BYPASS_ALARM_PREFIX, SCHEDULE_ALARM, SNOOZE_ALARM, StorageKey } from '.
 import { readConfig } from './config.js';
 import { buildRules, findMatchingSite, normalizePattern } from './rules.js';
 import { nextScheduleBoundary } from './schedule.js';
-import { resolveSettings } from './settings_schema.js';
+import { defaultSettings, resolveSettings } from './settings_schema.js';
+import { mergeLiftedRules, ruleIdsMatchingUrl } from './degraded.js';
 import { grantedHostsAmong } from './permissions.js';
 import { bypassExpiresAt } from './bypass_tabs.js';
 import { endBypassBadges, returnExpiredTabs, showBypassBadge } from './bypass_badges.js';
@@ -125,7 +126,77 @@ export async function rebuildRules() {
 }
 
 /**
+ * @returns {Promise<Object<string, Array<object>>>} Host to the rules a
+ *   degraded bypass lifted.
+ */
+async function readLiftedRules() {
+  const stored = await chrome.storage.session.get(StorageKey.LIFTED_RULES);
+  return stored[StorageKey.LIFTED_RULES] ?? {};
+}
+
+/**
+ * Store a bypass's expiry and set the alarm that ends it.
+ *
+ * @param {string} host
+ * @param {number} expiresAt
+ */
+async function storeBypass(host, expiresAt) {
+  const bypasses = await readActiveBypasses();
+  bypasses[host] = expiresAt;
+  await chrome.storage.session.set({ [StorageKey.BYPASSES]: bypasses });
+  // An alarm reinstates the rule when the pass expires; without it the rule
+  // would stay absent until the next unrelated rebuild.
+  await chrome.alarms.create(`${BYPASS_ALARM_PREFIX}${host}`, { when: expiresAt });
+}
+
+/**
+ * Continue when the settings cannot be read: no rebuild is possible, so lift
+ * the installed rules that match the host directly, and keep them in session
+ * storage so the bypass's end can put them back.
+ *
+ * @param {string} rawHost The host the pause page was reached for.
+ * @param {number|undefined} tabId
+ * @returns {Promise<{expiresAt: number}>}
+ */
+async function grantDegradedBypass(rawHost, tabId) {
+  const host = normalizePattern(rawHost);
+  const expiresAt = bypassExpiresAt(Date.now(), defaultSettings().bypassMinutes);
+
+  const installed = await chrome.declarativeNetRequest.getDynamicRules();
+  const ids = ruleIdsMatchingUrl(installed, `https://${host}/`);
+  const lifted = installed.filter((rule) => ids.includes(rule.id));
+
+  const liftedRules = await readLiftedRules();
+  liftedRules[host] = mergeLiftedRules(liftedRules[host] ?? [], lifted);
+  await chrome.storage.session.set({ [StorageKey.LIFTED_RULES]: liftedRules });
+  await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids });
+  await storeBypass(host, expiresAt);
+  await showBypassBadge(host, null, expiresAt, tabId);
+
+  console.error('[steer-clear] degraded bypass granted: settings unreadable, matching rules lifted directly', {
+    host,
+    expiresAt,
+    liftedRuleIds: ids,
+  });
+  return { expiresAt };
+}
+
+/**
+ * Put back the rules a degraded bypass lifted, when a rebuild still fails at
+ * its end.
+ *
+ * @param {Array<object>} lifted
+ */
+async function restoreLiftedRules(lifted) {
+  const ids = lifted.map((rule) => rule.id);
+  await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids, addRules: lifted });
+}
+
+/**
  * Grant a time-boxed bypass for a host, removing its rule until expiry.
+ *
+ * If the settings cannot be read, continue still works (degraded): the rules
+ * matching the host are lifted directly and the error is logged.
  *
  * @param {string} rawHost The host the pause page was reached for.
  * @param {number|undefined} tabId The pause page's tab, which gets the badge.
@@ -133,22 +204,26 @@ export async function rebuildRules() {
  */
 export async function grantBypass(rawHost, tabId) {
   try {
+    let config;
+    try {
+      config = await readConfig();
+    } catch (error) {
+      console.error('[steer-clear] settings unreadable; granting a degraded bypass', {
+        host: rawHost,
+        error: error.message,
+      });
+      return await grantDegradedBypass(rawHost, tabId);
+    }
+
     // Key the bypass on the *configured* pattern, not the requested host.
     // Rules are keyed on what the user typed ("facebook.com"); the pause page
     // reports where the browser went ("www.facebook.com"). Keying on the
     // latter would never lift the rule and bounce the user straight back.
-    const config = await readConfig();
     const site = findMatchingSite(config, `https://${rawHost}/`);
     const host = site ? normalizePattern(site.pattern) : normalizePattern(rawHost);
     const expiresAt = bypassExpiresAt(Date.now(), config.defaults.bypassMinutes);
 
-    const bypasses = await readActiveBypasses();
-    bypasses[host] = expiresAt;
-    await chrome.storage.session.set({ [StorageKey.BYPASSES]: bypasses });
-
-    // An alarm reinstates the rule when the pass expires; without it the rule
-    // would stay absent until the next unrelated rebuild.
-    await chrome.alarms.create(`${BYPASS_ALARM_PREFIX}${host}`, { when: expiresAt });
+    await storeBypass(host, expiresAt);
     await rebuildRules();
     await showBypassBadge(host, site, expiresAt, tabId);
 
@@ -164,6 +239,10 @@ export async function grantBypass(rawHost, tabId) {
  * End a host's bypass: reinstate its rule, clear its badges and, when the
  * user opted in, send its open tabs back to the pause page.
  *
+ * A degraded bypass (granted while the settings were unreadable) puts back
+ * the rules it lifted if a rebuild still fails; once the settings read
+ * again, the rebuild alone restores everything.
+ *
  * @param {string} host The bypassed host (the alarm's suffix).
  * @returns {Promise<void>}
  */
@@ -172,7 +251,25 @@ export async function expireBypass(host) {
     const bypasses = await readActiveBypasses();
     delete bypasses[host];
     await chrome.storage.session.set({ [StorageKey.BYPASSES]: bypasses });
-    await rebuildRules();
+
+    const liftedRules = await readLiftedRules();
+    const lifted = liftedRules[host];
+    delete liftedRules[host];
+    await chrome.storage.session.set({ [StorageKey.LIFTED_RULES]: liftedRules });
+
+    try {
+      await rebuildRules();
+    } catch (error) {
+      await endBypassBadges(host, bypasses);
+      if (!lifted) throw error;
+      await restoreLiftedRules(lifted);
+      console.error('[steer-clear] settings still unreadable at bypass end; lifted rules restored', {
+        host,
+        restoredRuleIds: lifted.map((rule) => rule.id),
+        error: error.message,
+      });
+      return;
+    }
     await endBypassBadges(host, bypasses);
 
     const config = await readConfig();

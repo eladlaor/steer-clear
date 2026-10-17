@@ -69,9 +69,16 @@ export function createFakeChrome({ sync = {}, local = {}, session = {}, tabs = [
     storage: { sync: syncArea, local: localArea, session: storageArea(session) },
     permissions: { contains: async () => true },
     declarativeNetRequest: {
-      getDynamicRules: async () => calls.dynamicRules,
-      updateDynamicRules: async ({ addRules }) => {
-        calls.dynamicRules = addRules;
+      getDynamicRules: async () => structuredClone(calls.dynamicRules),
+      // Removes first, then adds, as the real API does; an id that is both
+      // removed and added is replaced.
+      updateDynamicRules: async ({ removeRuleIds = [], addRules = [] }) => {
+        const added = new Set(addRules.map((rule) => rule.id));
+        const kept = calls.dynamicRules.filter((rule) => !removeRuleIds.includes(rule.id));
+        if (kept.some((rule) => added.has(rule.id))) {
+          throw new Error('updateDynamicRules: a rule with this id already exists');
+        }
+        calls.dynamicRules = [...kept, ...structuredClone(addRules)];
       },
     },
     alarms: {

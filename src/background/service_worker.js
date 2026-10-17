@@ -30,10 +30,28 @@ import { pruneStoredStats } from './stats_store.js';
 /** sync keys whose change can alter the rule set. */
 const RULE_INPUT_KEYS = Object.freeze([StorageKey.SCHEMA_MARKER, StorageKey.SETTINGS, StorageKey.CONFIG]);
 
+/**
+ * The config for badge refreshes. With unreadable settings a degraded bypass
+ * may be running, and its badge must still count down and clear, so this
+ * logs the error and matches badged hosts by name alone (no listed sites).
+ *
+ * @returns {Promise<object>}
+ */
+async function configForBadges() {
+  try {
+    return await readConfig();
+  } catch (error) {
+    console.error('[steer-clear] settings unreadable; refreshing badges by host only (degraded)', {
+      error: error.message,
+    });
+    return { sites: [] };
+  }
+}
+
 /** Refresh every bypass badge, if any bypass is running or badged. */
 async function refreshAllBadges() {
   const now = Date.now();
-  const [config, bypasses] = await Promise.all([readConfig(), readActiveBypasses(now)]);
+  const [config, bypasses] = await Promise.all([configForBadges(), readActiveBypasses(now)]);
   await refreshBadges(config, bypasses, now);
 }
 
@@ -51,7 +69,12 @@ chrome.runtime.onInstalled.addListener((details) => {
  */
 chrome.runtime.onStartup.addListener(async () => {
   try {
-    await chrome.storage.session.remove([StorageKey.BYPASSES, StorageKey.BADGED_TABS, StorageKey.SNOOZE]);
+    await chrome.storage.session.remove([
+      StorageKey.BYPASSES,
+      StorageKey.BADGED_TABS,
+      StorageKey.LIFTED_RULES,
+      StorageKey.SNOOZE,
+    ]);
     await chrome.alarms.clear(SNOOZE_ALARM);
     await rebuildRules();
   } catch (error) {

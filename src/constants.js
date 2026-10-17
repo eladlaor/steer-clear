@@ -26,6 +26,11 @@ export const StorageKey = Object.freeze({
   LIFECYCLE: 'lifecycle',
   /** storage.session: `{ [host]: tabId[] }` tabs showing a bypass badge. */
   BADGED_TABS: 'badgedTabs',
+  /**
+   * storage.session: `{ [host]: Rule[] }` rules a degraded bypass lifted
+   * (settings unreadable), put back at its end if a rebuild still fails.
+   */
+  LIFTED_RULES: 'liftedRules',
   /** storage.session: `{ until: epochMs }` while every reminder is snoozed. */
   SNOOZE: 'snooze',
   BYPASSES: 'bypasses',

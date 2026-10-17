@@ -11,7 +11,8 @@
 import { LifecycleEvent } from '../constants.js';
 import { readConfig } from './config.js';
 import { findMatchingSite, normalizePattern } from './rules.js';
-import { defaultSettings, resolveSettings } from './settings_schema.js';
+import { resolveSettings } from './settings_schema.js';
+import { degradedSiteView } from './degraded.js';
 import { presentSite } from './pause.js';
 import { shouldShowVariationNotice } from './lifecycle.js';
 import { readLifecycle, recordLifecycleEvent } from './lifecycle_store.js';
@@ -91,13 +92,7 @@ export async function getResolvedSite(fromUrl) {
       host,
       error: error.message,
     });
-    return {
-      host,
-      ...presentSite(defaultSettings(), null, 0, { host, continuesToday: 0 }),
-      showVariationNotice: false,
-      matched: false,
-      degraded: true,
-    };
+    return degradedSiteView(host);
   }
 
   const site = findMatchingSite(config, fromUrl);
