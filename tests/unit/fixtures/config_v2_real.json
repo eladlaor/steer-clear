@@ -1,0 +1,43 @@
+{
+  "globalAutoContinue": false,
+  "globalCountdownSeconds": 3,
+  "globalNote": "Finish the draft first",
+  "globalTarget": "https://en.wikipedia.org/wiki/Special:Random",
+  "globalTargetName": "Random article",
+  "schemaVersion": 2,
+  "sites": [
+    {
+      "autoContinue": null,
+      "countdownSeconds": null,
+      "displayName": null,
+      "enabled": true,
+      "id": "14d9b4ea-72b3-4ac9-87b3-5312bf49ed5c",
+      "includeSubdomains": true,
+      "note": "You said one post. It is never one post.",
+      "pattern": "reddit.com",
+      "target": null
+    },
+    {
+      "autoContinue": true,
+      "countdownSeconds": 10,
+      "displayName": "News",
+      "enabled": true,
+      "id": "9c51c464-5d97-4b2c-aa68-27ee9b2dcb96",
+      "includeSubdomains": true,
+      "note": "Read it at lunch",
+      "pattern": "ynet.co.il",
+      "target": "https://www.haaretz.co.il/"
+    },
+    {
+      "autoContinue": null,
+      "countdownSeconds": null,
+      "displayName": null,
+      "enabled": false,
+      "id": "5bff1d1f-94bf-449e-b735-d212e8d06111",
+      "includeSubdomains": false,
+      "note": null,
+      "pattern": "x.com",
+      "target": null
+    }
+  ]
+}

@@ -48,12 +48,14 @@ export async function readConfig() {
 
 /**
  * Write one planned mutation: quota check, then one set and one remove.
+ * Only the worker's mutation queue (mutateConfig) calls this.
  *
  * @param {{set: object, remove: string[]}} plan
  * @param {object} currentItems The items the plan was made from.
  * @returns {Promise<void>}
+ * @throws {Error} On a quota violation, before anything is written.
  */
-async function applyMutation(plan, currentItems) {
+export async function applyMutation(plan, currentItems) {
   assertSyncQuota(plan.set, currentItems, plan.remove);
   if (Object.keys(plan.set).length > 0) {
     await chrome.storage.sync.set(plan.set);
