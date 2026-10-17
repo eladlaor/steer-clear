@@ -11,13 +11,17 @@
 import {
   BYPASS_ALARM_PREFIX,
   BYPASS_TICK_ALARM,
+  INSTALL_REASON,
   STATS_PRUNE_ALARM,
+  StorageArea,
   StorageKey,
+  TAB_STATUS_COMPLETE,
 } from '../constants.js';
 import { readConfig } from './config.js';
 import { isSiteKey } from './sync_layout.js';
 import { expireBypass, readActiveBypasses, rebuildRules } from './rule_sync.js';
 import { refreshBadges } from './bypass_badges.js';
+import { hasBadgeWork } from './bypass_tabs.js';
 import { handleMessage } from './message_handlers.js';
 import { pruneStoredStats } from './stats_store.js';
 
@@ -38,7 +42,7 @@ async function refreshAllBadges() {
  */
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
-    if (details.reason === 'install') {
+    if (details.reason === INSTALL_REASON) {
       await chrome.runtime.openOptionsPage();
     }
     await chrome.alarms.create(STATS_PRUNE_ALARM, { periodInMinutes: 60 * 24 });
@@ -61,7 +65,7 @@ chrome.runtime.onStartup.addListener(async () => {
 /** Any change to a config item re-derives the rule set. */
 chrome.storage.onChanged.addListener(async (changes, areaName) => {
   try {
-    if (areaName !== 'sync') return;
+    if (areaName !== StorageArea.SYNC) return;
     const keys = Object.keys(changes);
     if (keys.some((key) => RULE_INPUT_KEYS.includes(key) || isSiteKey(key))) {
       await rebuildRules();
@@ -97,9 +101,9 @@ chrome.permissions.onRemoved.addListener(async () => {
  */
 chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo) => {
   try {
-    if (changeInfo.status !== 'complete') return;
+    if (changeInfo.status !== TAB_STATUS_COMPLETE) return;
     const stored = await chrome.storage.session.get([StorageKey.BYPASSES, StorageKey.BADGED_TABS]);
-    if (!stored[StorageKey.BYPASSES] && !stored[StorageKey.BADGED_TABS]) return;
+    if (!hasBadgeWork(stored[StorageKey.BYPASSES], stored[StorageKey.BADGED_TABS])) return;
     await refreshAllBadges();
   } catch (error) {
     console.error('[steer-clear] badge refresh on tab update failed', { error: error.message });

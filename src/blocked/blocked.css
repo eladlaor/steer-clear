@@ -186,14 +186,21 @@ body {
   margin: 0 0 16px;
 }
 
+/* Circle beside its cue and counter, not above them: stacked, the exercise
+   pushed a long reason plus the one-time notice past 800 px of height. */
 .breathing {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* A fixed-width text column keeps the circle still as the cue changes. */
+  grid-template-columns: auto 10rem;
+  justify-content: center;
   align-items: center;
-  gap: 6px;
+  column-gap: 18px;
+  row-gap: 4px;
+  text-align: left;
 }
 
 .breath-circle {
+  grid-row: 1 / span 2;
   width: 96px;
   height: 96px;
   border-radius: 50%;
@@ -213,12 +220,14 @@ body {
 }
 
 .breath-cue {
+  align-self: end;
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
 }
 
 .breath-count {
+  align-self: start;
   margin: 0;
   font-size: 0.875rem;
   color: var(--ink-soft);

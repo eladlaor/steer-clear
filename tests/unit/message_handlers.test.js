@@ -62,7 +62,7 @@ test('two consecutive interceptions of one site get different variants by defaul
   assert.notDeepEqual(first.variant, second.variant);
   assert.notEqual(first.variant.layout, second.variant.layout);
   assert.notEqual(first.variant.palette, second.variant.palette);
-  assert.notEqual(first.variant.prompt, second.variant.prompt);
+  assert.notEqual(first.variant.prompt.lead, second.variant.prompt.lead);
 });
 
 test('with varyPresentation off, consecutive interceptions look the same and no notice shows', async () => {
@@ -88,11 +88,36 @@ test('GET_RESOLVED_SITE returns the documented fields', async () => {
   assert.equal(view.showVariationNotice, true);
 });
 
-test('the variation notice stops after variationNoticeSeen', async () => {
+test('the variation notice shows on the first visit only, even without "Got it"', async () => {
   install();
   assert.equal((await resolve()).showVariationNotice, true);
+  assert.equal((await resolve()).showVariationNotice, false);
+  assert.equal((await resolve()).showVariationNotice, false);
+  assert.equal(globalThis.chrome.storage.local.store.lifecycle.variationNoticeSeenAt, NOW);
+});
+
+test('"Got it" before any visit means the notice never shows', async () => {
+  install();
   await handleMessage({ type: MessageType.RECORD_LIFECYCLE_EVENT, event: LifecycleEvent.VARIATION_NOTICE_SEEN });
   assert.equal((await resolve()).showVariationNotice, false);
+});
+
+test('with varyPresentation off the notice is not used up', async () => {
+  install({ defaults: { varyPresentation: false } });
+  await resolve();
+  assert.equal(globalThis.chrome.storage.local.store.lifecycle, undefined);
+});
+
+test('the pause page still renders when the notice cannot be recorded', async () => {
+  const fake = install();
+  const set = fake.chrome.storage.local.set;
+  fake.chrome.storage.local.set = async (items) => {
+    if ('lifecycle' in items) throw new Error('quota');
+    return set.call(fake.chrome.storage.local, items);
+  };
+  const view = await resolve();
+  assert.equal(view.showVariationNotice, true);
+  assert.equal(view.reason, '');
 });
 
 test('settings from a newer version still get a usable, degraded pause page', async () => {

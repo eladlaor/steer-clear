@@ -64,6 +64,19 @@ export function badgeText(expiresAt, now) {
 }
 
 /**
+ * Whether any badge may need re-rendering: a bypass is running or a tab still
+ * carries a badge. Both maps are left behind as `{}` once everything ends, so
+ * a key check, not a truthiness check, keeps every later page load cheap.
+ *
+ * @param {Object<string, number>|undefined} bypasses Stored bypasses.
+ * @param {Object<string, number[]>|undefined} badgedTabs Stored badged tabs.
+ * @returns {boolean}
+ */
+export function hasBadgeWork(bypasses, badgedTabs) {
+  return Object.keys(bypasses ?? {}).length > 0 || Object.keys(badgedTabs ?? {}).length > 0;
+}
+
+/**
  * Tabs on a site whose bypass has ended, unless a newer bypass for the same
  * site is running.
  *

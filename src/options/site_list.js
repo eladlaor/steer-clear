@@ -7,7 +7,7 @@
  * tab or device never steals focus or collapses an open row.
  */
 
-import { MessageType, SETTINGS_SAVE_DELAY_MS } from '../constants.js';
+import { MessageType, SETTINGS_SAVE_DELAY_MS, SettingsFormMode } from '../constants.js';
 import { sendMessage, sendWithoutAwait } from '../shared/messaging.js';
 import { normalizePattern } from '../background/rules.js';
 import {
@@ -92,7 +92,7 @@ export function createSiteList(dom) {
     q('.site-display-name-label').htmlFor = row.displayName.id;
 
     row.form = createSettingsForm(q('.site-settings'), {
-      mode: 'site',
+      mode: SettingsFormMode.SITE,
       idPrefix: `site-${siteId}`,
       onPatch: (patch) => send({ type: MessageType.UPDATE_SITE, siteId, setOverrides: patch }, 'Saved'),
       onClear: (key) => send({ type: MessageType.UPDATE_SITE, siteId, clearOverrides: [key] }, 'Using the default'),

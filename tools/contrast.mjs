@@ -19,6 +19,8 @@ export const REQUIRED_PAIRS = Object.freeze([
   ['--ink', '--bg'],
   ['--ink', '--card'],
   ['--ink-soft', '--card'],
+  // The pause page's variation notice and the intention field sit on --bg.
+  ['--ink-soft', '--bg'],
   ['--accent-ink', '--accent'],
   ['--danger', '--card'],
 ]);

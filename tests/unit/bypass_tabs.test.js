@@ -16,6 +16,7 @@ import {
   tabsOnSite,
   badgeText,
   expiredTabs,
+  hasBadgeWork,
   bypassExpiresAt,
   pausePageUrl,
 } from '../../src/background/bypass_tabs.js';
@@ -98,6 +99,18 @@ test('expiredTabs excludes a site with a newer active bypass', () => {
 test('expiredTabs ignores active bypasses of other sites', () => {
   const tabs = [tab(1, 'https://reddit.com/')];
   assert.deepEqual(expiredTabs(tabs, site(), { 'youtube.com': NOW + MINUTE }, NOW).map((t) => t.id), [1]);
+});
+
+/* hasBadgeWork ------------------------------------------------------------------------- */
+
+test('hasBadgeWork is false once every bypass and badge is gone', () => {
+  assert.equal(hasBadgeWork(undefined, undefined), false);
+  assert.equal(hasBadgeWork({}, {}), false);
+});
+
+test('hasBadgeWork is true while a bypass runs or a tab is badged', () => {
+  assert.equal(hasBadgeWork({ 'reddit.com': NOW + MINUTE }, {}), true);
+  assert.equal(hasBadgeWork({}, { 'reddit.com': [1] }), true);
 });
 
 /* Expiry time (criterion 11) -------------------------------------------------------------- */

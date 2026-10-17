@@ -60,8 +60,16 @@ test('consecutive variants differ in layout, palette and prompt for n in 0..1000
     const b = presentationVariant(n + 1);
     assert.notEqual(a.layout, b.layout, `layout at n=${n}`);
     assert.notEqual(a.palette, b.palette, `palette at n=${n}`);
-    assert.notEqual(a.prompt, b.prompt, `prompt at n=${n}`);
+    assert.notEqual(a.prompt.lead, b.prompt.lead, `prompt lead at n=${n}`);
+    assert.notEqual(a.prompt.reasonLead, b.prompt.reasonLead, `prompt reasonLead at n=${n}`);
   }
+});
+
+test('every prompt wording is distinct, so a different prompt reads differently', () => {
+  assert.equal(new Set(PAUSE_PROMPTS.map((p) => p.lead)).size, PAUSE_PROMPTS.length);
+  assert.equal(new Set(PAUSE_PROMPTS.map((p) => p.reasonLead)).size, PAUSE_PROMPTS.length);
+  assert.equal(new Set(PRESENTATION_LAYOUTS).size, PRESENTATION_LAYOUTS.length);
+  assert.equal(new Set(PRESENTATION_PALETTES).size, PRESENTATION_PALETTES.length);
 });
 
 test('presentationVariant indexes each list by n', () => {

@@ -6,7 +6,7 @@
  * this tab, another tab, the pause page or another device.
  */
 
-import { MessageType } from '../constants.js';
+import { MessageType, SettingsFormMode, StorageArea } from '../constants.js';
 import { readConfig } from '../background/config.js';
 import { sendMessage } from '../shared/messaging.js';
 import { createSettingsForm } from './settings_form.js';
@@ -47,8 +47,8 @@ async function updateDefaults(patch) {
 }
 
 const defaultsForm = createSettingsForm($('defaults-form'), {
-  mode: 'defaults',
-  idPrefix: 'defaults',
+  mode: SettingsFormMode.DEFAULTS,
+  idPrefix: SettingsFormMode.DEFAULTS,
   onPatch: updateDefaults,
   onClear: (key) => {
     throw new Error(`defaults cannot inherit; "${key}" has no default to fall back to`);
@@ -95,7 +95,7 @@ function revealLinkedField() {
 }
 
 chrome.storage.onChanged.addListener((_changes, areaName) => {
-  if (areaName === 'sync') render();
+  if (areaName === StorageArea.SYNC) render();
 });
 chrome.permissions.onAdded.addListener(() => siteList.refreshPermissions());
 chrome.permissions.onRemoved.addListener(() => siteList.refreshPermissions());

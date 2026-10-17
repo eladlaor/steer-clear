@@ -36,6 +36,25 @@ export const StorageKey = Object.freeze({
   STATS: 'stats',
 });
 
+/** chrome.storage area names, as storage.onChanged reports them. */
+export const StorageArea = Object.freeze({
+  SYNC: 'sync',
+  LOCAL: 'local',
+  SESSION: 'session',
+});
+
+/** runtime.onInstalled reason for a first install. */
+export const INSTALL_REASON = 'install';
+
+/** tabs.onUpdated status of a tab that finished loading. */
+export const TAB_STATUS_COMPLETE = 'complete';
+
+/** The settings form edits either the global defaults or one site's overrides. */
+export const SettingsFormMode = Object.freeze({
+  DEFAULTS: 'defaults',
+  SITE: 'site',
+});
+
 /** Days of individual events retained before pruning. Totals are kept forever. */
 export const STATS_RETENTION_DAYS = 90;
 

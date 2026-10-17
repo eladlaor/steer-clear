@@ -20,6 +20,7 @@ import {
   MIN_PAUSE_SECONDS,
   PauseStyle,
   SETTINGS_SAVE_DELAY_MS,
+  SettingsFormMode,
   SOURCE_URL_PROTOCOLS,
 } from '../constants.js';
 import { PER_SITE_FIELDS, resolveSettings } from '../background/settings_schema.js';
@@ -74,7 +75,10 @@ function el(tag, props = {}, children = []) {
  * @returns {{update: (defaults: object, site?: object) => void}}
  */
 export function createSettingsForm(container, { mode, idPrefix, onPatch, onClear, onError }) {
-  const isSite = mode === 'site';
+  if (!Object.values(SettingsFormMode).includes(mode)) {
+    throw new Error(`createSettingsForm: unknown mode "${mode}"`);
+  }
+  const isSite = mode === SettingsFormMode.SITE;
   const fields = FIELD_UI.filter((field) => !isSite || PER_SITE_FIELDS.includes(field.key));
   const controls = new Map();
   const timers = new Map();
