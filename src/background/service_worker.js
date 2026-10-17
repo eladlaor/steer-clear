@@ -12,6 +12,7 @@ import {
   BYPASS_ALARM_PREFIX,
   BYPASS_TICK_ALARM,
   INSTALL_REASON,
+  SCHEDULE_ALARM,
   STATS_PRUNE_ALARM,
   StorageArea,
   StorageKey,
@@ -116,6 +117,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     // interception, so pruning cannot rely only on the write path.
     if (alarm.name === STATS_PRUNE_ALARM) {
       await pruneStoredStats(Date.now());
+    } else if (alarm.name === SCHEDULE_ALARM) {
+      // A schedule started or ended; the rebuild reads the clock and sets
+      // the alarm for the boundary after this one.
+      await rebuildRules();
     } else if (alarm.name === BYPASS_TICK_ALARM) {
       await refreshAllBadges();
     } else if (alarm.name.startsWith(BYPASS_ALARM_PREFIX)) {

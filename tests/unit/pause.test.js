@@ -17,10 +17,12 @@ import {
   effectiveAutoContinue,
   breathCountFor,
   presentSite,
+  effectivePauseSeconds,
 } from '../../src/background/pause.js';
 import { defaultSettings } from '../../src/background/settings_schema.js';
 import {
   DESTINATION_FALLBACK_LABEL,
+  OVER_LIMIT_PAUSE_SECONDS,
   PAUSE_PROMPTS,
   PRESENTATION_LAYOUTS,
   PRESENTATION_PALETTES,
@@ -107,7 +109,7 @@ test('concretePauseStyle rejects an unknown style', () => {
 
 test('rotation guard: the reason screen shows a, b, c at n = 0, 3, 6', () => {
   const reasons = ['a', 'b', 'c'];
-  const shown = (n) => presentSite(settings({ pauseStyle: ROTATE, reasons }), site(), n, { host: 'reddit.com' });
+  const shown = (n) => presentSite(settings({ pauseStyle: ROTATE, reasons }), site(), n, { host: 'reddit.com', continuesToday: 0 });
 
   assert.equal(shown(0).pauseStyle, REASON);
   assert.equal(shown(0).reason, 'a');
@@ -121,7 +123,7 @@ test('rotation guard: every reason appears in every style over n = 0..8', () => 
   const reasons = ['a', 'b', 'c'];
   const seen = new Set();
   for (let n = 0; n <= 8; n += 1) {
-    const view = presentSite(settings({ pauseStyle: ROTATE, reasons }), site(), n, { host: 'reddit.com' });
+    const view = presentSite(settings({ pauseStyle: ROTATE, reasons }), site(), n, { host: 'reddit.com', continuesToday: 0 });
     seen.add(`${view.pauseStyle}:${view.reason}`);
   }
   for (const style of [REASON, BREATHING, INTENTION]) {
@@ -177,7 +179,7 @@ test('presentSite returns what the pause page renders', () => {
     settings({ reasons: ['focus'], targetName: 'Wikipedia', bypassMinutes: 15 }),
     site({ displayName: 'Reddit' }),
     0,
-    { host: 'www.reddit.com' }
+    { host: 'www.reddit.com', continuesToday: 0 }
   );
   assert.equal(view.siteName, 'Reddit');
   assert.equal(view.reason, 'focus');
@@ -190,19 +192,19 @@ test('presentSite returns what the pause page renders', () => {
 
 test('presentSite owns the target-name fallback', () => {
   const named = (target) =>
-    presentSite(settings({ target, targetName: '' }), site(), 0, { host: 'reddit.com' }).targetName;
+    presentSite(settings({ target, targetName: '' }), site(), 0, { host: 'reddit.com', continuesToday: 0 }).targetName;
   assert.equal(named('https://www.wikipedia.org/wiki/X'), 'wikipedia.org');
   assert.equal(named('not a url'), DESTINATION_FALLBACK_LABEL);
 });
 
 test('presentSite names an unmatched site by its host', () => {
-  const view = presentSite(settings(), null, 0, { host: 'old.reddit.com' });
+  const view = presentSite(settings(), null, 0, { host: 'old.reddit.com', continuesToday: 0 });
   assert.equal(view.siteName, 'old.reddit.com');
 });
 
 test('presentSite varies the variant with n by default and freezes it when turned off', () => {
   const at = (n, vary) =>
-    presentSite(settings({ varyPresentation: vary }), site(), n, { host: 'reddit.com' }).variant;
+    presentSite(settings({ varyPresentation: vary }), site(), n, { host: 'reddit.com', continuesToday: 0 }).variant;
   assert.notDeepEqual(at(0, true), at(1, true));
   assert.deepEqual(at(0, false), at(1, false));
   assert.deepEqual(at(7, false), presentationVariant(0));
@@ -210,16 +212,55 @@ test('presentSite varies the variant with n by default and freezes it when turne
 
 test('presentSite forces auto-continue off when rotate lands on intention', () => {
   const resolved = settings({ pauseStyle: ROTATE, autoContinue: true });
-  assert.equal(presentSite(resolved, site(), 0, { host: 'reddit.com' }).autoContinue, true);
-  assert.equal(presentSite(resolved, site(), 2, { host: 'reddit.com' }).autoContinue, false);
+  assert.equal(presentSite(resolved, site(), 0, { host: 'reddit.com', continuesToday: 0 }).autoContinue, true);
+  assert.equal(presentSite(resolved, site(), 2, { host: 'reddit.com', continuesToday: 0 }).autoContinue, false);
 });
 
 test('presentSite paces breaths from the pause length', () => {
-  const view = presentSite(settings({ pauseSeconds: 20 }), site(), 0, { host: 'reddit.com' });
+  const view = presentSite(settings({ pauseSeconds: 20 }), site(), 0, { host: 'reddit.com', continuesToday: 0 });
   assert.equal(view.pauseSeconds, 20);
   assert.equal(view.breathCount, 2);
 });
 
 test('presentSite rejects a missing host', () => {
   assert.throws(() => presentSite(settings(), null, 0, {}), /host/);
+});
+
+test('presentSite rejects a missing or negative continuesToday', () => {
+  assert.throws(() => presentSite(settings(), null, 0, { host: 'reddit.com' }), /continuesToday/);
+  assert.throws(() => presentSite(settings(), null, 0, { host: 'reddit.com', continuesToday: -1 }), /continuesToday/);
+});
+
+/* Daily allowance (resolution rule 11) ------------------------------------------- */
+
+test('effectivePauseSeconds: limit 2 reached gives 30 s from a pause of 0, and keeps a longer pause', () => {
+  assert.equal(effectivePauseSeconds({ pauseSeconds: 0, dailyContinueLimit: 2 }, 2), OVER_LIMIT_PAUSE_SECONDS);
+  assert.equal(OVER_LIMIT_PAUSE_SECONDS, 30);
+  assert.equal(effectivePauseSeconds({ pauseSeconds: 45, dailyContinueLimit: 2 }, 2), 45);
+});
+
+test('effectivePauseSeconds is the pause length below the limit or with no limit', () => {
+  assert.equal(effectivePauseSeconds({ pauseSeconds: 0, dailyContinueLimit: 2 }, 1), 0);
+  assert.equal(effectivePauseSeconds({ pauseSeconds: 10, dailyContinueLimit: null }, 40), 10);
+});
+
+test('presentSite reports the allowance and lengthens the pause once over the limit', () => {
+  const resolved = settings({ dailyContinueLimit: 2, pauseStyle: BREATHING });
+  const under = presentSite(resolved, site(), 0, { host: 'reddit.com', continuesToday: 1 });
+  assert.equal(under.overLimit, false);
+  assert.equal(under.pauseSeconds, 0);
+  assert.equal(under.breathCount, 1);
+
+  const over = presentSite(resolved, site(), 0, { host: 'reddit.com', continuesToday: 2 });
+  assert.equal(over.overLimit, true);
+  assert.equal(over.continuesToday, 2);
+  assert.equal(over.dailyContinueLimit, 2);
+  assert.equal(over.pauseSeconds, OVER_LIMIT_PAUSE_SECONDS);
+  assert.equal(over.breathCount, 3, 'breathing paces the longer pause');
+});
+
+test('presentSite with no limit is never over it', () => {
+  const view = presentSite(settings(), site(), 0, { host: 'reddit.com', continuesToday: 12 });
+  assert.equal(view.overLimit, false);
+  assert.equal(view.dailyContinueLimit, null);
 });

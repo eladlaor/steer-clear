@@ -56,6 +56,9 @@ const HISTORY = {
   perSite: { 'ynet.co.il': 68, 'facebook.com': 15 },
   activeWeekdays: [0, 1, 2, 3, 4], // Sun–Thu
   hourWeights: { 9: 3, 10: 6, 11: 7, 13: 2, 14: 2, 15: 1, 18: 2, 19: 2, 20: 1 },
+  /** Share of views that end steered or continued; the rest are left. */
+  steeredShare: 0.35,
+  continuedShare: 0.2,
 };
 
 /** Small deterministic PRNG (mulberry32). */
@@ -80,7 +83,15 @@ function pickWeighted(random, weights) {
   return Number(entries.at(-1)[0]);
 }
 
-/** Build [{host, at}] events relative to `now`, in local time. */
+/** A view's outcome: mostly steered clear, sometimes continued. */
+function pickOutcome(random) {
+  const roll = random();
+  if (roll < HISTORY.steeredShare) return 'steered';
+  if (roll < HISTORY.steeredShare + HISTORY.continuedShare) return 'continued';
+  return undefined;
+}
+
+/** Build [{host, at, outcome}] events relative to `now`, in local time. */
 function buildEvents(now) {
   const random = rng(HISTORY.seed);
   const events = [];
@@ -92,7 +103,8 @@ function buildEvents(now) {
         day.setDate(day.getDate() - Math.floor(random() * HISTORY.days));
       } while (!HISTORY.activeWeekdays.includes(day.getDay()));
       day.setHours(pickWeighted(random, HISTORY.hourWeights), Math.floor(random() * 60), 0, 0);
-      if (day.getTime() <= now) events.push({ host, at: day.getTime() });
+      const outcome = pickOutcome(random);
+      if (day.getTime() <= now) events.push({ host, at: day.getTime(), outcome });
     }
   }
   return events.sort((x, y) => x.at - y.at);

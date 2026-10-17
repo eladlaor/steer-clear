@@ -19,6 +19,8 @@ import {
   dailySeries,
   lifetimeTotal,
 } from '../background/stats.js';
+import { outcomesByHost } from '../background/progress.js';
+import { renderProgress, siteOutcomeText } from './progress_cards.js';
 
 const WEEKDAY_NAMES = [
   'Sunday',
@@ -29,6 +31,17 @@ const WEEKDAY_NAMES = [
   'Friday',
   'Saturday',
 ];
+
+const $ = (id) => document.getElementById(id);
+const progressElements = {
+  rateValue: $('steer-rate'),
+  rateDetail: $('steer-rate-detail'),
+  daysValue: $('steered-days'),
+  daysLabel: $('steered-days-label'),
+  todayValue: $('today'),
+  todayDetail: $('today-detail'),
+  outcomesSince: $('outcomes-since'),
+};
 
 const elements = {
   since: document.getElementById('since'),
@@ -53,7 +66,8 @@ let clearArmed = false;
  * Render a horizontal bar list into a container.
  *
  * @param {HTMLElement} container
- * @param {Array<{label: string, count: number}>} rows
+ * @param {Array<{label: string, count: number, detail?: string}>} rows
+ *   `detail` is an optional line under the bar.
  */
 function renderBars(container, rows) {
   container.replaceChildren();
@@ -81,6 +95,9 @@ function renderBars(container, rows) {
 
     track.appendChild(fill);
     item.append(label, track, value);
+    if (row.detail) {
+      item.append(Object.assign(document.createElement('span'), { className: 'bar-detail', textContent: row.detail }));
+    }
     container.appendChild(item);
   }
 }
@@ -150,6 +167,7 @@ function formatHour(hour) {
 function render(stats) {
   const now = Date.now();
   const summary = summarize(stats, now);
+  renderProgress(progressElements, stats, now);
 
   elements.total.textContent = String(summary.total);
   elements.last7.textContent = String(summary.last7);
@@ -167,9 +185,10 @@ function render(stats) {
     return;
   }
 
+  const outcomes = outcomesByHost(stats);
   renderBars(
     elements.bySite,
-    totalsByHost(stats).map(({ host, count }) => ({ label: host, count }))
+    totalsByHost(stats).map(({ host, count }) => ({ label: host, count, detail: siteOutcomeText(outcomes[host]) }))
   );
 
   renderHours(countsByHour(stats));

@@ -11,6 +11,7 @@
 import {
   BREATH_CYCLE_SECONDS,
   DESTINATION_FALLBACK_LABEL,
+  OVER_LIMIT_PAUSE_SECONDS,
   PAUSE_PROMPTS,
   PAUSE_ROTATION,
   PRESENTATION_LAYOUTS,
@@ -114,6 +115,31 @@ export function breathCountFor(pauseSeconds) {
 }
 
 /**
+ * Whether today's continues of a site have used up the daily allowance.
+ *
+ * @param {number|null} dailyContinueLimit `null` = no limit.
+ * @param {number} continuesToday
+ * @returns {boolean}
+ */
+export function isOverLimit(dailyContinueLimit, continuesToday) {
+  return dailyContinueLimit !== null && continuesToday >= dailyContinueLimit;
+}
+
+/**
+ * The pause length that applies now. Once the daily allowance is used up it
+ * is at least OVER_LIMIT_PAUSE_SECONDS: friction, never a wall.
+ *
+ * @param {{pauseSeconds: number, dailyContinueLimit: number|null}} resolved
+ * @param {number} continuesToday The site's continues since local midnight.
+ * @returns {number} Seconds before continue unlocks.
+ */
+export function effectivePauseSeconds({ pauseSeconds, dailyContinueLimit }, continuesToday) {
+  return isOverLimit(dailyContinueLimit, continuesToday)
+    ? Math.max(pauseSeconds, OVER_LIMIT_PAUSE_SECONDS)
+    : pauseSeconds;
+}
+
+/**
  * Everything the pause page needs to render one interception.
  *
  * The worker owns the display fallbacks (the site's label, the destination's
@@ -122,14 +148,20 @@ export function breathCountFor(pauseSeconds) {
  * @param {object} resolved Effective settings (resolveSettings output).
  * @param {object|null} site The matched site, or null.
  * @param {number} n The site's interception count before this one.
- * @param {{host: string}} context `host` is the requested hostname.
+ * @param {{host: string, continuesToday: number}} context `host` is the
+ *   requested hostname; `continuesToday` the site's continues since midnight.
  * @returns {object}
  */
 export function presentSite(resolved, site, n, context) {
   if (typeof context?.host !== 'string' || context.host === '') {
     throw new Error('presentSite: context.host is required');
   }
+  const { continuesToday } = context;
+  if (!Number.isInteger(continuesToday) || continuesToday < 0) {
+    throw new Error(`presentSite: context.continuesToday must be a non-negative integer, got ${continuesToday}`);
+  }
   const pauseStyle = concretePauseStyle(resolved.pauseStyle, n);
+  const pauseSeconds = effectivePauseSeconds(resolved, continuesToday);
 
   return {
     siteName: site ? siteLabel(site) : context.host,
@@ -138,10 +170,13 @@ export function presentSite(resolved, site, n, context) {
     reason: pickReason(resolved.reasons, n, resolved.pauseStyle === PauseStyle.ROTATE),
     pauseStyle,
     variant: presentationVariant(resolved.varyPresentation ? n : 0),
-    pauseSeconds: resolved.pauseSeconds,
-    breathCount: breathCountFor(resolved.pauseSeconds),
+    pauseSeconds,
+    breathCount: breathCountFor(pauseSeconds),
     autoContinue: effectiveAutoContinue(pauseStyle, resolved.autoContinue),
     countdownSeconds: resolved.countdownSeconds,
     bypassMinutes: resolved.bypassMinutes,
+    dailyContinueLimit: resolved.dailyContinueLimit,
+    continuesToday,
+    overLimit: isOverLimit(resolved.dailyContinueLimit, continuesToday),
   };
 }

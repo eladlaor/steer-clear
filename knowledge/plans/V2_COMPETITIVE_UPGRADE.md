@@ -549,6 +549,9 @@ stored-stats migration is needed; ships in 1.1):
   sends `RECORD_VIEW { viewId, fromUrl }` only once `document.visibilityState`
   is `visible` (a prerendered page waits for `visibilitychange`). The worker
   ignores a `viewId` it has already logged.
+  When the worker counts the view under an earlier event (the merge below),
+  the page stores that event's id as its `viewId`, so a later reload of the
+  merged view is recognized too (G3 implementation note).
 - **Repeat views merge.** If the host's latest event is younger than
   `VIEW_MERGE_WINDOW_MS` (60 s) and still `left`, `RECORD_VIEW` returns that
   event's id and logs nothing new. This covers retyping the URL.

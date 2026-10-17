@@ -192,7 +192,7 @@ test('the v3 pipeline shows what the v2 resolver showed', () => {
   const config = migrateLegacyConfig(v2Config());
   for (const [url, expected] of Object.entries(V2_EXPECTED)) {
     const site = findMatchingSite(config, url);
-    const view = presentSite(resolveSettings(config.defaults, site), site, 0, { host: new URL(url).hostname });
+    const view = presentSite(resolveSettings(config.defaults, site), site, 0, { host: new URL(url).hostname, continuesToday: 0 });
     assert.equal(view.target, expected.target, `${url} target`);
     assert.equal(view.reason, expected.reason, `${url} reason`);
     assert.equal(view.autoContinue, expected.autoContinue, `${url} autoContinue`);
@@ -206,12 +206,12 @@ test('the v3 pipeline shows what the v2 resolver showed', () => {
 test('an unnamed global destination shows its hostname, as in v2', () => {
   const config = migrateLegacyConfig({ ...v2Config(), globalTargetName: '' });
   const site = findMatchingSite(config, 'https://ynet.co.il/');
-  const view = presentSite(resolveSettings(config.defaults, site), site, 0, { host: 'ynet.co.il' });
+  const view = presentSite(resolveSettings(config.defaults, site), site, 0, { host: 'ynet.co.il', continuesToday: 0 });
   assert.equal(view.targetName, 'example.com');
 });
 
 test('a v1 config with no note shows no reason', () => {
   const config = migrateLegacyConfig({ ...v1Config(), globalNote: '' });
-  const view = presentSite(resolveSettings(config.defaults, config.sites[0]), config.sites[0], 0, { host: 'ynet.co.il' });
+  const view = presentSite(resolveSettings(config.defaults, config.sites[0]), config.sites[0], 0, { host: 'ynet.co.il', continuesToday: 0 });
   assert.equal(view.reason, '');
 });

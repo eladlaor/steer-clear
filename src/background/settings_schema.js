@@ -13,10 +13,12 @@
  */
 
 import {
+  ALWAYS_SCHEDULE,
   BYPASS_MINUTES_OPTIONS,
   DEFAULT_AUTO_CONTINUE,
   DEFAULT_BYPASS_MINUTES,
   DEFAULT_COUNTDOWN_SECONDS,
+  DEFAULT_DAILY_CONTINUE_LIMIT,
   DEFAULT_PAUSE_SECONDS,
   DEFAULT_PAUSE_STYLE,
   DEFAULT_RETURN_PAUSE_ON_EXPIRY,
@@ -24,12 +26,15 @@ import {
   DEFAULT_TARGET_NAME,
   DEFAULT_VARY_PRESENTATION,
   MAX_COUNTDOWN_SECONDS,
+  MAX_DAILY_CONTINUE_LIMIT,
   MAX_PAUSE_SECONDS,
   MAX_REASONS_PER_SITE,
   MIN_COUNTDOWN_SECONDS,
+  MIN_DAILY_CONTINUE_LIMIT,
   MIN_PAUSE_SECONDS,
   PauseStyle,
 } from '../constants.js';
+import { validateSchedule } from './schedule.js';
 
 const PAUSE_STYLES = Object.freeze(Object.values(PauseStyle));
 
@@ -69,6 +74,12 @@ function assertOneOf(allowed) {
   };
 }
 
+function assertNullOr(validate) {
+  return (value, path) => {
+    if (value !== null) validate(value, path);
+  };
+}
+
 function assertReasons(value, path) {
   if (!Array.isArray(value)) {
     throw new Error(`${path} must be a list of strings, got ${typeof value}`);
@@ -92,6 +103,7 @@ export const SETTINGS_FIELDS = Object.freeze({
   targetName: { perSite: true, fresh: () => DEFAULT_TARGET_NAME, validate: assertString },
   reasons: { perSite: true, fresh: () => [], validate: assertReasons },
   pauseStyle: { perSite: true, fresh: () => DEFAULT_PAUSE_STYLE, validate: assertOneOf(PAUSE_STYLES) },
+  schedule: { perSite: true, fresh: () => structuredClone(ALWAYS_SCHEDULE), validate: validateSchedule },
   autoContinue: { perSite: true, fresh: () => DEFAULT_AUTO_CONTINUE, validate: assertBoolean },
   countdownSeconds: {
     perSite: true,
@@ -110,6 +122,11 @@ export const SETTINGS_FIELDS = Object.freeze({
   },
   returnPauseOnExpiry: { perSite: false, fresh: () => DEFAULT_RETURN_PAUSE_ON_EXPIRY, validate: assertBoolean },
   varyPresentation: { perSite: false, fresh: () => DEFAULT_VARY_PRESENTATION, validate: assertBoolean },
+  dailyContinueLimit: {
+    perSite: false,
+    fresh: () => DEFAULT_DAILY_CONTINUE_LIMIT,
+    validate: assertNullOr(assertIntegerIn(MIN_DAILY_CONTINUE_LIMIT, MAX_DAILY_CONTINUE_LIMIT)),
+  },
 });
 
 /** Names of the fields a site may override. */

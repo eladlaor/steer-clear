@@ -424,3 +424,14 @@ body {
     height: 88px;
   }
 }
+
+/* Daily allowance used up: why the wait is longer, and where to change it. */
+.limit {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.limit a {
+  color: var(--ink);
+}

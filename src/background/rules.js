@@ -18,6 +18,8 @@ import {
   PARAM_FROM,
   MAX_REGEX_RULES,
 } from '../constants.js';
+import { isScheduleActiveAt } from './schedule.js';
+import { resolveSettings } from './settings_schema.js';
 
 /**
  * Normalize a user-entered pattern into a bare hostname.
@@ -85,36 +87,68 @@ export function buildRegexFilter(site) {
 }
 
 /**
+ * Check a RuleContext, throwing on anything malformed.
+ *
+ * @param {unknown} context
+ */
+function assertRuleContext(context) {
+  if (!context || typeof context !== 'object') {
+    throw new Error('buildRules: a rule context { bypassedHosts, grantedHosts, snoozedUntil, now } is required');
+  }
+  if (!(context.bypassedHosts instanceof Set)) {
+    throw new Error('buildRules: context.bypassedHosts must be a Set');
+  }
+  if (context.grantedHosts !== null && !(context.grantedHosts instanceof Set)) {
+    throw new Error('buildRules: context.grantedHosts must be a Set or null');
+  }
+  if (context.snoozedUntil !== null && !Number.isFinite(context.snoozedUntil)) {
+    throw new Error(`buildRules: context.snoozedUntil must be epoch ms or null, got ${context.snoozedUntil}`);
+  }
+  if (!Number.isFinite(context.now)) {
+    throw new Error(`buildRules: context.now must be epoch ms, got ${context.now}`);
+  }
+}
+
+/**
  * Translate a config object into the full dynamic rule set.
  *
- * Every enabled, non-bypassed site produces exactly one rule redirecting to the
- * local interstitial, with the original URL preserved via `\0` substitution.
+ * A site produces exactly one rule, redirecting to the local interstitial
+ * with the original URL preserved via `\0` substitution, when it is enabled,
+ * valid, not bypassed, granted, not snoozed, and its schedule is active now.
  *
  * A site with no host permission produces no rule. Chrome silently ignores
  * redirect rules for hosts the extension cannot access, so emitting one would
  * look like the extension was working when it was not — the exact failure mode
  * that made redirects appear broken before host permissions were declared.
  *
- * @param {object} config The user config (see knowledge/plans).
+ * Everything that varies over time comes in through `context`, so rules stay
+ * a pure function of storage, session state and the clock.
+ *
+ * @param {object} config The assembled config (`{ defaults, sites }`).
  * @param {string} extensionBaseUrl Result of chrome.runtime.getURL('').
- * @param {Set<string>} [bypassedPatterns] Normalized hosts currently bypassed.
- * @param {Set<string>|null} [grantedHosts] Normalized hosts with host
- *   permission. Pass null to skip the check (used by tests and by builds that
- *   declare blanket host permissions).
+ * @param {{bypassedHosts: Set<string>, grantedHosts: Set<string>|null,
+ *   snoozedUntil: number|null, now: number}} context `bypassedHosts`:
+ *   normalized hosts currently bypassed. `grantedHosts`: normalized hosts with
+ *   host permission, or null to skip the check (tests, and builds that declare
+ *   blanket host permissions). `snoozedUntil`: epoch ms while every reminder
+ *   is snoozed. `now`: epoch ms, for schedules and snooze.
  * @returns {Array<object>} declarativeNetRequest rule objects.
  */
-export function buildRules(
-  config,
-  extensionBaseUrl,
-  bypassedPatterns = new Set(),
-  grantedHosts = null
-) {
+export function buildRules(config, extensionBaseUrl, context) {
   if (!config || !Array.isArray(config.sites)) {
     throw new Error('buildRules: config.sites must be an array');
   }
   if (typeof extensionBaseUrl !== 'string' || extensionBaseUrl === '') {
     throw new Error('buildRules: extensionBaseUrl is required');
   }
+  assertRuleContext(context);
+  const { bypassedHosts, grantedHosts, snoozedUntil, now } = context;
+
+  // Snooze is "turn every reminder off for N minutes": no rule at all.
+  if (snoozedUntil !== null && snoozedUntil > now) {
+    return [];
+  }
+  const nowDate = new Date(now);
 
   const interstitialUrl = `${extensionBaseUrl}${INTERSTITIAL_PATH}`;
   const rules = [];
@@ -139,11 +173,15 @@ export function buildRules(
       return;
     }
 
-    if (bypassedPatterns.has(host)) {
+    if (bypassedHosts.has(host)) {
       return;
     }
 
     if (grantedHosts !== null && !grantedHosts.has(host)) {
+      return;
+    }
+
+    if (!isScheduleActiveAt(resolveSettings(config.defaults, site).schedule, nowDate)) {
       return;
     }
 

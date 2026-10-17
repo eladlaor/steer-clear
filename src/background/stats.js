@@ -11,57 +11,152 @@
  * with no added value for the counts they wanted.
  */
 
-import { STATS_RETENTION_DAYS } from '../constants.js';
+import { MS_PER_DAY, Outcome, STATS_RETENTION_DAYS, VIEW_MERGE_WINDOW_MS } from '../constants.js';
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+/**
+ * The outcomes each outcome may move to. A view starts `left`; `steered`
+ * (chose the destination) may follow `left` only; `continued` may follow
+ * either, since the user can still go through after steering away.
+ */
+const NEXT_OUTCOMES = Object.freeze({
+  [Outcome.LEFT]: Object.freeze([Outcome.STEERED, Outcome.CONTINUED]),
+  [Outcome.STEERED]: Object.freeze([Outcome.CONTINUED]),
+  [Outcome.CONTINUED]: Object.freeze([]),
+});
 
 /** An empty stats record, used on first run and after a reset. */
 export function emptyStats() {
   return {
     /** Per-host lifetime counts; survives event pruning. */
     totals: {},
-    /** Recent events: { host, at } with `at` an epoch-ms timestamp. */
+    /**
+     * Recent events: `{ id, host, at, outcome }`, `at` in epoch ms. Events
+     * recorded before outcome tracking (1.0) have only `host` and `at`.
+     */
     events: [],
     /** When counting began, so the UI can say "since March 3". */
     since: null,
+    /** When outcome tracking began: the first event recorded with an outcome. */
+    outcomesSince: null,
   };
 }
 
 /**
- * Record an interception, returning a new stats object.
+ * Fill the fields an older release did not store, so no stored-stats
+ * migration is ever needed. Existing events are kept exactly as stored.
  *
- * Pure: takes the previous state and returns the next one, so the caller
- * controls persistence and the function stays testable without fake timers.
- *
- * @param {object} stats Previous stats.
- * @param {string} host The configured host that was intercepted.
- * @param {number} at Epoch ms.
- * @returns {object} The updated stats.
+ * @param {unknown} raw The stored record, or undefined on first run.
+ * @returns {object} A complete stats record; the input itself when nothing
+ *   was missing, so callers can tell "unchanged" by identity.
+ * @throws {Error} If the stored value is not a stats record.
  */
-export function recordInterception(stats, host, at) {
-  if (typeof host !== 'string' || host.trim() === '') {
-    throw new Error(`recordInterception: expected a host, got "${host}"`);
+export function normalizeStats(raw) {
+  if (raw === undefined || raw === null) {
+    return emptyStats();
   }
-  if (!Number.isFinite(at)) {
-    throw new Error(`recordInterception: expected epoch ms, got ${at}`);
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error(`normalizeStats: stored stats must be an object, got ${JSON.stringify(raw)}`);
+  }
+  const complete = Object.keys(emptyStats()).every((key) => key in raw);
+  const stats = complete ? raw : { ...emptyStats(), ...raw };
+  if (!stats.totals || typeof stats.totals !== 'object' || Array.isArray(stats.totals)) {
+    throw new Error('normalizeStats: stats.totals must be an object of counts');
+  }
+  if (!Array.isArray(stats.events)) {
+    throw new Error('normalizeStats: stats.events must be a list');
+  }
+  return stats;
+}
+
+/**
+ * Record one pause-page view, returning the new stats and the id of the
+ * event the view is counted under.
+ *
+ * - A view id that is already logged (a reload, a restored session) adds
+ *   nothing.
+ * - A view of a host whose latest event is younger than VIEW_MERGE_WINDOW_MS
+ *   and still `left` is the same urge (a retyped address): it returns that
+ *   event's id and adds nothing.
+ * - Otherwise a new event is logged as `left`.
+ *
+ * Pure: the caller controls persistence and the clock.
+ *
+ * @param {object} stats Previous stats (normalized or not).
+ * @param {{viewId: string, host: string, now: number}} view `host` is the
+ *   configured host, so www.x.com and m.x.com count under the user's entry.
+ * @returns {{stats: object, eventId: string}}
+ */
+export function recordView(stats, { viewId, host, now }) {
+  if (typeof viewId !== 'string' || viewId === '') {
+    throw new Error(`recordView: expected a viewId, got ${JSON.stringify(viewId)}`);
+  }
+  if (typeof host !== 'string' || host.trim() === '') {
+    throw new Error(`recordView: expected a host, got "${host}"`);
+  }
+  if (!Number.isFinite(now)) {
+    throw new Error(`recordView: expected epoch ms, got ${now}`);
   }
 
-  const base = stats ?? emptyStats();
+  const base = normalizeStats(stats);
+  if (base.events.some((event) => event.id === viewId)) {
+    return { stats: base, eventId: viewId };
+  }
+
+  const latest = base.events
+    .filter((event) => event.host === host)
+    .reduce((newest, event) => (newest === null || event.at > newest.at ? event : newest), null);
+  const age = latest === null ? null : now - latest.at;
+  if (latest?.outcome === Outcome.LEFT && age >= 0 && age < VIEW_MERGE_WINDOW_MS) {
+    return { stats: base, eventId: latest.id };
+  }
 
   // Prune against the newest timestamp seen, not the incoming one. A
   // backdated event must not drag the retention cutoff into the past and
   // resurrect already-expired history.
-  const newest = base.events.reduce((max, event) => Math.max(max, event.at), at);
-
-  return pruneEvents(
+  const newest = base.events.reduce((max, event) => Math.max(max, event.at), now);
+  const next = pruneEvents(
     {
       ...base,
-      since: base.since === null ? at : Math.min(base.since, at),
+      since: base.since === null ? now : Math.min(base.since, now),
+      outcomesSince: base.outcomesSince === null ? now : Math.min(base.outcomesSince, now),
       totals: { ...base.totals, [host]: (base.totals[host] ?? 0) + 1 },
-      events: [...base.events, { host, at }],
+      events: [...base.events, { id: viewId, host, at: now, outcome: Outcome.LEFT }],
     },
     newest
   );
+  return { stats: next, eventId: viewId };
+}
+
+/**
+ * Record what the user did after a view: `steered` (chose the destination)
+ * or `continued` (went through). Applying the outcome an event already has
+ * changes nothing and returns the same object.
+ *
+ * @param {object} stats
+ * @param {string} eventId An id returned by recordView.
+ * @param {string} outcome Outcome.STEERED or Outcome.CONTINUED.
+ * @returns {object} The updated stats.
+ * @throws {Error} On an unknown event id or an outcome the event cannot move to.
+ */
+export function applyOutcome(stats, eventId, outcome) {
+  if (outcome !== Outcome.STEERED && outcome !== Outcome.CONTINUED) {
+    throw new Error(`applyOutcome: outcome must be steered or continued, got ${JSON.stringify(outcome)}`);
+  }
+  const base = normalizeStats(stats);
+  const index = base.events.findIndex((event) => event.id === eventId);
+  if (index === -1) {
+    throw new Error(`applyOutcome: no event with id "${eventId}"`);
+  }
+  const event = base.events[index];
+  if (event.outcome === outcome) {
+    return base;
+  }
+  if (!(NEXT_OUTCOMES[event.outcome] ?? []).includes(outcome)) {
+    throw new Error(`applyOutcome: event "${eventId}" is ${event.outcome}; it cannot become ${outcome}`);
+  }
+  const events = [...base.events];
+  events[index] = { ...event, outcome };
+  return { ...base, events };
 }
 
 /**

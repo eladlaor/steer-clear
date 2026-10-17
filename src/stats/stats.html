@@ -13,10 +13,26 @@
         <p class="sub" id="since">Counting since —</p>
       </header>
 
-      <section class="cards">
+      <section class="cards" aria-label="Progress">
+        <div class="card">
+          <span class="card-value" id="steer-rate">—</span>
+          <span class="card-label" id="steer-rate-detail">steered clear vs continued, last 30 days</span>
+        </div>
+        <div class="card">
+          <span class="card-value" id="steered-days">—</span>
+          <span class="card-label" id="steered-days-label">days you steered clear, of the last 7</span>
+        </div>
+        <div class="card">
+          <span class="card-value" id="today">—</span>
+          <span class="card-label" id="today-detail">pauses today</span>
+        </div>
+      </section>
+      <p class="hint outcomes-since" id="outcomes-since"></p>
+
+      <section class="cards" aria-label="Totals">
         <div class="card">
           <span class="card-value" id="total">—</span>
-          <span class="card-label">times steered clear</span>
+          <span class="card-label">pauses in total</span>
         </div>
         <div class="card">
           <span class="card-value" id="last7">—</span>

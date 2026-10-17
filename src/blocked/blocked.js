@@ -7,13 +7,15 @@
  * declarativeNetRequest — the worker owns rules.
  */
 
-import { LifecycleEvent, MessageType, MS_PER_SECOND, PauseStyle } from '../constants.js';
+import { LifecycleEvent, MessageType, PauseStyle } from '../constants.js';
 import { sendMessage } from '../shared/messaging.js';
 import { extractSourceUrl } from '../shared/source_url.js';
 import { continueGate } from '../background/continue_gate.js';
 import { mountBreathingView } from './breathing_view.js';
 import { mountIntentionView } from './intention_view.js';
-import { renderGate } from './continue_view.js';
+import { renderGate, showOverLimit } from './continue_view.js';
+import { startCountdown } from './countdown_view.js';
+import { recordSteered, trackView } from './view_tracking.js';
 
 /** How often the continue gate is re-evaluated, in ms. */
 const GATE_TICK_MS = 250;
@@ -33,6 +35,7 @@ const elements = {
   bypassLabel: $('bypass-label'),
   bypassMinutes: $('bypass-minutes'),
   gate: $('gate'),
+  limit: $('limit'),
   countdown: $('countdown'),
   countdownTarget: $('countdown-target'),
   countdownSeconds: $('countdown-seconds'),
@@ -46,7 +49,10 @@ const elements = {
 /** What the gate depends on; updated by the views. */
 const gateState = { breathsDone: 0, intentionText: '' };
 let currentGate = { enabled: false };
-let countdownTimer = null;
+/** The running auto-continue countdown, if any. */
+let countdown = null;
+/** The id this view is recorded under, once the page has been seen. */
+let viewEvent = Promise.resolve(null);
 
 /**
  * Apply the presentation variant: layout class, palette tokens, wording.
@@ -79,6 +85,7 @@ function render(resolved) {
     elements.reason.hidden = false;
   }
   elements.notice.hidden = !resolved.showVariationNotice;
+  if (resolved.overLimit) showOverLimit(elements.limit, resolved);
   if (resolved.degraded) {
     elements.status.textContent = 'Your settings could not be read, so defaults are shown. Open Settings for details.';
   }
@@ -128,37 +135,13 @@ function startGate(resolved) {
   window.setInterval(tick, GATE_TICK_MS);
 }
 
-/** Auto-continue: go to the destination unless the user stops it. */
-function startCountdown(resolved) {
-  let remaining = resolved.countdownSeconds;
-  elements.countdownTarget.textContent = resolved.targetName;
-  elements.countdownSeconds.textContent = `${remaining}s`;
-  elements.countdown.hidden = false;
-  elements.goTarget.hidden = true;
-  elements.continueGroup.hidden = true;
-
-  countdownTimer = window.setInterval(() => {
-    remaining -= 1;
-    if (remaining > 0) {
-      elements.countdownSeconds.textContent = `${remaining}s`;
-      return;
-    }
-    window.clearInterval(countdownTimer);
-    countdownTimer = null;
-    window.location.replace(resolved.target);
-  }, MS_PER_SECOND);
-}
-
-/** Stopping the countdown means "let me think", never "take me to the site". */
-function cancelCountdown() {
-  if (countdownTimer !== null) {
-    window.clearInterval(countdownTimer);
-    countdownTimer = null;
-  }
-  elements.countdown.hidden = true;
-  elements.goTarget.hidden = false;
-  elements.continueGroup.hidden = false;
-  elements.status.textContent = 'Stopped. Your call.';
+/** Auto-continue to the destination, recording it as steering clear. */
+function autoContinue(resolved) {
+  countdown = startCountdown(elements, {
+    seconds: resolved.countdownSeconds,
+    targetName: resolved.targetName,
+    onArrive: () => viewEvent.then(recordSteered).finally(() => window.location.replace(resolved.target)),
+  });
 }
 
 /**
@@ -175,13 +158,31 @@ async function handleBypass(sourceUrl) {
     elements.status.textContent = 'Opening…';
     // The worker rebuilds rules before answering, so once this resolves the
     // redirect rule is gone; no settle delay is needed.
-    await sendMessage({ type: MessageType.GRANT_BYPASS, host: new URL(sourceUrl).hostname });
+    const eventId = await viewEvent;
+    await sendMessage({ type: MessageType.GRANT_BYPASS, host: new URL(sourceUrl).hostname, eventId });
     window.location.replace(sourceUrl);
   } catch (error) {
     console.error('[steer-clear] handleBypass failed', { sourceUrl, error: error.message });
     elements.bypass.disabled = false;
     elements.status.textContent = `Could not continue: ${error.message}`;
   }
+}
+
+/**
+ * Choosing the destination is recorded before leaving. A modified click
+ * opens a new tab and leaves this page in place, so it is recorded without
+ * holding the click back.
+ *
+ * @param {MouseEvent} event
+ */
+async function handleSteer(event) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    viewEvent.then(recordSteered);
+    return;
+  }
+  event.preventDefault();
+  await recordSteered(await viewEvent);
+  window.location.assign(elements.goTarget.href);
 }
 
 async function dismissNotice() {
@@ -221,20 +222,22 @@ async function init() {
     console.info('[steer-clear] pause page resolved', resolved);
 
     render(resolved);
+    viewEvent = trackView(sourceUrl);
+    elements.goTarget.addEventListener('click', handleSteer);
     elements.bypass.addEventListener('click', () => handleBypass(sourceUrl));
-    elements.stop.addEventListener('click', cancelCountdown);
+    elements.stop.addEventListener('click', () => countdown?.stop());
     elements.noticeOk.addEventListener('click', dismissNotice);
 
     // With breathing, auto-continue waits for the last breath.
     const autoContinueAfterBreaths = resolved.autoContinue && resolved.pauseStyle === PauseStyle.BREATHING;
     mountExercise(resolved, () => {
-      if (autoContinueAfterBreaths) startCountdown(resolved);
+      if (autoContinueAfterBreaths) autoContinue(resolved);
     });
     startGate(resolved);
     elements.goTarget.focus({ preventScroll: true });
 
     if (resolved.autoContinue && !autoContinueAfterBreaths) {
-      startCountdown(resolved);
+      autoContinue(resolved);
     }
   } catch (error) {
     console.error('[steer-clear] init failed', { error: error.message });

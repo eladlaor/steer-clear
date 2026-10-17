@@ -26,6 +26,8 @@ export const StorageKey = Object.freeze({
   LIFECYCLE: 'lifecycle',
   /** storage.session: `{ [host]: tabId[] }` tabs showing a bypass badge. */
   BADGED_TABS: 'badgedTabs',
+  /** storage.session: `{ until: epochMs }` while every reminder is snoozed. */
+  SNOOZE: 'snooze',
   BYPASSES: 'bypasses',
   /**
    * Interception history. Lives in storage.local, never storage.sync: this is
@@ -70,7 +72,32 @@ export const MessageType = Object.freeze({
   UPDATE_SITE: 'UPDATE_SITE',
   REMOVE_SITE: 'REMOVE_SITE',
   UPDATE_DEFAULTS: 'UPDATE_DEFAULTS',
+  RECORD_VIEW: 'RECORD_VIEW',
+  RECORD_OUTCOME: 'RECORD_OUTCOME',
 });
+
+/**
+ * What happened after one pause-page view. A view is logged as `left`;
+ * choosing the destination makes it `steered`; continuing makes it
+ * `continued`. "Steered clear" means left or steered.
+ */
+export const Outcome = Object.freeze({
+  LEFT: 'left',
+  STEERED: 'steered',
+  CONTINUED: 'continued',
+});
+
+/**
+ * A repeat view of the same host within this window, while the last view is
+ * still `left`, is the same urge (a reload or a retyped address), not a new one.
+ */
+export const VIEW_MERGE_WINDOW_MS = 60000;
+
+/** "You steered clear on D of the last N days" looks back this many local days. */
+export const STEERED_DAYS_WINDOW = 7;
+
+/** The stats page's steer rate covers this many days. */
+export const STEER_RATE_WINDOW_DAYS = 30;
 
 /** Events a page reports to the worker for one-time lifecycle flags. */
 export const LifecycleEvent = Object.freeze({
@@ -108,6 +135,19 @@ export const BADGE_BACKGROUND_COLOR = '#2f6f5e';
 /** Time units, so durations read as what they are. */
 export const MS_PER_SECOND = 1000;
 export const MS_PER_MINUTE = 60 * MS_PER_SECOND;
+export const MINUTES_PER_HOUR = 60;
+export const MINUTES_PER_DAY = 1440;
+export const MS_PER_DAY = MINUTES_PER_DAY * MS_PER_MINUTE;
+export const DAYS_PER_WEEK = 7;
+
+/** chrome.alarms name for the next schedule start or end, which triggers a rebuild. */
+export const SCHEDULE_ALARM = 'schedule-boundary';
+
+/** Path of the settings page, relative to the extension root. */
+export const OPTIONS_PATH = 'options/options.html';
+
+/** Anchor of the daily-limit field on the settings page. */
+export const DAILY_LIMIT_ANCHOR = 'daily-limit';
 
 /** Path to the interstitial, relative to the extension root. */
 export const INTERSTITIAL_PATH = 'blocked/blocked.html';
@@ -219,6 +259,44 @@ export const PAUSE_PROMPTS = Object.freeze([
   Object.freeze({ lead: 'A moment before', reasonLead: 'Remember why' }),
   Object.freeze({ lead: 'Pausing before', reasonLead: 'In your own words' }),
 ]);
+
+/**
+ * Schedules: days are 0–6 (0 = Sunday); ranges are minutes of the local day,
+ * `[start, end)`. A range whose end is before its start runs past midnight
+ * and belongs to the day it starts on.
+ */
+export const MAX_SCHEDULE_RANGES = 4;
+export const ALWAYS_SCHEDULE = Object.freeze({
+  days: Object.freeze([0, 1, 2, 3, 4, 5, 6]),
+  ranges: Object.freeze([Object.freeze({ start: 0, end: MINUTES_PER_DAY })]),
+});
+/** The "Weekdays 9–17" preset: Monday to Friday, 09:00–17:00. */
+export const WEEKDAY_WORK_SCHEDULE = Object.freeze({
+  days: Object.freeze([1, 2, 3, 4, 5]),
+  ranges: Object.freeze([Object.freeze({ start: 9 * MINUTES_PER_HOUR, end: 17 * MINUTES_PER_HOUR })]),
+});
+/**
+ * How far ahead the next schedule boundary is searched. A week plus a day
+ * covers every weekly range, including an overnight one that started yesterday.
+ */
+export const SCHEDULE_LOOKAHEAD_DAYS = 8;
+
+/**
+ * Daily allowance: after this many continues of a site in a local day, its
+ * pause lasts at least OVER_LIMIT_PAUSE_SECONDS until midnight. Friction,
+ * never a wall: continue is never removed. `null` = no limit (the default).
+ */
+export const MIN_DAILY_CONTINUE_LIMIT = 1;
+export const MAX_DAILY_CONTINUE_LIMIT = 50;
+export const DEFAULT_DAILY_CONTINUE_LIMIT = null;
+export const OVER_LIMIT_PAUSE_SECONDS = 30;
+
+/**
+ * Snooze turns every reminder off for a while, so it also skips the daily
+ * allowance and is not counted as a continue. Wherever snooze is offered,
+ * this line says so.
+ */
+export const SNOOZE_ALLOWANCE_NOTE = 'Pauses all reminders, including your daily limit.';
 
 /** Typing pauses this long before a settings text field is saved, in ms. */
 export const SETTINGS_SAVE_DELAY_MS = 400;

@@ -94,16 +94,18 @@ export async function launchExtension(contextOptions) {
  * @param {object} page A page already on an extension URL.
  * @param {{defaults?: object,
  *   sites: Array<{pattern: string, fields?: object, overrides?: object}>,
- *   events: Array<{host: string, at: number}>, lifecycle?: object}} demo
+ *   events: Array<{host: string, at: number, outcome?: string}>, lifecycle?: object}} demo
  *   `defaults` patches the global settings; `fields` are site fields
- *   (e.g. displayName); `overrides` are per-site settings.
+ *   (e.g. displayName); `overrides` are per-site settings. Events are
+ *   recorded as pause-page views in time order; `outcome` ('steered' or
+ *   'continued') is applied when given, else the view stays 'left'.
  */
 export async function seedDemoData(page, demo) {
   await page.evaluate(async ({ defaults = {}, sites, events, lifecycle }) => {
     const { defaultSettings } = await import('/background/settings_schema.js');
     const { newSite } = await import('/background/config_mutations.js');
     const { siteKey } = await import('/background/sync_layout.js');
-    const { emptyStats, recordInterception } = await import('/background/stats.js');
+    const { applyOutcome, emptyStats, recordView } = await import('/background/stats.js');
 
     const items = { schema: 3, settings: { defaults: { ...defaultSettings(), ...defaults } } };
     sites.forEach(({ pattern, fields = {}, overrides = {} }, order) => {
@@ -112,7 +114,13 @@ export async function seedDemoData(page, demo) {
     });
 
     let stats = emptyStats();
-    for (const { host, at } of events) stats = recordInterception(stats, host, at);
+    for (const { host, at, outcome } of [...events].sort((a, b) => a.at - b.at)) {
+      const viewId = crypto.randomUUID();
+      const recorded = recordView(stats, { viewId, host, now: at });
+      stats = recorded.stats;
+      // A view merged into an earlier one keeps that one's outcome.
+      if (outcome && recorded.eventId === viewId) stats = applyOutcome(stats, viewId, outcome);
+    }
 
     await chrome.storage.local.clear();
     await chrome.storage.sync.clear();

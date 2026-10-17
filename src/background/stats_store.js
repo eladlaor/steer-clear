@@ -11,7 +11,15 @@
  */
 
 import { StorageKey } from '../constants.js';
-import { emptyStats, recordInterception, pruneEvents } from './stats.js';
+import { applyOutcome, normalizeStats, pruneEvents, recordView as addView } from './stats.js';
+import { createSerialQueue } from './serial_queue.js';
+
+/**
+ * Every stats write reads, transforms and writes. Two pause pages reporting
+ * at once would otherwise both read the old record and one view would be
+ * lost, so writes queue.
+ */
+const statsQueue = createSerialQueue();
 
 /**
  * Read the stats record, returning an empty one on first run.
@@ -21,7 +29,7 @@ import { emptyStats, recordInterception, pruneEvents } from './stats.js';
 export async function readStats() {
   try {
     const stored = await chrome.storage.local.get(StorageKey.STATS);
-    return stored[StorageKey.STATS] ?? emptyStats();
+    return normalizeStats(stored[StorageKey.STATS]);
   } catch (error) {
     console.error('[steer-clear] readStats failed', { error: error.message });
     throw error;
@@ -44,26 +52,50 @@ export async function writeStats(stats) {
 }
 
 /**
- * Record one interception and persist the result.
+ * Record one pause-page view and persist the result.
  *
  * Failure is logged and swallowed: statistics are a side observation, and
- * losing a count must never break the redirect the user actually depends on.
- * This is the one place in the codebase that deliberately does not re-raise.
+ * losing a count must never break the pause page the user actually depends
+ * on. Recording views and outcomes are the only places in the codebase that
+ * deliberately do not re-raise.
  *
- * @param {string} host The configured host that was intercepted.
- * @param {number} at Epoch ms.
+ * @param {{viewId: string, host: string, now: number}} view `host` is the
+ *   configured host.
+ * @returns {Promise<string|null>} The id of the event the view is counted
+ *   under (an earlier one when it merged), or null when recording failed.
+ */
+export function recordView(view) {
+  return statsQueue.run(async () => {
+    try {
+      const stats = await readStats();
+      const { stats: next, eventId } = addView(stats, view);
+      if (next !== stats) await writeStats(next);
+      return eventId;
+    } catch (error) {
+      console.error('[steer-clear] recordView failed; continuing', { host: view?.host, error: error.message });
+      return null;
+    }
+  });
+}
+
+/**
+ * Record what the user did after a view, and persist. Failure is logged and
+ * swallowed, as for recordView.
+ *
+ * @param {string} eventId An id recordView returned.
+ * @param {string} outcome Outcome.STEERED or Outcome.CONTINUED.
  * @returns {Promise<void>}
  */
-export async function logInterception(host, at) {
-  try {
-    const stats = await readStats();
-    await writeStats(recordInterception(stats, host, at));
-  } catch (error) {
-    console.error('[steer-clear] logInterception failed; continuing', {
-      host,
-      error: error.message,
-    });
-  }
+export function recordOutcome(eventId, outcome) {
+  return statsQueue.run(async () => {
+    try {
+      const stats = await readStats();
+      const next = applyOutcome(stats, eventId, outcome);
+      if (next !== stats) await writeStats(next);
+    } catch (error) {
+      console.error('[steer-clear] recordOutcome failed; continuing', { eventId, outcome, error: error.message });
+    }
+  });
 }
 
 /**
@@ -73,7 +105,12 @@ export async function logInterception(host, at) {
  * @param {number} now Epoch ms.
  * @returns {Promise<void>}
  */
-export async function pruneStoredStats(now) {
+export function pruneStoredStats(now) {
+  return statsQueue.run(() => pruneNow(now));
+}
+
+/** @param {number} now */
+async function pruneNow(now) {
   try {
     const stats = await readStats();
     const pruned = pruneEvents(stats, now);
@@ -95,12 +132,14 @@ export async function pruneStoredStats(now) {
  *
  * @returns {Promise<void>}
  */
-export async function clearStats() {
-  try {
-    await chrome.storage.local.remove(StorageKey.STATS);
-    console.info('[steer-clear] stats cleared');
-  } catch (error) {
-    console.error('[steer-clear] clearStats failed', { error: error.message });
-    throw error;
-  }
+export function clearStats() {
+  return statsQueue.run(async () => {
+    try {
+      await chrome.storage.local.remove(StorageKey.STATS);
+      console.info('[steer-clear] stats cleared');
+    } catch (error) {
+      console.error('[steer-clear] clearStats failed', { error: error.message });
+      throw error;
+    }
+  });
 }

@@ -15,8 +15,26 @@ import {
   siteLabel,
   hostnameOf,
 } from '../../src/background/rules.js';
+import { defaultSettings } from '../../src/background/settings_schema.js';
+import { WEEKDAY_WORK_SCHEDULE } from '../../src/constants.js';
 
 const BASE_URL = 'chrome-extension://abcdefghijklmnop/';
+
+/** Monday 2026-03-16, 10:00 local: inside weekday work hours. */
+const MONDAY_TEN = new Date(2026, 2, 16, 10, 0).getTime();
+/** Saturday 2026-03-21, 10:00 local: outside them. */
+const SATURDAY_TEN = new Date(2026, 2, 21, 10, 0).getTime();
+
+/**
+ * A RuleContext with test defaults: nothing bypassed, no permission check,
+ * not snoozed, Monday 10:00.
+ *
+ * @param {object} [fields]
+ * @returns {object}
+ */
+function ctx(fields = {}) {
+  return { bypassedHosts: new Set(), grantedHosts: null, snoozedUntil: null, now: MONDAY_TEN, ...fields };
+}
 
 /**
  * @param {object} overrides
@@ -39,12 +57,7 @@ function site(overrides = {}) {
  * @returns {object} A config with test defaults.
  */
 function config(sites = []) {
-  return {
-    schemaVersion: 1,
-    globalTarget: 'https://example.com/',
-    globalNote: 'global note',
-    sites,
-  };
+  return { schemaVersion: 3, defaults: defaultSettings(), sites };
 }
 
 test('normalizePattern strips scheme, path, query, port', () => {
@@ -99,7 +112,8 @@ test('exact-match regex excludes subdomains', () => {
 test('buildRules produces one rule per enabled site', () => {
   const rules = buildRules(
     config([site({ id: 'a', pattern: 'ynet.co.il' }), site({ id: 'b', pattern: 'x.com' })]),
-    BASE_URL
+    BASE_URL,
+    ctx()
   );
 
   assert.equal(rules.length, 2);
@@ -107,7 +121,7 @@ test('buildRules produces one rule per enabled site', () => {
 });
 
 test('buildRules skips disabled sites', () => {
-  const rules = buildRules(config([site({ enabled: false })]), BASE_URL);
+  const rules = buildRules(config([site({ enabled: false })]), BASE_URL, ctx());
   assert.equal(rules.length, 0);
 });
 
@@ -115,7 +129,7 @@ test('buildRules skips bypassed hosts', () => {
   const rules = buildRules(
     config([site({ pattern: 'ynet.co.il' })]),
     BASE_URL,
-    new Set(['ynet.co.il'])
+    ctx({ bypassedHosts: new Set(['ynet.co.il']) })
   );
   assert.equal(rules.length, 0);
 });
@@ -123,13 +137,14 @@ test('buildRules skips bypassed hosts', () => {
 test('buildRules skips malformed patterns without throwing', () => {
   const rules = buildRules(
     config([site({ pattern: 'garbage' }), site({ pattern: 'ynet.co.il' })]),
-    BASE_URL
+    BASE_URL,
+    ctx()
   );
   assert.equal(rules.length, 1);
 });
 
 test('buildRules redirect preserves the source URL via \\0', () => {
-  const [rule] = buildRules(config([site()]), BASE_URL);
+  const [rule] = buildRules(config([site()]), BASE_URL, ctx());
   const substitution = rule.action.redirect.regexSubstitution;
 
   assert.ok(substitution.startsWith(`${BASE_URL}blocked/blocked.html?from=`));
@@ -137,12 +152,12 @@ test('buildRules redirect preserves the source URL via \\0', () => {
 });
 
 test('buildRules targets main_frame only', () => {
-  const [rule] = buildRules(config([site()]), BASE_URL);
+  const [rule] = buildRules(config([site()]), BASE_URL, ctx());
   assert.deepEqual(rule.condition.resourceTypes, ['main_frame']);
 });
 
 test('buildRules sets case-insensitive matching explicitly', () => {
-  const [rule] = buildRules(config([site()]), BASE_URL);
+  const [rule] = buildRules(config([site()]), BASE_URL, ctx());
   assert.equal(rule.condition.isUrlFilterCaseSensitive, false);
 });
 
@@ -150,12 +165,60 @@ test('buildRules throws past the regex-rule cap', () => {
   const many = Array.from({ length: 1001 }, (_, index) =>
     site({ id: `id-${index}`, pattern: `site${index}.com` })
   );
-  assert.throws(() => buildRules(config(many), BASE_URL), /exceeds the declarativeNetRequest/);
+  assert.throws(() => buildRules(config(many), BASE_URL, ctx()), /exceeds the declarativeNetRequest/);
 });
 
 test('buildRules rejects bad input', () => {
-  assert.throws(() => buildRules(null, BASE_URL), /sites must be an array/);
-  assert.throws(() => buildRules(config(), ''), /extensionBaseUrl is required/);
+  assert.throws(() => buildRules(null, BASE_URL, ctx()), /sites must be an array/);
+  assert.throws(() => buildRules(config(), '', ctx()), /extensionBaseUrl is required/);
+});
+
+test('buildRules rejects a missing or malformed context', () => {
+  assert.throws(() => buildRules(config([site()]), BASE_URL), /context/);
+  assert.throws(() => buildRules(config([site()]), BASE_URL, ctx({ now: 'now' })), /now/);
+  assert.throws(() => buildRules(config([site()]), BASE_URL, ctx({ bypassedHosts: [] })), /bypassedHosts/);
+});
+
+/* Schedules and snooze (RuleContext) -------------------------------------------- */
+
+const scheduled = (fields = {}) => site({ overrides: { schedule: WEEKDAY_WORK_SCHEDULE }, ...fields });
+
+test('buildRules includes a site inside its schedule and omits it outside', () => {
+  assert.equal(buildRules(config([scheduled()]), BASE_URL, ctx({ now: MONDAY_TEN })).length, 1);
+  assert.equal(buildRules(config([scheduled()]), BASE_URL, ctx({ now: SATURDAY_TEN })).length, 0);
+});
+
+test('buildRules applies the default schedule to sites without their own', () => {
+  const cfg = config([site()]);
+  cfg.defaults.schedule = WEEKDAY_WORK_SCHEDULE;
+  assert.equal(buildRules(cfg, BASE_URL, ctx({ now: SATURDAY_TEN })).length, 0);
+  assert.equal(buildRules(cfg, BASE_URL, ctx({ now: MONDAY_TEN })).length, 1);
+});
+
+test('a site\'s own schedule wins over the default one', () => {
+  const cfg = config([site({ overrides: { schedule: { days: [6], ranges: [{ start: 0, end: 1440 }] } } })]);
+  cfg.defaults.schedule = WEEKDAY_WORK_SCHEDULE;
+  assert.equal(buildRules(cfg, BASE_URL, ctx({ now: SATURDAY_TEN })).length, 1);
+  assert.equal(buildRules(cfg, BASE_URL, ctx({ now: MONDAY_TEN })).length, 0);
+});
+
+test('a site outside its schedule does not shift the rule ids after it', () => {
+  const cfg = config([scheduled({ id: 'a', pattern: 'a.com' }), site({ id: 'b', pattern: 'b.com' })]);
+  const weekday = buildRules(cfg, BASE_URL, ctx({ now: MONDAY_TEN }));
+  const weekend = buildRules(cfg, BASE_URL, ctx({ now: SATURDAY_TEN }));
+  assert.equal(weekend.length, 1);
+  assert.equal(weekend[0].id, weekday[1].id);
+});
+
+test('buildRules returns no rules while snoozed', () => {
+  const cfg = config([site({ id: 'a', pattern: 'a.com' }), site({ id: 'b', pattern: 'b.com' })]);
+  assert.deepEqual(buildRules(cfg, BASE_URL, ctx({ snoozedUntil: MONDAY_TEN + 60_000 })), []);
+});
+
+test('buildRules returns the full set once the snooze has ended', () => {
+  const cfg = config([site({ id: 'a', pattern: 'a.com' }), site({ id: 'b', pattern: 'b.com' })]);
+  assert.equal(buildRules(cfg, BASE_URL, ctx({ snoozedUntil: MONDAY_TEN })).length, 2);
+  assert.equal(buildRules(cfg, BASE_URL, ctx({ snoozedUntil: MONDAY_TEN - 1 })).length, 2);
 });
 
 test('findMatchingSite honors subdomain inclusion', () => {
@@ -187,16 +250,7 @@ test('findMatchingSite returns null for disabled sites and bad URLs', () => {
 
 /** @returns {object} A v2 config with test defaults. */
 function v2Config(overrides = {}) {
-  return {
-    schemaVersion: 2,
-    globalTarget: 'https://example.com',
-    globalTargetName: 'Example',
-    globalNote: 'global note',
-    globalAutoContinue: false,
-    globalCountdownSeconds: 3,
-    sites: [],
-    ...overrides,
-  };
+  return { schemaVersion: 3, defaults: defaultSettings(), sites: [], ...overrides };
 }
 
 /** @returns {object} A v2 site entry with test defaults. */
@@ -239,19 +293,19 @@ test('buildRules skips sites without host permission', () => {
   // The core guard: an un-permitted rule is one Chrome installs and ignores,
   // which looks identical to the extension being broken.
   const config = v2Config({ sites: [v2Site()] });
-  const rules = buildRules(config, BASE_URL, new Set(), new Set());
+  const rules = buildRules(config, BASE_URL, ctx({ grantedHosts: new Set() }));
   assert.equal(rules.length, 0);
 });
 
 test('buildRules includes sites with host permission', () => {
   const config = v2Config({ sites: [v2Site()] });
-  const rules = buildRules(config, BASE_URL, new Set(), new Set(['ynet.co.il']));
+  const rules = buildRules(config, BASE_URL, ctx({ grantedHosts: new Set(['ynet.co.il']) }));
   assert.equal(rules.length, 1);
 });
 
 test('buildRules ignores permission gating when passed null', () => {
   const config = v2Config({ sites: [v2Site()] });
-  const rules = buildRules(config, BASE_URL, new Set(), null);
+  const rules = buildRules(config, BASE_URL, ctx({ grantedHosts: null }));
   assert.equal(rules.length, 1);
 });
 
@@ -265,8 +319,8 @@ test('buildRules keeps rule ids stable when a site is skipped', () => {
     ],
   });
 
-  const both = buildRules(config, BASE_URL, new Set(), new Set(['a.com', 'b.com']));
-  const onlyB = buildRules(config, BASE_URL, new Set(), new Set(['b.com']));
+  const both = buildRules(config, BASE_URL, ctx({ grantedHosts: new Set(['a.com', 'b.com']) }));
+  const onlyB = buildRules(config, BASE_URL, ctx({ grantedHosts: new Set(['b.com']) }));
 
   const bId = both.find((r) => r.condition.regexFilter.includes('b\\.com')).id;
   assert.equal(onlyB.length, 1);
@@ -285,7 +339,7 @@ test('buildRules keeps rule ids stable when a site is skipped', () => {
 
 test('a bypass keyed on the configured pattern lifts the rule', () => {
   const config = v2Config({ sites: [v2Site({ pattern: 'facebook.com' })] });
-  const rules = buildRules(config, BASE_URL, new Set(['facebook.com']), null);
+  const rules = buildRules(config, BASE_URL, ctx({ bypassedHosts: new Set(['facebook.com']) }));
   assert.equal(rules.length, 0);
 });
 
@@ -293,7 +347,7 @@ test('a bypass keyed on the requested subdomain does NOT lift the rule', () => {
   // Documents the failure precisely: this is why the resolution happens in the
   // service worker before the bypass is stored.
   const config = v2Config({ sites: [v2Site({ pattern: 'facebook.com' })] });
-  const rules = buildRules(config, BASE_URL, new Set(['www.facebook.com']), null);
+  const rules = buildRules(config, BASE_URL, ctx({ bypassedHosts: new Set(['www.facebook.com']) }));
   assert.equal(rules.length, 1);
 });
 

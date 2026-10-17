@@ -41,10 +41,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * wrap rather than push the page sideways.
  */
 const LONG_HOST = 'a-very-long-subdomain-name.example-with-a-long-domain.co.uk';
+const LIMIT_HOST = 'limit.example.net';
 const DEMO = {
   defaults: {
     targetName: 'Wikipedia',
     reasons: ['I said I would write today, not read the news. This reason is long enough to wrap on a phone.'],
+    // With one continue of LIMIT_HOST seeded today, its pause shows the over-limit line.
+    dailyContinueLimit: 1,
   },
   sites: [
     { pattern: 'example.com' },
@@ -52,21 +55,48 @@ const DEMO = {
     { pattern: LONG_HOST },
     { pattern: 'breathe.example.net', overrides: { pauseStyle: 'breathing' } },
     { pattern: 'intent.example.net', overrides: { pauseStyle: 'intention', reasons: ['x'.repeat(280)] } },
+    { pattern: LIMIT_HOST, overrides: { schedule: { days: [1, 2, 3, 4, 5], ranges: [{ start: 0, end: 1440 }, { start: 1320, end: 120 }] } } },
   ],
 };
 
+/** Outcomes cycled through the demo events, so every progress figure has data. */
+const DEMO_OUTCOMES = [undefined, 'steered', 'continued'];
+
 /**
- * A deterministic spread of interceptions over the last 30 days.
+ * A deterministic spread of interceptions over the last 30 days, plus one
+ * continue of LIMIT_HOST a moment ago.
  *
  * @param {number} now
- * @returns {Array<{host: string, at: number}>}
+ * @returns {Array<{host: string, at: number, outcome?: string}>}
  */
 function demoEvents(now) {
   const hosts = ['example.com', 'news.example.org', LONG_HOST];
-  return Array.from({ length: 60 }, (_, i) => ({
+  const spread = Array.from({ length: 60 }, (_, i) => ({
     host: hosts[i % hosts.length],
     at: now - (i % 30) * DAY_MS - (i % 24) * 60 * 60 * 1000,
+    outcome: DEMO_OUTCOMES[i % DEMO_OUTCOMES.length],
   }));
+  return [...spread, { host: LIMIT_HOST, at: now - 1000, outcome: 'continued' }];
+}
+
+/**
+ * Count one more interception of a host, so its next pause page shows the
+ * next presentation variant. Repeat visits within a minute count as one
+ * view, so the audit advances the count itself.
+ *
+ * @param {string} base The extension origin.
+ * @param {string} host
+ * @returns {(page: object) => Promise<void>}
+ */
+function advanceVariant(base, host) {
+  return async (page) => {
+    await page.goto(`${base}/stats/stats.html`);
+    await page.evaluate(async (key) => {
+      const { stats } = await chrome.storage.local.get('stats');
+      stats.totals[key] = (stats.totals[key] ?? 0) + 1;
+      await chrome.storage.local.set({ stats });
+    }, host);
+  };
 }
 
 /**
@@ -81,12 +111,25 @@ function auditStates(base) {
     { name: 'reminder (unencoded source)', url: from('https://www.example.com/a?x=1&y=2#frag') },
     { name: 'reminder (auto-continue countdown)', url: from(encodeURIComponent('https://news.example.org/')) },
     { name: 'reminder (long host)', url: from(encodeURIComponent(`https://${LONG_HOST}/`)) },
-    // Each visit advances the presentation variant, so repeats cover the layouts.
+    // Advancing the count between visits covers the layouts.
     { name: 'reminder (breathing)', url: from(encodeURIComponent('https://breathe.example.net/')) },
-    { name: 'reminder (breathing, next variant)', url: from(encodeURIComponent('https://breathe.example.net/')) },
+    {
+      name: 'reminder (breathing, next variant)',
+      before: advanceVariant(base, 'breathe.example.net'),
+      url: from(encodeURIComponent('https://breathe.example.net/')),
+    },
     { name: 'reminder (intention, longest reason)', url: from(encodeURIComponent('https://intent.example.net/')) },
-    { name: 'reminder (intention, next variant)', url: from(encodeURIComponent('https://intent.example.net/')) },
-    { name: 'reminder (intention, third variant)', url: from(encodeURIComponent('https://intent.example.net/')) },
+    {
+      name: 'reminder (intention, next variant)',
+      before: advanceVariant(base, 'intent.example.net'),
+      url: from(encodeURIComponent('https://intent.example.net/')),
+    },
+    {
+      name: 'reminder (intention, third variant)',
+      before: advanceVariant(base, 'intent.example.net'),
+      url: from(encodeURIComponent('https://intent.example.net/')),
+    },
+    { name: 'reminder (over the daily limit)', url: from(encodeURIComponent(`https://${LIMIT_HOST}/`)) },
     { name: 'reminder (opened directly)', url: `${base}/blocked/blocked.html` },
     {
       name: 'settings (every site expanded)',
@@ -164,7 +207,8 @@ function measurePage({ deviceWidth, minTarget, tolerance }) {
  * Audit one page state.
  *
  * @param {object} context
- * @param {{name: string, url: string, prepare?: Function}} state
+ * @param {{name: string, url: string, before?: Function, prepare?: Function}} state
+ *   `before` stages data before the page loads; `prepare` runs after.
  * @returns {Promise<string[]>} Problems found.
  */
 async function auditState(context, state) {
@@ -173,6 +217,7 @@ async function auditState(context, state) {
   page.on('pageerror', (error) => errors.push(`uncaught error: ${error.message}`));
 
   try {
+    if (state.before) await state.before(page);
     await page.goto(state.url);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(SETTLE_MS);

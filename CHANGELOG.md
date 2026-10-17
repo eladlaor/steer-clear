@@ -31,6 +31,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Opt-in "When my time is up, bring the pause back": tabs still on the site
   return to the pause page when the bypass ends, including single-page sites
   that never reload.
+- Per-site schedules: pick days and up to four time ranges (with "Always" and
+  "Weekdays 9–17" presets, and ranges that run past midnight); outside them
+  the site loads normally, and reminders switch on and off at the boundaries
+  without any action.
+- An opt-in daily allowance: after a chosen number of continues of a site in a
+  day, its pause lasts at least 30 seconds until midnight. The pause page says
+  why and links straight to the setting; continue is never removed.
+- The statistics page answers "is this working?": steered clear vs continued
+  over 30 days, the days you steered clear out of the last 7, today's pauses,
+  and steered clear vs continued for each site, noting when choices began to
+  be tracked.
+- The pause page records what you chose (went elsewhere, or continued) with
+  each interception; nothing you type is stored.
 
 ### Changed
 
@@ -56,9 +69,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Pages share one set of colour tokens and base styles, and show a visible
   focus ring for keyboard users.
 - The minimum supported Chrome and Edge version is 121.
+- An interception is counted once per pause-page view: reloading it, restoring
+  the session, or retyping the address within a minute no longer adds to the
+  count, and a page the browser preloads while you type is not counted unless
+  you open it.
+- The statistics page counts "pauses" rather than calling every interception
+  "steered clear", since some of them end in a continue.
 
 ### Fixed
 
+- Opening settings at a linked field (such as "Turn this off in Settings")
+  shows that field's saved value instead of an empty field.
 - The reminder page keeps the full original address, including everything
   after an `&` and any `#fragment`, whether or not the browser percent-encodes
   it, so "continue" returns to the exact page that was requested. A fragment the

@@ -96,8 +96,10 @@ chrome.declarativeNetRequest.getDynamicRules().then(console.table)
 node --test tests/unit/*.js
 ```
 
-261 tests covering pattern normalization, regex generation, subdomain matching,
-lookalike-domain rejection, rule construction, the settings schema, legacy
+352 tests covering pattern normalization, regex generation, subdomain matching,
+lookalike-domain rejection, rule construction (schedules and snooze included),
+schedules, outcome-tagged statistics and progress figures, the daily
+allowance, the settings schema, legacy
 migration, the sync storage layout and quota, config mutations, pause
 presentation and style rotation, the continue gate, bypass badges and tab
 return, palette contrast, the worker's message handlers (with `chrome.*`
@@ -152,13 +154,17 @@ steer-clear/
 │   │   ├── bypass_badges.js    # Bypass badge countdown, return to the pause
 │   │   ├── message_handlers.js # The worker's message table
 │   │   ├── rules.js            # Pure config -> rules (unit-tested)
-│   │   ├── pause.js            # Pure pause-screen decisions (variant, style, reason)
+│   │   ├── pause.js            # Pure pause-screen decisions (variant, style, reason, allowance)
+│   │   ├── schedule.js         # Pure schedules: active-at, validation, next boundary
+│   │   ├── stats.js            # Pure event log: one event per view, outcomes
+│   │   ├── progress.js         # Pure progress figures (steer rate, steered-clear days)
+│   │   ├── pause_views.js      # Records pause-page views and choices
 │   │   ├── settings_schema.js  # Settings field table, validation, resolution
 │   │   ├── sync_layout.js      # Config across sync items, quota check
 │   │   ├── config_mutations.js # Pure planners for every config change
 │   │   └── config.js           # Storage read, serialized writes
 │   ├── blocked/                # The pause page and its style views
-│   ├── options/                # Settings UI (form, site list, reasons editor)
+│   ├── options/                # Settings UI (form, site list, reasons and schedule editors)
 │   ├── stats/                  # Statistics page (the toolbar popup)
 │   ├── shared/                 # Page helpers and shared CSS tokens/base
 │   └── icons/                  # PLACEHOLDER — see icons/README.md

@@ -14,10 +14,14 @@
 
 import {
   BYPASS_MINUTES_OPTIONS,
+  DAILY_LIMIT_ANCHOR,
   MAX_COUNTDOWN_SECONDS,
+  MAX_DAILY_CONTINUE_LIMIT,
   MAX_PAUSE_SECONDS,
   MIN_COUNTDOWN_SECONDS,
+  MIN_DAILY_CONTINUE_LIMIT,
   MIN_PAUSE_SECONDS,
+  OVER_LIMIT_PAUSE_SECONDS,
   PauseStyle,
   SETTINGS_SAVE_DELAY_MS,
   SettingsFormMode,
@@ -25,7 +29,7 @@ import {
 } from '../constants.js';
 import { PER_SITE_FIELDS, resolveSettings } from '../background/settings_schema.js';
 import { createReasonsEditor } from './reasons_editor.js';
-
+import { createScheduleEditor } from './schedule_editor.js';
 
 const STYLE_CHOICES = Object.freeze([
   [PauseStyle.REASON, 'Your reason', 'Shows your reason and the two choices.'],
@@ -43,10 +47,12 @@ const FIELD_UI = Object.freeze([
   { key: 'target', kind: 'url', label: 'Send me to', placeholder: 'https://example.com' },
   { key: 'targetName', kind: 'text', label: 'Call that place', hint: 'Shown on the button. Leave blank to show its address.', placeholder: 'Wikipedia' },
   { key: 'pauseStyle', kind: 'style', label: 'Pause style' },
+  { key: 'schedule', kind: 'schedule', label: 'Pause only during', hint: 'Outside these times the site loads normally. A range that ends before it starts runs past midnight; 00:00 to 00:00 is the whole day.' },
   { key: 'pauseSeconds', kind: 'number', advanced: true, label: 'Pause length (seconds)', min: MIN_PAUSE_SECONDS, max: MAX_PAUSE_SECONDS, hint: 'Continue unlocks after this long. 0 = right away.' },
   { key: 'bypassMinutes', kind: 'bypass', advanced: true, label: 'When I continue, let me in for' },
   { key: 'returnPauseOnExpiry', kind: 'checkbox', advanced: true, label: 'When my time is up, bring the pause back', hint: 'Open tabs on the site return to the pause page, even on sites that never reload.' },
   { key: 'varyPresentation', kind: 'checkbox', advanced: true, id: 'vary-presentation', label: 'Vary how the pause screen looks', hint: 'Layout, colour and wording change each time, so the screen stays noticeable.' },
+  { key: 'dailyContinueLimit', kind: 'number', nullable: true, advanced: true, id: DAILY_LIMIT_ANCHOR, label: 'Daily allowance (continues per site per day)', min: MIN_DAILY_CONTINUE_LIMIT, max: MAX_DAILY_CONTINUE_LIMIT, placeholder: 'No limit', hint: `After this many continues of a site in a day, its pause lasts at least ${OVER_LIMIT_PAUSE_SECONDS} s until midnight. Continue is never removed. Leave blank for no limit.` },
   { key: 'autoContinue', kind: 'checkbox', advanced: true, label: "Don't wait for me — go to my destination automatically", hint: 'The pause still appears, then moves on by itself unless you stop it.' },
   { key: 'countdownSeconds', kind: 'number', advanced: true, label: 'Go automatically after (seconds)', min: MIN_COUNTDOWN_SECONDS, max: MAX_COUNTDOWN_SECONDS },
 ]);
@@ -124,12 +130,17 @@ export function createSettingsForm(container, { mode, idPrefix, onPatch, onClear
   }
 
   container.replaceChildren(main, advanced);
+  // The first render fills every field even if one is focused: opening the
+  // page at a field's anchor focuses it before any value has arrived.
+  let rendered = false;
 
   return {
     update(defaults, site = null) {
       const effective = resolveSettings(defaults, site);
+      const force = !rendered;
+      rendered = true;
       for (const [key, control] of controls) {
-        control.set(effective[key]);
+        control.set(effective[key], force);
         if (isSite) {
           const own = key in site.overrides;
           control.useDefault.hidden = !own;
@@ -150,16 +161,17 @@ export function createSettingsForm(container, { mode, idPrefix, onPatch, onClear
 /**
  * Build one field's control.
  *
- * @returns {{label: HTMLElement, input: HTMLElement, set: (value: unknown) => void}}
+ * @returns {{label: HTMLElement, input: HTMLElement, set: (value: unknown, force?: boolean) => void}}
  */
 function buildControl(field, id, { save, saveLater, onError, isSite }) {
   const label = el('label', { className: 'label', htmlFor: id, textContent: field.label });
-  const focused = (node) => node.contains(document.activeElement);
+  // Re-renders leave a field the user is typing in alone, unless forced.
+  const typing = (node, force) => !force && node.contains(document.activeElement);
 
   switch (field.kind) {
     case 'reasons': {
       const editor = createReasonsEditor({ id, onChange: (reasons) => saveLater(field.key, reasons) });
-      return { label, input: editor.element, set: (value) => focused(editor.element) || editor.set(value) };
+      return { label, input: editor.element, set: (value, force) => typing(editor.element, force) || editor.set(value) };
     }
     case 'url':
     case 'text': {
@@ -170,7 +182,7 @@ function buildControl(field, id, { save, saveLater, onError, isSite }) {
         return isWebUrl(value) ? '' : 'The destination must be a full web address, like https://example.com';
       };
       input.addEventListener('input', () => saveLater(field.key, input.value.trim(), check));
-      return { label, input, set: (value) => focused(input) || (input.value = value) };
+      return { label, input, set: (value, force) => typing(input, force) || (input.value = value) };
     }
     case 'style': {
       const select = el('select', { id }, STYLE_CHOICES.map(([value, text]) => el('option', { value, textContent: text })));
@@ -190,9 +202,24 @@ function buildControl(field, id, { save, saveLater, onError, isSite }) {
       select.addEventListener('change', () => save(field.key, Number(select.value)));
       return { label, input: select, set: (value) => { select.value = String(value); } };
     }
+    case 'schedule': {
+      const groupLabel = el('span', { className: 'label', id: `${id}-label`, textContent: field.label });
+      const editor = createScheduleEditor({
+        id,
+        labelId: groupLabel.id,
+        onChange: (schedule) => save(field.key, schedule),
+        onError,
+      });
+      return { label: groupLabel, input: editor.element, set: (value, force) => typing(editor.element, force) || editor.set(value) };
+    }
     case 'number': {
-      const input = el('input', { type: 'number', id, min: field.min, max: field.max, step: 1 });
+      const input = el('input', { type: 'number', id, min: field.min, max: field.max, step: 1, placeholder: field.placeholder ?? '' });
       input.addEventListener('change', () => {
+        // A nullable number reads blank as "none" (for the limit: no limit).
+        if (field.nullable && input.value.trim() === '') {
+          save(field.key, null);
+          return;
+        }
         const value = Number(input.value);
         if (!Number.isInteger(value) || value < field.min || value > field.max) {
           onError(`${field.label} must be a whole number from ${field.min} to ${field.max}`);
@@ -200,7 +227,7 @@ function buildControl(field, id, { save, saveLater, onError, isSite }) {
         }
         save(field.key, value);
       });
-      return { label, input, set: (value) => focused(input) || (input.value = String(value)) };
+      return { label, input, set: (value, force) => typing(input, force) || (input.value = value === null ? '' : String(value)) };
     }
     case 'checkbox': {
       const input = el('input', { type: 'checkbox', id });

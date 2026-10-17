@@ -14,6 +14,12 @@ import {
 } from './config_mutations.js';
 import { recordLifecycleEvent } from './lifecycle_store.js';
 import { getResolvedSite } from './resolved_site.js';
+import {
+  assertOptionalEventId,
+  recordContinued,
+  recordPauseView,
+  recordSteered,
+} from './pause_views.js';
 import { grantBypass, rebuildRules } from './rule_sync.js';
 import { clearStats, readStats } from './stats_store.js';
 
@@ -21,7 +27,23 @@ import { clearStats, readStats } from './stats_store.js';
 const HANDLERS = Object.freeze({
   [MessageType.GET_RESOLVED_SITE]: (message) => getResolvedSite(message.fromUrl),
 
-  [MessageType.GRANT_BYPASS]: (message, sender) => grantBypass(message.host, sender?.tab?.id),
+  [MessageType.RECORD_VIEW]: async (message) => ({
+    eventId: await recordPauseView(message.viewId, message.fromUrl),
+  }),
+
+  [MessageType.RECORD_OUTCOME]: async (message) => {
+    await recordSteered(message.eventId, message.outcome);
+    return {};
+  },
+
+  // Never refused for the daily allowance: the allowance only lengthens the
+  // wait on the page. The continue is counted once the bypass is in place.
+  [MessageType.GRANT_BYPASS]: async (message, sender) => {
+    assertOptionalEventId(message.eventId);
+    const result = await grantBypass(message.host, sender?.tab?.id);
+    await recordContinued(message.eventId);
+    return result;
+  },
 
   [MessageType.RECORD_LIFECYCLE_EVENT]: async (message) => ({
     lifecycle: await recordLifecycleEvent(message.event, Date.now()),

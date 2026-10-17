@@ -65,6 +65,7 @@ body {
 input[type="url"],
 input[type="text"],
 input[type="number"],
+input[type="time"],
 select,
 textarea {
   width: 100%;
@@ -382,4 +383,50 @@ textarea:focus {
 
 .reason-add[hidden] {
   display: none;
+}
+
+/* Schedule editor ---------------------------------------------------------- */
+
+.schedule-presets,
+.schedule-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+/* A day toggle is a chip whose whole label is the tap target. */
+.day-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: var(--target-min);
+  min-height: var(--target-min);
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.day-toggle:has(input:checked) {
+  border-color: var(--accent);
+}
+
+.schedule-ranges {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.schedule-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.schedule-range input[type="time"] {
+  width: auto;
+  flex: 1 1 7rem;
 }

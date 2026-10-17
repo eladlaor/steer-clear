@@ -7,9 +7,11 @@
  * a full rebuild is always safe and cannot drift.
  */
 
-import { BYPASS_ALARM_PREFIX, StorageKey } from '../constants.js';
+import { BYPASS_ALARM_PREFIX, SCHEDULE_ALARM, StorageKey } from '../constants.js';
 import { readConfig } from './config.js';
 import { buildRules, findMatchingSite, normalizePattern } from './rules.js';
+import { nextScheduleBoundary } from './schedule.js';
+import { resolveSettings } from './settings_schema.js';
 import { grantedHostsAmong } from './permissions.js';
 import { bypassExpiresAt } from './bypass_tabs.js';
 import { endBypassBadges, returnExpiredTabs, showBypassBadge } from './bypass_badges.js';
@@ -32,6 +34,41 @@ export async function readActiveBypasses(now = Date.now()) {
 }
 
 /**
+ * @returns {Promise<number|null>} When the running snooze ends, or null.
+ */
+async function readSnoozedUntil() {
+  try {
+    const stored = await chrome.storage.session.get(StorageKey.SNOOZE);
+    return stored[StorageKey.SNOOZE]?.until ?? null;
+  } catch (error) {
+    console.error('[steer-clear] readSnoozedUntil failed', { error: error.message });
+    throw error;
+  }
+}
+
+/**
+ * Point the schedule alarm at the next moment any enabled site's schedule
+ * starts or ends, so the rules change then without user action; clear it
+ * when every schedule is always on.
+ *
+ * @param {object} config
+ * @param {number} now Epoch ms.
+ * @returns {Promise<number|null>} The alarm time, or null.
+ */
+async function syncScheduleAlarm(config, now) {
+  const schedules = config.sites
+    .filter((site) => site.enabled)
+    .map((site) => resolveSettings(config.defaults, site).schedule);
+  const when = nextScheduleBoundary(schedules, now);
+  if (when === null) {
+    await chrome.alarms.clear(SCHEDULE_ALARM);
+  } else {
+    await chrome.alarms.create(SCHEDULE_ALARM, { when });
+  }
+  return when;
+}
+
+/**
  * Rebuild the entire dynamic rule set from storage.
  *
  * Full replacement rather than diffing: the rule count is small (one per
@@ -41,7 +78,12 @@ export async function readActiveBypasses(now = Date.now()) {
  */
 export async function rebuildRules() {
   try {
-    const [config, bypasses] = await Promise.all([readConfig(), readActiveBypasses()]);
+    const now = Date.now();
+    const [config, bypasses, snoozedUntil] = await Promise.all([
+      readConfig(),
+      readActiveBypasses(now),
+      readSnoozedUntil(),
+    ]);
     const bypassedHosts = new Set(Object.keys(bypasses));
 
     // Only sites the user has granted access to can be redirected. Keeping
@@ -58,18 +100,21 @@ export async function rebuildRules() {
       .filter((host) => host !== null);
     const grantedHosts = await grantedHostsAmong(configuredHosts);
 
-    const newRules = buildRules(config, chrome.runtime.getURL(''), bypassedHosts, grantedHosts);
+    const newRules = buildRules(config, chrome.runtime.getURL(''), { bypassedHosts, grantedHosts, snoozedUntil, now });
     const existing = await chrome.declarativeNetRequest.getDynamicRules();
     await chrome.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: existing.map((rule) => rule.id),
       addRules: newRules,
     });
+    const nextScheduleChange = await syncScheduleAlarm(config, now);
 
     console.info('[steer-clear] rules rebuilt', {
       ruleCount: newRules.length,
       bypassedCount: bypassedHosts.size,
       configuredCount: configuredHosts.length,
       ungrantedCount: configuredHosts.length - grantedHosts.size,
+      snoozedUntil,
+      nextScheduleChange,
     });
   } catch (error) {
     console.error('[steer-clear] rebuildRules failed', { error: error.message });

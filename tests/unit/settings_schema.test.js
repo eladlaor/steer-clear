@@ -19,12 +19,14 @@ import {
   resolveSettings,
 } from '../../src/background/settings_schema.js';
 import {
+  ALWAYS_SCHEDULE,
   BYPASS_MINUTES_OPTIONS,
   DEFAULT_BYPASS_MINUTES,
   DEFAULT_PAUSE_SECONDS,
   DEFAULT_TARGET,
   MAX_REASONS_PER_SITE,
   PauseStyle,
+  WEEKDAY_WORK_SCHEDULE,
 } from '../../src/constants.js';
 
 /** @returns {object} A valid site record. */
@@ -64,18 +66,42 @@ test('defaultSettings has the documented values', () => {
   assert.equal(defaults.varyPresentation, true);
   assert.equal(defaults.autoContinue, false);
   assert.equal(defaults.countdownSeconds, 3);
+  assert.deepEqual(defaults.schedule, ALWAYS_SCHEDULE);
+  assert.equal(defaults.dailyContinueLimit, null);
 });
 
 test('defaultSettings returns a fresh object each time', () => {
   const a = defaultSettings();
   a.reasons.push('x');
+  a.schedule.days.pop();
   assert.deepEqual(defaultSettings().reasons, []);
+  assert.deepEqual(defaultSettings().schedule, ALWAYS_SCHEDULE);
 });
 
-test('per-site fields are reasons, destination, style and the two legacy fields', () => {
+test('per-site fields are reasons, destination, style, schedule and the two legacy fields', () => {
   assert.deepEqual(
     [...PER_SITE_FIELDS].sort(),
-    ['autoContinue', 'countdownSeconds', 'pauseStyle', 'reasons', 'target', 'targetName'].sort()
+    ['autoContinue', 'countdownSeconds', 'pauseStyle', 'reasons', 'schedule', 'target', 'targetName'].sort()
+  );
+});
+
+test('validateSettings accepts a daily limit of 1 to 50, or none', () => {
+  for (const limit of [null, 1, 2, 50]) {
+    assert.doesNotThrow(() => validateSettings(full({ dailyContinueLimit: limit })), String(limit));
+  }
+});
+
+test('validateSettings rejects a daily limit outside 1 to 50', () => {
+  for (const limit of [0, 51, 2.5, '3', undefined]) {
+    assert.throws(() => validateSettings(full({ dailyContinueLimit: limit })), /dailyContinueLimit/, String(limit));
+  }
+});
+
+test('validateSettings checks the schedule, naming the field path', () => {
+  assert.doesNotThrow(() => validateSettings(full({ schedule: WEEKDAY_WORK_SCHEDULE })));
+  assert.throws(
+    () => validateSettings(full({ schedule: { days: [], ranges: [] } }), { path: 'defaults' }),
+    /defaults\.schedule\.days/
   );
 });
 
@@ -153,7 +179,7 @@ test('validateSettings rejects an unknown key in either mode', () => {
 });
 
 test('validateSettings (partial) rejects global-only keys', () => {
-  for (const key of ['pauseSeconds', 'bypassMinutes', 'returnPauseOnExpiry', 'varyPresentation']) {
+  for (const key of ['pauseSeconds', 'bypassMinutes', 'returnPauseOnExpiry', 'varyPresentation', 'dailyContinueLimit']) {
     const value = defaultSettings()[key];
     assert.throws(
       () => validateSettings({ [key]: value }, { partial: true }),
@@ -215,6 +241,7 @@ test('resolveSettings applies each per-site override and inherits the rest', () 
     pauseStyle: PauseStyle.INTENTION,
     autoContinue: false,
     countdownSeconds: 10,
+    schedule: WEEKDAY_WORK_SCHEDULE,
   };
   for (const [key, value] of Object.entries(overrides)) {
     const resolved = resolveSettings(defaults, site({ [key]: value }));
