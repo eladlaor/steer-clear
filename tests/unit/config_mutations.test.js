@@ -161,6 +161,13 @@ test('planRemoveSite never removes a key the request did not name, even stray on
   assert.deepEqual(plan.remove, [siteKey('b')]);
 });
 
+test('planRemoveSite removes a damaged site item the user named', () => {
+  const items = { ...v3Items(), [siteKey('bad')]: { broken: true } };
+  const plan = planRemoveSite(items, { siteId: 'bad' });
+  assert.deepEqual(plan, { set: {}, remove: [siteKey('bad')] });
+  assert.throws(() => planRemoveSite(items, { siteId: 'nope' }), /no listed site/);
+});
+
 test('planRemoveSite on legacy data materializes the remaining sites only', () => {
   const plan = planRemoveSite({ config: legacy }, { siteId: 'old1' });
   assert.deepEqual(Object.keys(plan.set).sort(), ['schema', siteKey('old2')].sort());

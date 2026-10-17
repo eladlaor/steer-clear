@@ -6,7 +6,7 @@
  * this tab, another tab, the pause page or another device.
  */
 
-import { MessageType, SettingsFormMode, StorageArea } from '../constants.js';
+import { MessageType, SettingsFormMode, StorageArea, StorageKey } from '../constants.js';
 import { readConfig } from '../background/config.js';
 import { sendMessage } from '../shared/messaging.js';
 import { createSettingsForm } from './settings_form.js';
@@ -82,17 +82,51 @@ createDataPanel({
   setStatus,
 });
 
+/** Remove one damaged site item, by the key the error named. */
+async function removeDamaged(key) {
+  try {
+    await sendMessage({ type: MessageType.REMOVE_SITE, siteId: key.slice(StorageKey.SITE_PREFIX.length) });
+    setStatus('Removed the damaged item');
+  } catch (error) {
+    console.error('[steer-clear] removing a damaged site item failed', { key, error: error.message });
+    setStatus(`Could not remove it: ${error.message}`, true);
+  }
+}
+
+/**
+ * List the site items that could not be read, each with a way to remove it.
+ *
+ * @param {Array<{key: string, error: string}>} invalidSites
+ */
+function showInvalidSites(invalidSites) {
+  configError.hidden = invalidSites.length === 0;
+  configError.replaceChildren();
+  if (invalidSites.length === 0) return;
+
+  const lead = document.createElement('p');
+  lead.textContent = 'Some saved sites could not be read and are not active. Remove them and add the site again:';
+  const list = document.createElement('ul');
+  for (const { key, error } of invalidSites) {
+    const item = document.createElement('li');
+    item.append(`${key}: ${error} `);
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn btn-small danger';
+    remove.textContent = 'Remove damaged item';
+    remove.addEventListener('click', () => removeDamaged(key));
+    item.append(remove);
+    list.append(item);
+  }
+  configError.append(lead, list);
+}
+
 /** Read the config and render every part of the page from it. */
 async function render() {
   try {
     const config = await readConfig();
     defaultsForm.update(config.defaults);
     siteList.update(config);
-    const invalid = config.invalidSites.map(({ key, error }) => `${key}: ${error}`);
-    configError.hidden = invalid.length === 0;
-    configError.textContent = invalid.length
-      ? `Some saved sites could not be read and are not active: ${invalid.join('; ')}`
-      : '';
+    showInvalidSites(config.invalidSites);
   } catch (error) {
     console.error('[steer-clear] settings render failed', { error: error.message });
     configError.hidden = false;

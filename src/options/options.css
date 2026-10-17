@@ -408,3 +408,18 @@ textarea:focus {
   font-size: var(--text-md);
   font-weight: 500;
 }
+
+/* Damaged site items, each with its own remove button. */
+.config-error p {
+  margin: 0 0 6px;
+}
+
+.config-error ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.config-error li {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}

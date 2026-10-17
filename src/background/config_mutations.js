@@ -160,7 +160,7 @@ export function planUpdateSite(items, { siteId, fields = {}, setOverrides = {}, 
 }
 
 /**
- * Remove one site.
+ * Remove one site, or one damaged site item the settings page reported.
  *
  * @param {object} items
  * @param {{siteId: string}} request
@@ -168,6 +168,11 @@ export function planUpdateSite(items, { siteId, fields = {}, setOverrides = {}, 
  */
 export function planRemoveSite(items, { siteId }) {
   const { config, base } = startPlan(items);
+  // A damaged item is not listed, but the settings page names it and offers
+  // to remove it; this is the only way to clear it.
+  if (config.invalidSites.some((entry) => entry.key === siteKey(siteId))) {
+    return { set: {}, remove: [siteKey(siteId)] };
+  }
   findSite(config, siteId);
   const set = { ...base };
   delete set[siteKey(siteId)];

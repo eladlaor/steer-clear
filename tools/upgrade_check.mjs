@@ -265,6 +265,10 @@ async function upgradeAndRollback(workDir, releasedDir, capturePath) {
     check(view.host === 'www.reddit.com', 'its pause page still resolves');
     const pass = await send(page, { type: 'GRANT_BYPASS', host: 'www.reddit.com' });
     check(Number.isFinite(pass.expiresAt), 'continue on its host still works');
+    await page.click('#config-error button');
+    await page.waitForSelector('#config-error', { state: 'hidden' });
+    current = await readCurrent(page);
+    check(!(corruptKey in current.items) && current.config.sites.length === 2, '"Remove damaged item" clears only that item');
 
     console.log('M3 rollback to 1.0.0');
     await swapAndReload(context, where, releasedDir);

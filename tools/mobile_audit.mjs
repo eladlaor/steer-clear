@@ -179,6 +179,15 @@ function auditStates(base) {
       },
       url: `${base}/popup/popup.html`,
     },
+    {
+      name: 'settings (a damaged site item)',
+      before: async (page) => {
+        await page.goto(`${base}/options/options.html`);
+        await page.evaluate(() => chrome.storage.sync.set({ 'site:damaged-by-hand': { id: 42, pattern: '' } }));
+      },
+      url: `${base}/options/options.html`,
+      expect: '#config-error button',
+    },
   ];
 }
 
