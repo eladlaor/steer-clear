@@ -1,267 +1,85 @@
 /**
- * Steer Clear service worker.
+ * Steer Clear service worker (an event page in Firefox).
  *
- * Sole owner of the declarativeNetRequest dynamic rule set. Every other surface
- * (options page, interstitial) mutates storage or sends a message; none of them
- * touch rules directly. This keeps rule state derivable from storage at all
- * times, so a rebuild is always safe.
+ * Listener registration only. Rule state lives in rule_sync.js, bypass
+ * badges in bypass_badges.js, message handling in message_handlers.js.
+ *
+ * The worker is the sole owner of declarativeNetRequest dynamic rules and
+ * the sole writer of the config, so rules are always derivable from storage.
  */
 
 import {
-  StorageKey,
-  MessageType,
   BYPASS_ALARM_PREFIX,
-  BYPASS_DURATION_MS,
+  BYPASS_TICK_ALARM,
   STATS_PRUNE_ALARM,
+  StorageKey,
 } from '../constants.js';
-import { readConfig, writeConfig, defaultConfig } from './config.js';
-import {
-  buildRules,
-  normalizePattern,
-  findMatchingSite,
-  resolveSiteSettings,
-  siteLabel,
-} from './rules.js';
-import { grantedHostsAmong } from './permissions.js';
-import {
-  logInterception,
-  readStats,
-  clearStats,
-  pruneStoredStats,
-} from './stats_store.js';
+import { readConfig } from './config.js';
+import { isSiteKey } from './sync_layout.js';
+import { expireBypass, readActiveBypasses, rebuildRules } from './rule_sync.js';
+import { refreshBadges } from './bypass_badges.js';
+import { handleMessage } from './message_handlers.js';
+import { pruneStoredStats } from './stats_store.js';
 
-/**
- * Read the currently-active bypasses, dropping any that have expired.
- *
- * @returns {Promise<Object<string, number>>} Map of host to expiry epoch ms.
- */
-async function readActiveBypasses() {
-  try {
-    const stored = await chrome.storage.session.get(StorageKey.BYPASSES);
-    const bypasses = stored[StorageKey.BYPASSES] ?? {};
-    const now = Date.now();
+/** sync keys whose change can alter the rule set. */
+const RULE_INPUT_KEYS = Object.freeze([StorageKey.SCHEMA_MARKER, StorageKey.SETTINGS, StorageKey.CONFIG]);
 
-    const active = {};
-    for (const [host, expiry] of Object.entries(bypasses)) {
-      if (expiry > now) {
-        active[host] = expiry;
-      }
-    }
-    return active;
-  } catch (error) {
-    console.error('[steer-clear] readActiveBypasses failed', {
-      error: error.message,
-    });
-    throw error;
-  }
+/** Refresh every bypass badge, if any bypass is running or badged. */
+async function refreshAllBadges() {
+  const now = Date.now();
+  const [config, bypasses] = await Promise.all([readConfig(), readActiveBypasses(now)]);
+  await refreshBadges(config, bypasses, now);
 }
 
 /**
- * Rebuild the entire dynamic rule set from storage.
- *
- * Removes every existing dynamic rule and installs the freshly-computed set.
- * Full replacement rather than diffing: the rule count is small (one per
- * blocked site) and a full rebuild cannot drift out of sync with storage.
- *
- * @returns {Promise<void>}
+ * First install opens settings and writes nothing: reading returns defaults
+ * until the user changes something, so a second device can never overwrite
+ * settings that sync has not delivered yet.
  */
-async function rebuildRules() {
-  try {
-    const [config, bypasses] = await Promise.all([
-      readConfig(),
-      readActiveBypasses(),
-    ]);
-
-    const bypassedHosts = new Set(Object.keys(bypasses));
-    const extensionBaseUrl = chrome.runtime.getURL('');
-
-    // Only sites the user has granted access to can be redirected. Passing the
-    // granted set keeps un-permitted sites out of the rule table entirely,
-    // rather than installing rules Chrome will quietly refuse to apply.
-    const configuredHosts = config.sites
-      .map((site) => {
-        try {
-          return normalizePattern(site.pattern);
-        } catch {
-          return null;
-        }
-      })
-      .filter((host) => host !== null);
-    const grantedHosts = await grantedHostsAmong(configuredHosts);
-
-    const newRules = buildRules(
-      config,
-      extensionBaseUrl,
-      bypassedHosts,
-      grantedHosts
-    );
-
-    const existing = await chrome.declarativeNetRequest.getDynamicRules();
-    const removeRuleIds = existing.map((rule) => rule.id);
-
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds,
-      addRules: newRules,
-    });
-
-    console.info('[steer-clear] rules rebuilt', {
-      ruleCount: newRules.length,
-      bypassedCount: bypassedHosts.size,
-      configuredCount: configuredHosts.length,
-      ungrantedCount: configuredHosts.length - grantedHosts.size,
-    });
-  } catch (error) {
-    console.error('[steer-clear] rebuildRules failed', {
-      error: error.message,
-    });
-    throw error;
-  }
-}
-
-/**
- * Grant a time-boxed bypass for a host, removing its rule until expiry.
- *
- * @param {string} rawHost The host to bypass, as seen by the interstitial.
- * @returns {Promise<{expiresAt: number}>}
- */
-async function grantBypass(rawHost) {
-  try {
-    // Resolve to the *configured* pattern, not the requested host. Rules are
-    // keyed on what the user typed in settings ("facebook.com"), while the
-    // interstitial reports where the browser was actually going
-    // ("www.facebook.com"). Storing the requested host means the bypass never
-    // matches the rule it is meant to lift, and the user bounces straight back
-    // to the interstitial — the whole feature silently doing nothing.
-    const config = await readConfig();
-    const site = findMatchingSite(config, `https://${rawHost}/`);
-    const host = site ? normalizePattern(site.pattern) : normalizePattern(rawHost);
-
-    const expiresAt = Date.now() + BYPASS_DURATION_MS;
-
-    const bypasses = await readActiveBypasses();
-    bypasses[host] = expiresAt;
-    await chrome.storage.session.set({ [StorageKey.BYPASSES]: bypasses });
-
-    // An alarm reinstates the rule when the pass expires. Without this the rule
-    // would stay absent until the next unrelated rebuild.
-    await chrome.alarms.create(`${BYPASS_ALARM_PREFIX}${host}`, {
-      when: expiresAt,
-    });
-
-    await rebuildRules();
-
-    console.info('[steer-clear] bypass granted', { host, expiresAt });
-    return { expiresAt };
-  } catch (error) {
-    console.error('[steer-clear] grantBypass failed', {
-      host: rawHost,
-      error: error.message,
-    });
-    throw error;
-  }
-}
-
-/**
- * Resolve what the interstitial should display for a given blocked URL.
- *
- * @param {string} fromUrl The originally-requested URL.
- * @returns {Promise<{host: string, target: string, note: string, matched: boolean}>}
- */
-async function getResolvedSite(fromUrl) {
-  try {
-    const config = await readConfig();
-    const site = findMatchingSite(config, fromUrl);
-    const { target, targetName, note, autoContinue, countdownSeconds } =
-      resolveSiteSettings(config, site);
-
-    const host = new URL(fromUrl).hostname;
-
-    // One interception = one interstitial asking what to display, so this is
-    // the single place a redirect can be counted exactly once. Counting at
-    // rule-match time is not possible; declarativeNetRequest fires no event
-    // the extension can observe without requesting feedback permissions.
-    //
-    // The *configured* host is recorded, not the requested one, so that
-    // m.ynet.co.il and www.ynet.co.il aggregate under the entry the user
-    // created rather than fragmenting the count across subdomains.
-    if (site) {
-      await logInterception(normalizePattern(site.pattern), Date.now());
-    }
-
-    return {
-      host,
-      // What to call the site the user was heading to. Falls back to the host
-      // when unmatched, which happens only if config changed mid-navigation.
-      siteName: site ? siteLabel(site) : host,
-      target,
-      targetName,
-      note,
-      autoContinue,
-      countdownSeconds,
-      matched: site !== null,
-    };
-  } catch (error) {
-    console.error('[steer-clear] getResolvedSite failed', {
-      fromUrl,
-      error: error.message,
-    });
-    throw error;
-  }
-}
-
-/** Seed default config on first install, then build the initial rule set. */
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
     if (details.reason === 'install') {
-      await writeConfig(defaultConfig());
       await chrome.runtime.openOptionsPage();
     }
     await chrome.alarms.create(STATS_PRUNE_ALARM, { periodInMinutes: 60 * 24 });
     await rebuildRules();
   } catch (error) {
-    console.error('[steer-clear] onInstalled failed', {
-      reason: details.reason,
-      error: error.message,
-    });
+    console.error('[steer-clear] onInstalled failed', { reason: details.reason, error: error.message });
   }
 });
 
 /** Rebuild on browser startup — session bypasses are gone by definition. */
 chrome.runtime.onStartup.addListener(async () => {
   try {
-    await chrome.storage.session.remove(StorageKey.BYPASSES);
+    await chrome.storage.session.remove([StorageKey.BYPASSES, StorageKey.BADGED_TABS]);
     await rebuildRules();
   } catch (error) {
     console.error('[steer-clear] onStartup failed', { error: error.message });
   }
 });
 
-/** Any config change re-derives the rule set. */
+/** Any change to a config item re-derives the rule set. */
 chrome.storage.onChanged.addListener(async (changes, areaName) => {
   try {
-    if (areaName === 'sync' && changes[StorageKey.CONFIG]) {
+    if (areaName !== 'sync') return;
+    const keys = Object.keys(changes);
+    if (keys.some((key) => RULE_INPUT_KEYS.includes(key) || isSiteKey(key))) {
       await rebuildRules();
     }
   } catch (error) {
-    console.error('[steer-clear] onChanged rebuild failed', {
-      error: error.message,
-    });
+    console.error('[steer-clear] onChanged rebuild failed', { error: error.message });
   }
 });
 
 /**
- * Permissions can also change from chrome://extensions, outside our UI.
- * Rebuilding on these events keeps rules consistent with what Chrome will
- * actually honor — without them, revoking access in Chrome's own settings
- * would leave a dead rule behind.
+ * Permissions can also change from the browser's own extension settings.
+ * Rebuilding keeps rules consistent with what the browser will honor.
  */
 chrome.permissions.onAdded.addListener(async () => {
   try {
     await rebuildRules();
   } catch (error) {
-    console.error('[steer-clear] rebuild after permission grant failed', {
-      error: error.message,
-    });
+    console.error('[steer-clear] rebuild after permission grant failed', { error: error.message });
   }
 });
 
@@ -269,84 +87,48 @@ chrome.permissions.onRemoved.addListener(async () => {
   try {
     await rebuildRules();
   } catch (error) {
-    console.error('[steer-clear] rebuild after permission revoke failed', {
-      error: error.message,
-    });
+    console.error('[steer-clear] rebuild after permission revoke failed', { error: error.message });
   }
 });
 
-/** Bypass expiry reinstates the rule. */
+/**
+ * Firefox resets a tab's badge when it navigates, so a bypassed tab that
+ * finishes loading gets its badge back here rather than at the next tick.
+ */
+chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo) => {
+  try {
+    if (changeInfo.status !== 'complete') return;
+    const stored = await chrome.storage.session.get([StorageKey.BYPASSES, StorageKey.BADGED_TABS]);
+    if (!stored[StorageKey.BYPASSES] && !stored[StorageKey.BADGED_TABS]) return;
+    await refreshAllBadges();
+  } catch (error) {
+    console.error('[steer-clear] badge refresh on tab update failed', { error: error.message });
+  }
+});
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   try {
     // Retention must hold even for a user who never triggers another
     // interception, so pruning cannot rely only on the write path.
     if (alarm.name === STATS_PRUNE_ALARM) {
       await pruneStoredStats(Date.now());
-      return;
+    } else if (alarm.name === BYPASS_TICK_ALARM) {
+      await refreshAllBadges();
+    } else if (alarm.name.startsWith(BYPASS_ALARM_PREFIX)) {
+      await expireBypass(alarm.name.slice(BYPASS_ALARM_PREFIX.length));
     }
-
-    if (!alarm.name.startsWith(BYPASS_ALARM_PREFIX)) {
-      return;
-    }
-    const host = alarm.name.slice(BYPASS_ALARM_PREFIX.length);
-
-    const bypasses = await readActiveBypasses();
-    delete bypasses[host];
-    await chrome.storage.session.set({ [StorageKey.BYPASSES]: bypasses });
-
-    await rebuildRules();
-    console.info('[steer-clear] bypass expired', { host });
   } catch (error) {
-    console.error('[steer-clear] bypass expiry failed', {
-      alarm: alarm.name,
-      error: error.message,
-    });
+    console.error('[steer-clear] alarm handler failed', { alarm: alarm.name, error: error.message });
   }
 });
 
-/** Message handler for the interstitial. */
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  (async () => {
-    try {
-      switch (message?.type) {
-        case MessageType.GRANT_BYPASS: {
-          const result = await grantBypass(message.host);
-          sendResponse({ ok: true, ...result });
-          break;
-        }
-        case MessageType.GET_RESOLVED_SITE: {
-          const result = await getResolvedSite(message.fromUrl);
-          sendResponse({ ok: true, ...result });
-          break;
-        }
-        case MessageType.GET_STATS: {
-          sendResponse({ ok: true, stats: await readStats() });
-          break;
-        }
-        case MessageType.CLEAR_STATS: {
-          await clearStats();
-          sendResponse({ ok: true });
-          break;
-        }
-        case MessageType.REBUILD_RULES: {
-          // Granting a permission is not a storage change, so the options page
-          // asks for a rebuild explicitly after the user approves a host.
-          await rebuildRules();
-          sendResponse({ ok: true });
-          break;
-        }
-        default:
-          throw new Error(`unknown message type: ${message?.type}`);
-      }
-    } catch (error) {
-      console.error('[steer-clear] message handler failed', {
-        type: message?.type,
-        error: error.message,
-      });
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  handleMessage(message, sender)
+    .then((payload) => sendResponse({ ok: true, ...payload }))
+    .catch((error) => {
+      console.error('[steer-clear] message handler failed', { type: message?.type, error: error.message });
       sendResponse({ ok: false, error: error.message });
-    }
-  })();
-
-  // Signals async sendResponse.
+    });
+  // Signals an async sendResponse.
   return true;
 });

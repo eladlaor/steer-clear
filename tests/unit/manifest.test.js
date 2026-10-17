@@ -94,7 +94,15 @@ test('every chrome API used in source is declared', () => {
     // chrome.permissions needs no declaration — declaring it produces a
     // "Permission 'permissions' is unknown" warning and nothing else.
     'permissions',
+    // chrome.action exists because the manifest has an `action` key.
+    'action',
+    // chrome.tabs exists for every extension. The `tabs` permission would
+    // only add every tab's URL and title; the bypass badge reads URLs of the
+    // user's own listed sites through their host permissions instead, so it
+    // is deliberately not declared.
+    'tabs',
   ]);
+  assert.ok(manifest.action, 'chrome.action needs an action key in the manifest');
 
   const used = new Set();
   for (const file of jsFilesUnder(SRC)) {

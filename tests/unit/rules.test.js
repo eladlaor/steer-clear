@@ -12,7 +12,6 @@ import {
   buildRegexFilter,
   buildRules,
   findMatchingSite,
-  resolveSiteSettings,
   siteLabel,
   hostnameOf,
 } from '../../src/background/rules.js';
@@ -182,38 +181,6 @@ test('findMatchingSite returns null for disabled sites and bad URLs', () => {
   assert.equal(findMatchingSite(config([site()]), 'not a url'), null);
 });
 
-test('resolveSiteSettings falls back to globals', () => {
-  const cfg = config();
-  const resolved = resolveSiteSettings(cfg, site({ target: null, note: null }));
-
-  assert.equal(resolved.target, 'https://example.com/');
-  assert.equal(resolved.note, 'global note');
-});
-
-test('resolveSiteSettings prefers per-site overrides', () => {
-  const cfg = config();
-  const resolved = resolveSiteSettings(
-    cfg,
-    site({ target: 'https://override.com/', note: 'site note' })
-  );
-
-  assert.equal(resolved.target, 'https://override.com/');
-  assert.equal(resolved.note, 'site note');
-});
-
-test('resolveSiteSettings treats whitespace-only overrides as absent', () => {
-  const cfg = config();
-  const resolved = resolveSiteSettings(cfg, site({ target: '   ', note: '  ' }));
-
-  assert.equal(resolved.target, 'https://example.com/');
-  assert.equal(resolved.note, 'global note');
-});
-
-test('resolveSiteSettings handles a null site', () => {
-  const resolved = resolveSiteSettings(config(), null);
-  assert.equal(resolved.target, 'https://example.com/');
-});
-
 /* ---------------------------------------------------------------------------
  * Schema v2: display names, auto-continue, and permission gating.
  * ------------------------------------------------------------------------ */
@@ -258,41 +225,6 @@ test('siteLabel falls back to the hostname', () => {
 
 test('siteLabel ignores a whitespace-only display name', () => {
   assert.equal(siteLabel(v2Site({ displayName: '   ' })), 'ynet.co.il');
-});
-
-test('resolveSiteSettings inherits autoContinue from global', () => {
-  const config = v2Config({ globalAutoContinue: true });
-  const resolved = resolveSiteSettings(config, v2Site());
-  assert.equal(resolved.autoContinue, true);
-});
-
-test('resolveSiteSettings lets a site turn autoContinue off', () => {
-  // false must override a true global — the bug here is treating false as
-  // "unset" and falling through to the global.
-  const config = v2Config({ globalAutoContinue: true });
-  const resolved = resolveSiteSettings(config, v2Site({ autoContinue: false }));
-  assert.equal(resolved.autoContinue, false);
-});
-
-test('resolveSiteSettings lets a site turn autoContinue on', () => {
-  const config = v2Config({ globalAutoContinue: false });
-  const resolved = resolveSiteSettings(config, v2Site({ autoContinue: true }));
-  assert.equal(resolved.autoContinue, true);
-});
-
-test('resolveSiteSettings inherits and overrides the countdown', () => {
-  const config = v2Config({ globalCountdownSeconds: 3 });
-  assert.equal(resolveSiteSettings(config, v2Site()).countdownSeconds, 3);
-  assert.equal(
-    resolveSiteSettings(config, v2Site({ countdownSeconds: 10 })).countdownSeconds,
-    10
-  );
-});
-
-test('resolveSiteSettings uses the target hostname when unnamed', () => {
-  const config = v2Config({ globalTargetName: '' });
-  const resolved = resolveSiteSettings(config, v2Site());
-  assert.equal(resolved.targetName, 'example.com');
 });
 
 test('hostnameOf strips www', () => {

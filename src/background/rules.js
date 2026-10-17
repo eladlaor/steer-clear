@@ -227,34 +227,6 @@ export function findMatchingSite(config, url) {
 }
 
 /**
- * Resolve the effective settings for a site, applying global fallback.
- *
- * Strings fall back when blank; booleans and numbers fall back only when null,
- * since `false` and `0` are meaningful values a user may have chosen
- * deliberately and must not be treated as "unset".
- *
- * @param {object} config The user config.
- * @param {object|null} site The matched site entry, or null.
- * @returns {{target: string, targetName: string, note: string,
- *   autoContinue: boolean, countdownSeconds: number}}
- */
-export function resolveSiteSettings(config, site) {
-  const target = site?.target?.trim() || config.globalTarget;
-  const note = site?.note?.trim() || config.globalNote;
-
-  // The destination label is cosmetic; if the user never named it, fall back to
-  // the target's hostname rather than showing a raw URL on a button.
-  const targetName =
-    config.globalTargetName?.trim() || hostnameOf(target) || 'your destination';
-
-  const autoContinue = site?.autoContinue ?? config.globalAutoContinue;
-  const countdownSeconds =
-    site?.countdownSeconds ?? config.globalCountdownSeconds;
-
-  return { target, targetName, note, autoContinue, countdownSeconds };
-}
-
-/**
  * Best-effort hostname extraction, for display only.
  *
  * @param {string} url

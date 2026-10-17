@@ -17,6 +17,43 @@
   --target-min: 44px;
 }
 
+/* Presentation palettes for the pause page, one per PRESENTATION_PALETTES
+   entry. Each palette sets the same tokens in both schemes, so a dark rule
+   below always replaces its light one. tests/unit/contrast.test.js checks
+   every pair for WCAG AA. */
+
+:root[data-palette="sage"] {
+  --bg: #f7f6f3;
+  --card: #ffffff;
+  --line: #e4e1da;
+  --accent: #2f6f5e;
+  --accent-ink: #ffffff;
+}
+
+:root[data-palette="dusk"] {
+  --bg: #efeef8;
+  --card: #ffffff;
+  --line: #dddbee;
+  --accent: #4b4a9c;
+  --accent-ink: #ffffff;
+}
+
+:root[data-palette="clay"] {
+  --bg: #f7efe9;
+  --card: #fffdfb;
+  --line: #eaddd3;
+  --accent: #9a4a2c;
+  --accent-ink: #ffffff;
+}
+
+:root[data-palette="sea"] {
+  --bg: #eaf3f6;
+  --card: #ffffff;
+  --line: #d4e4ea;
+  --accent: #1f5f7a;
+  --accent-ink: #ffffff;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #16151a;
@@ -27,5 +64,37 @@
     --accent: #6fbfa5;
     --accent-ink: #10221c;
     --danger: #e08a7e;
+  }
+
+  :root[data-palette="sage"] {
+    --bg: #16151a;
+    --card: #201f26;
+    --line: #32313a;
+    --accent: #6fbfa5;
+    --accent-ink: #10221c;
+  }
+
+  :root[data-palette="dusk"] {
+    --bg: #15141f;
+    --card: #1f1d2e;
+    --line: #34314b;
+    --accent: #a9a7f2;
+    --accent-ink: #17163a;
+  }
+
+  :root[data-palette="clay"] {
+    --bg: #1a1513;
+    --card: #271f1c;
+    --line: #3e322d;
+    --accent: #e8a07f;
+    --accent-ink: #2b130a;
+  }
+
+  :root[data-palette="sea"] {
+    --bg: #11191c;
+    --card: #1a262b;
+    --line: #2c3d44;
+    --accent: #7cc6e1;
+    --accent-ink: #0b2430;
   }
 }

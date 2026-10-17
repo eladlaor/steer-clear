@@ -1,266 +1,93 @@
 /**
- * Configuration persistence for Steer Clear.
+ * Config storage I/O for Steer Clear.
  *
- * Single responsibility: read, validate, and write the user config in
- * chrome.storage.sync. No rule-building, no UI concerns.
+ * Single responsibility: moving config items in and out of storage.sync.
+ * Assembly lives in sync_layout.js, mutations in config_mutations.js.
+ *
+ * Reading never writes — not on install, not after a migration. On a second
+ * device, sync can install the extension before the synced data arrives; a
+ * write at that moment would be the newest write and could replace the
+ * user's settings everywhere.
+ *
+ * Writing happens only in the worker, one mutation at a time.
  */
 
-import {
-  SCHEMA_VERSION,
-  StorageKey,
-  DEFAULT_TARGET,
-  DEFAULT_NOTE,
-  DEFAULT_TARGET_NAME,
-  DEFAULT_AUTO_CONTINUE,
-  DEFAULT_COUNTDOWN_SECONDS,
-  MIN_COUNTDOWN_SECONDS,
-  MAX_COUNTDOWN_SECONDS,
-} from '../constants.js';
+import { assembleConfig, assertSyncQuota } from './sync_layout.js';
+import { createSerialQueue } from './serial_queue.js';
 
-/** The placeholder destination name shipped briefly in v2; cleared on read. */
-const LEGACY_PLACEHOLDER_TARGET_NAME = 'somewhere better';
+/** Every config mutation runs through this, so each reads what the last wrote. */
+const mutationQueue = createSerialQueue();
 
 /**
- * The config applied on first install.
- *
- * @returns {object} A fresh default config.
+ * @returns {Promise<object>} Every storage.sync item.
  */
-export function defaultConfig() {
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    globalTarget: DEFAULT_TARGET,
-    globalTargetName: DEFAULT_TARGET_NAME,
-    globalNote: DEFAULT_NOTE,
-    globalAutoContinue: DEFAULT_AUTO_CONTINUE,
-    globalCountdownSeconds: DEFAULT_COUNTDOWN_SECONDS,
-    sites: [],
-  };
-}
-
-/**
- * Bring a stored config up to the current schema version.
- *
- * Runs on every read, so it must be idempotent and total: any config this
- * function returns has to satisfy validateConfig. Missing fields are filled
- * with defaults rather than rejected — a user who installed v1 must not have
- * their site list refused by a v2 validator.
- *
- * @param {object} stored The raw config from storage.
- * @returns {{config: object, migrated: boolean}} The upgraded config, and
- *   whether anything actually changed (so the caller can persist it).
- */
-export function migrateConfig(stored) {
-  if (!stored || typeof stored !== 'object') {
-    throw new Error('migrateConfig: stored config must be an object');
-  }
-
-  const from = stored.schemaVersion ?? 1;
-
-  if (from > SCHEMA_VERSION) {
-    // A newer version of the extension wrote this, and sync pulled it onto an
-    // older install. Refusing is safer than silently discarding fields we do
-    // not understand.
-    throw new Error(
-      `migrateConfig: config schemaVersion ${from} is newer than supported ` +
-        `version ${SCHEMA_VERSION}; update the extension`
-    );
-  }
-
-  if (from === SCHEMA_VERSION) {
-    // v2 shipped briefly with a placeholder destination name that rendered on
-    // the button in place of the actual destination. Clear it so the hostname
-    // fallback applies; a name the user chose themselves is left alone.
-    if (stored.globalTargetName === LEGACY_PLACEHOLDER_TARGET_NAME) {
-      return { config: { ...stored, globalTargetName: '' }, migrated: true };
-    }
-    return { config: stored, migrated: false };
-  }
-
-  const config = {
-    ...stored,
-    schemaVersion: SCHEMA_VERSION,
-    globalTargetName: stored.globalTargetName ?? DEFAULT_TARGET_NAME,
-    globalAutoContinue: stored.globalAutoContinue ?? DEFAULT_AUTO_CONTINUE,
-    globalCountdownSeconds:
-      stored.globalCountdownSeconds ?? DEFAULT_COUNTDOWN_SECONDS,
-    sites: (stored.sites ?? []).map((site) => ({
-      ...site,
-      displayName: site.displayName ?? null,
-      autoContinue: site.autoContinue ?? null,
-      countdownSeconds: site.countdownSeconds ?? null,
-    })),
-  };
-
-  console.info('[steer-clear] config migrated', {
-    from,
-    to: SCHEMA_VERSION,
-    siteCount: config.sites.length,
-  });
-
-  return { config, migrated: true };
-}
-
-/**
- * Validate a config object, throwing on anything structurally wrong.
- * Fail-fast: a malformed config must surface immediately rather than being
- * silently coerced into something that blocks the wrong sites.
- *
- * @param {object} config
- * @throws {Error} On any structural violation.
- */
-export function validateConfig(config) {
-  if (!config || typeof config !== 'object') {
-    throw new Error('validateConfig: config must be an object');
-  }
-  if (typeof config.globalTarget !== 'string' || config.globalTarget === '') {
-    throw new Error('validateConfig: globalTarget must be a non-empty string');
-  }
-  if (typeof config.globalTargetName !== 'string') {
-    throw new Error('validateConfig: globalTargetName must be a string');
-  }
-  if (typeof config.globalNote !== 'string') {
-    throw new Error('validateConfig: globalNote must be a string');
-  }
-  if (typeof config.globalAutoContinue !== 'boolean') {
-    throw new Error('validateConfig: globalAutoContinue must be a boolean');
-  }
-  assertCountdown(config.globalCountdownSeconds, 'globalCountdownSeconds');
-  if (!Array.isArray(config.sites)) {
-    throw new Error('validateConfig: sites must be an array');
-  }
-
-  config.sites.forEach((site, index) => {
-    if (typeof site.pattern !== 'string' || site.pattern.trim() === '') {
-      throw new Error(
-        `validateConfig: sites[${index}].pattern must be a non-empty string`
-      );
-    }
-    if (typeof site.includeSubdomains !== 'boolean') {
-      throw new Error(
-        `validateConfig: sites[${index}].includeSubdomains must be a boolean`
-      );
-    }
-    if (typeof site.enabled !== 'boolean') {
-      throw new Error(
-        `validateConfig: sites[${index}].enabled must be a boolean`
-      );
-    }
-    if (site.target !== null && typeof site.target !== 'string') {
-      throw new Error(
-        `validateConfig: sites[${index}].target must be a string or null`
-      );
-    }
-    if (site.note !== null && typeof site.note !== 'string') {
-      throw new Error(
-        `validateConfig: sites[${index}].note must be a string or null`
-      );
-    }
-    if (site.displayName !== null && typeof site.displayName !== 'string') {
-      throw new Error(
-        `validateConfig: sites[${index}].displayName must be a string or null`
-      );
-    }
-    if (site.autoContinue !== null && typeof site.autoContinue !== 'boolean') {
-      throw new Error(
-        `validateConfig: sites[${index}].autoContinue must be a boolean or null`
-      );
-    }
-    if (site.countdownSeconds !== null) {
-      assertCountdown(site.countdownSeconds, `sites[${index}].countdownSeconds`);
-    }
-  });
-}
-
-/**
- * Assert that a value is a countdown duration within the accepted bounds.
- *
- * @param {unknown} value
- * @param {string} fieldName Field name, for the error message.
- * @throws {Error} If the value is not an in-range integer.
- */
-function assertCountdown(value, fieldName) {
-  if (
-    typeof value !== 'number' ||
-    !Number.isInteger(value) ||
-    value < MIN_COUNTDOWN_SECONDS ||
-    value > MAX_COUNTDOWN_SECONDS
-  ) {
-    throw new Error(
-      `validateConfig: ${fieldName} must be an integer between ` +
-        `${MIN_COUNTDOWN_SECONDS} and ${MAX_COUNTDOWN_SECONDS}, got ${value}`
-    );
+export async function readSyncItems() {
+  try {
+    return await chrome.storage.sync.get(null);
+  } catch (error) {
+    console.error('[steer-clear] readSyncItems failed', { error: error.message });
+    throw error;
   }
 }
 
 /**
- * Read the config from sync storage, falling back to defaults on first run.
+ * Read the assembled config: `{ schemaVersion, defaults, sites, invalidSites }`.
  *
- * @returns {Promise<object>} The stored config, or a fresh default.
- * @throws {Error} If storage access fails.
+ * @returns {Promise<object>}
+ * @throws {Error} If storage fails, a newer version wrote the settings, or
+ *   the global settings are invalid.
  */
 export async function readConfig() {
   try {
-    const stored = await chrome.storage.sync.get(StorageKey.CONFIG);
-    const config = stored[StorageKey.CONFIG];
-
-    if (!config) {
-      return defaultConfig();
-    }
-
-    const { config: upgraded, migrated } = migrateConfig(config);
-    validateConfig(upgraded);
-
-    // Persist the upgrade so the migration runs once rather than on every read.
-    if (migrated) {
-      await chrome.storage.sync.set({ [StorageKey.CONFIG]: upgraded });
-    }
-
-    return upgraded;
+    return assembleConfig(await readSyncItems());
   } catch (error) {
-    console.error('[steer-clear] readConfig failed', {
-      error: error.message,
-    });
+    console.error('[steer-clear] readConfig failed', { error: error.message });
     throw error;
   }
 }
 
 /**
- * Write the config to sync storage after validating it.
+ * Write one planned mutation: quota check, then one set and one remove.
  *
- * @param {object} config The config to persist.
+ * @param {{set: object, remove: string[]}} plan
+ * @param {object} currentItems The items the plan was made from.
  * @returns {Promise<void>}
- * @throws {Error} If the config is invalid or storage access fails.
  */
-export async function writeConfig(config) {
-  try {
-    validateConfig(config);
-    await chrome.storage.sync.set({ [StorageKey.CONFIG]: config });
-  } catch (error) {
-    console.error('[steer-clear] writeConfig failed', {
-      error: error.message,
-    });
-    throw error;
+async function applyMutation(plan, currentItems) {
+  assertSyncQuota(plan.set, currentItems, plan.remove);
+  if (Object.keys(plan.set).length > 0) {
+    await chrome.storage.sync.set(plan.set);
+  }
+  if (plan.remove.length > 0) {
+    await chrome.storage.sync.remove(plan.remove);
   }
 }
 
 /**
- * Create a new site entry with defaults applied.
+ * Plan and apply one mutation against freshly read items, serialized with
+ * every other mutation.
  *
- * @param {string} pattern The domain pattern.
- * @param {{displayName?: string|null, target?: string|null, note?: string|null}} [fields]
- *   Optional values collected when the site was added. Null means "inherit".
- * @returns {object} A site entry ready to append to config.sites.
+ * @param {string} name Mutation name, for logs.
+ * @param {(items: object) => ({set: object, remove: string[]}|{plan: object})} planner
+ *   Returns a plan, or a result object carrying one in `plan`.
+ * @returns {Promise<object>} The planner's result.
  */
-export function createSite(pattern, fields = {}) {
-  return {
-    id: crypto.randomUUID(),
-    pattern,
-    displayName: fields.displayName?.trim() || null,
-    includeSubdomains: true,
-    target: fields.target?.trim() || null,
-    note: fields.note?.trim() || null,
-    autoContinue: null,
-    countdownSeconds: null,
-    enabled: true,
-  };
+export function mutateConfig(name, planner) {
+  return mutationQueue.run(async () => {
+    try {
+      const items = await readSyncItems();
+      const result = planner(items);
+      const plan = result.plan ?? result;
+      await applyMutation(plan, items);
+      console.info('[steer-clear] config mutation applied', {
+        name,
+        set: Object.keys(plan.set),
+        removed: plan.remove,
+      });
+      return result;
+    } catch (error) {
+      console.error('[steer-clear] config mutation failed', { name, error: error.message });
+      throw error;
+    }
+  });
 }
