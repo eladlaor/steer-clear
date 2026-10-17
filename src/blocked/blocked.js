@@ -1,134 +1,207 @@
 /**
- * Steer Clear interstitial controller.
+ * Steer Clear pause page controller.
  *
- * Reads the originally-requested URL from the query string, asks the service
- * worker to resolve the effective target and note, and wires the two actions.
- * Never touches declarativeNetRequest directly — the worker owns rules.
+ * Reads the originally-requested URL, asks the worker what to show, applies
+ * the presentation variant, mounts the style's view and gates the continue
+ * button. Rendering details live in the *_view.js modules. Never touches
+ * declarativeNetRequest — the worker owns rules.
  */
 
-import { MessageType } from '../constants.js';
+import { LifecycleEvent, MessageType, MS_PER_SECOND, PauseStyle } from '../constants.js';
 import { sendMessage } from '../shared/messaging.js';
 import { extractSourceUrl } from '../shared/source_url.js';
+import { continueGate } from '../background/continue_gate.js';
+import { mountBreathingView } from './breathing_view.js';
+import { mountIntentionView } from './intention_view.js';
+import { renderGate } from './continue_view.js';
 
+/** How often the continue gate is re-evaluated, in ms. */
+const GATE_TICK_MS = 250;
+
+const $ = (id) => document.getElementById(id);
 const elements = {
-  host: document.getElementById('host'),
-  note: document.getElementById('note'),
-  actions: document.getElementById('actions'),
-  goTarget: document.getElementById('go-target'),
-  goTargetLabel: document.getElementById('go-target-label'),
-  bypass: document.getElementById('bypass'),
-  bypassLabel: document.getElementById('bypass-label'),
-  countdown: document.getElementById('countdown'),
-  countdownTarget: document.getElementById('countdown-target'),
-  countdownSeconds: document.getElementById('countdown-seconds'),
-  stop: document.getElementById('stop'),
-  status: document.getElementById('status'),
-  openOptions: document.getElementById('open-options'),
+  lead: $('lead'),
+  host: $('host'),
+  reason: $('reason'),
+  reasonLead: $('reason-lead'),
+  note: $('note'),
+  exercise: $('exercise'),
+  goTarget: $('go-target'),
+  goTargetLabel: $('go-target-label'),
+  continueGroup: $('continue-group'),
+  bypass: $('bypass'),
+  bypassLabel: $('bypass-label'),
+  bypassMinutes: $('bypass-minutes'),
+  gate: $('gate'),
+  countdown: $('countdown'),
+  countdownTarget: $('countdown-target'),
+  countdownSeconds: $('countdown-seconds'),
+  stop: $('stop'),
+  status: $('status'),
+  notice: $('variation-notice'),
+  noticeOk: $('notice-ok'),
+  openOptions: $('open-options'),
 };
 
-/** Handle for the auto-continue interval, so Stop can cancel it. */
+/** What the gate depends on; updated by the views. */
+const gateState = { breathsDone: 0, intentionText: '' };
+let currentGate = { enabled: false };
 let countdownTimer = null;
 
 /**
- * Render the resolved site details into the page.
+ * Apply the presentation variant: layout class, palette tokens, wording.
  *
- * Both buttons name their destination rather than describing the choice
- * ("ynet" / "Wikipedia", not "Continue anyway" / "Go where I meant to"), so
- * neither option is phrased more approvingly than the other. The user picks a
- * place to go, not a verdict on their own behavior.
+ * @param {{layout: string, palette: string, prompt: {lead: string, reasonLead: string}}} variant
+ */
+function applyVariant(variant) {
+  document.body.className = `layout-${variant.layout}`;
+  document.documentElement.dataset.palette = variant.palette;
+  elements.lead.textContent = variant.prompt.lead;
+  elements.reasonLead.textContent = variant.prompt.reasonLead;
+}
+
+/**
+ * Render the resolved site. Both buttons name a place ("reddit.com" /
+ * "Wikipedia"), not a verdict ("Continue anyway"), so neither choice is
+ * phrased more approvingly than the other.
  *
- * @param {{host: string, siteName: string, target: string, targetName: string,
- *   note: string}} resolved
+ * @param {object} resolved The GET_RESOLVED_SITE response.
  */
 function render(resolved) {
+  applyVariant(resolved.variant);
   elements.host.textContent = resolved.siteName;
   elements.goTarget.href = resolved.target;
   elements.goTargetLabel.textContent = resolved.targetName;
   elements.bypassLabel.textContent = resolved.siteName;
-
-  if (resolved.note) {
-    elements.note.textContent = resolved.note;
-    elements.note.hidden = false;
+  elements.bypassMinutes.textContent = `${resolved.bypassMinutes} min`;
+  if (resolved.reason) {
+    elements.note.textContent = resolved.reason;
+    elements.reason.hidden = false;
+  }
+  elements.notice.hidden = !resolved.showVariationNotice;
+  if (resolved.degraded) {
+    elements.status.textContent = 'Your settings could not be read, so defaults are shown. Open Settings for details.';
   }
 }
 
 /**
- * Run the auto-continue countdown, navigating to the target when it elapses.
+ * Mount the style's exercise. Every style shows the reason above it.
  *
- * The screen still appears — the point is that the reflex becomes visible —
- * but proceeding is the default and stopping is the deliberate act. This
- * inverts the normal interstitial without making the redirect invisible.
- *
- * @param {{target: string, targetName: string, countdownSeconds: number}} resolved
+ * @param {object} resolved
+ * @param {() => void} onBreathsDone Runs after the last breath.
  */
+function mountExercise(resolved, onBreathsDone) {
+  if (resolved.pauseStyle === PauseStyle.BREATHING) {
+    elements.exercise.hidden = false;
+    mountBreathingView(elements.exercise, {
+      breathCount: resolved.breathCount,
+      onBreath: (done) => {
+        gateState.breathsDone = done;
+        if (done === resolved.breathCount) onBreathsDone();
+      },
+    });
+  } else if (resolved.pauseStyle === PauseStyle.INTENTION) {
+    elements.exercise.hidden = false;
+    mountIntentionView(elements.exercise, {
+      onInput: (text) => {
+        gateState.intentionText = text;
+      },
+    });
+  }
+}
+
+/** Re-evaluate the continue gate on a timer, from the moment of render. */
+function startGate(resolved) {
+  const startedAt = performance.now();
+  const tick = () => {
+    currentGate = continueGate({
+      style: resolved.pauseStyle,
+      pauseSeconds: resolved.pauseSeconds,
+      elapsedMs: performance.now() - startedAt,
+      breathsDone: gateState.breathsDone,
+      breathCount: resolved.breathCount,
+      intentionText: gateState.intentionText,
+    });
+    renderGate({ button: elements.bypass, gateLine: elements.gate }, currentGate);
+  };
+  tick();
+  window.setInterval(tick, GATE_TICK_MS);
+}
+
+/** Auto-continue: go to the destination unless the user stops it. */
 function startCountdown(resolved) {
   let remaining = resolved.countdownSeconds;
-
   elements.countdownTarget.textContent = resolved.targetName;
   elements.countdownSeconds.textContent = `${remaining}s`;
   elements.countdown.hidden = false;
-  elements.actions.hidden = true;
+  elements.goTarget.hidden = true;
+  elements.continueGroup.hidden = true;
 
   countdownTimer = window.setInterval(() => {
     remaining -= 1;
-
     if (remaining > 0) {
       elements.countdownSeconds.textContent = `${remaining}s`;
       return;
     }
-
     window.clearInterval(countdownTimer);
     countdownTimer = null;
     window.location.replace(resolved.target);
-  }, 1000);
+  }, MS_PER_SECOND);
 }
 
-/**
- * Cancel the countdown and fall back to the deliberate two-button choice.
- *
- * Stopping means "wait, let me think" rather than "take me to the site" — a
- * reflexive click must not commit the user to the destination they were trying
- * to avoid.
- */
+/** Stopping the countdown means "let me think", never "take me to the site". */
 function cancelCountdown() {
   if (countdownTimer !== null) {
     window.clearInterval(countdownTimer);
     countdownTimer = null;
   }
   elements.countdown.hidden = true;
-  elements.actions.hidden = false;
+  elements.goTarget.hidden = false;
+  elements.continueGroup.hidden = false;
   elements.status.textContent = 'Stopped. Your call.';
 }
 
 /**
- * Grant a bypass for the source host and navigate through to it.
+ * Grant a bypass for the source host and go through to it.
  *
- * @param {string} sourceUrl The originally-requested URL.
+ * @param {string} sourceUrl
  */
 async function handleBypass(sourceUrl) {
+  if (!currentGate.enabled || elements.bypass.disabled) {
+    return;
+  }
   try {
     elements.bypass.disabled = true;
     elements.status.textContent = 'Opening…';
-
-    const host = new URL(sourceUrl).hostname;
-
-    // The worker awaits its rule rebuild before responding, so once this
-    // resolves the redirect rule is already gone. An arbitrary settle delay
-    // here would be a guess about timing that the response already guarantees.
-    await sendMessage({ type: MessageType.GRANT_BYPASS, host });
-
+    // The worker rebuilds rules before answering, so once this resolves the
+    // redirect rule is gone; no settle delay is needed.
+    await sendMessage({ type: MessageType.GRANT_BYPASS, host: new URL(sourceUrl).hostname });
     window.location.replace(sourceUrl);
   } catch (error) {
-    console.error('[steer-clear] handleBypass failed', {
-      sourceUrl,
-      error: error.message,
-    });
+    console.error('[steer-clear] handleBypass failed', { sourceUrl, error: error.message });
     elements.bypass.disabled = false;
     elements.status.textContent = `Could not continue: ${error.message}`;
   }
 }
 
-/** Initialize the page. */
+async function dismissNotice() {
+  elements.notice.hidden = true;
+  try {
+    await sendMessage({ type: MessageType.RECORD_LIFECYCLE_EVENT, event: LifecycleEvent.VARIATION_NOTICE_SEEN });
+  } catch (error) {
+    console.error('[steer-clear] could not record the variation notice as seen', { error: error.message });
+  }
+}
+
+/** Show the "opened directly" state: nothing to steer clear of. */
+function renderNoSource() {
+  console.warn('[steer-clear] pause page has no usable source URL', { href: window.location.href });
+  elements.host.textContent = 'Nothing to steer clear of';
+  elements.goTarget.hidden = true;
+  elements.continueGroup.hidden = true;
+  elements.status.textContent = 'This page appears when you navigate to a site you have listed.';
+}
+
 async function init() {
   try {
     elements.openOptions.addEventListener('click', (event) => {
@@ -137,40 +210,30 @@ async function init() {
     });
 
     const sourceUrl = extractSourceUrl(window.location.href);
-
     if (!sourceUrl) {
-      // Reached without a usable source URL — someone opened the page
-      // directly, or the address was not an http(s) URL.
-      console.warn('[steer-clear] interstitial has no usable source URL', {
-        href: window.location.href,
-      });
-      elements.host.textContent = 'Nothing to steer clear of';
-      elements.actions.hidden = true;
-      elements.status.textContent =
-        'This page appears when you navigate to a site you have blocked.';
+      renderNoSource();
       return;
     }
 
-    const resolved = await sendMessage({
-      type: MessageType.GET_RESOLVED_SITE,
-      fromUrl: sourceUrl,
-    });
+    const resolved = await sendMessage({ type: MessageType.GET_RESOLVED_SITE, fromUrl: sourceUrl });
+    // When behavior surprises, the first question is "what did the page
+    // receive"; this answers it without reading storage off disk.
+    console.info('[steer-clear] pause page resolved', resolved);
 
     render(resolved);
-
-    elements.bypass.addEventListener('click', () => {
-      handleBypass(sourceUrl);
-    });
-
+    elements.bypass.addEventListener('click', () => handleBypass(sourceUrl));
     elements.stop.addEventListener('click', cancelCountdown);
+    elements.noticeOk.addEventListener('click', dismissNotice);
 
-    // Log the resolved settings on every interstitial. When behavior does not
-    // match expectations, the first question is always "what did the page
-    // actually receive" — and without this, answering it means reading Chrome's
-    // storage off disk.
-    console.info('[steer-clear] interstitial resolved', resolved);
+    // With breathing, auto-continue waits for the last breath.
+    const autoContinueAfterBreaths = resolved.autoContinue && resolved.pauseStyle === PauseStyle.BREATHING;
+    mountExercise(resolved, () => {
+      if (autoContinueAfterBreaths) startCountdown(resolved);
+    });
+    startGate(resolved);
+    elements.goTarget.focus({ preventScroll: true });
 
-    if (resolved.autoContinue) {
+    if (resolved.autoContinue && !autoContinueAfterBreaths) {
       startCountdown(resolved);
     }
   } catch (error) {

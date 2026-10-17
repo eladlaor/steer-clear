@@ -21,8 +21,9 @@ rather be, and an easy way through when you actually mean it.
 ## Summary
 
 Load `src/` (or a built `dist/<target>/`) as an unpacked extension, add a
-domain in its settings page, then navigate to that domain. You get the reminder page rather than the site. Bypass
-lasts 5 minutes and dies with the browser.
+domain in its settings page, then navigate to that domain. You get the pause page rather than the site. A bypass
+lasts 5 minutes by default (1, 5, 15 or 30 in settings) and dies with the
+browser.
 
 Unit tests cover the pure logic: `node --test tests/unit/*.js`. Store
 packages come from `node tools/build.mjs`; build, lint, phone-width audit and
@@ -69,7 +70,7 @@ Numbered criteria correspond to the success criteria in
 | 2 | Visit `https://example.com/some/path?q=1` | Full URL shown on the reminder page |
 | 3 | Leave the site's target blank | "Go where I meant to" uses the global default |
 | 4 | Set a per-site target | Button uses that instead |
-| 5 | Set a per-site note | That note is shown, not the global one |
+| 5 | Set a per-site reason | That reason is shown, not the default one |
 | 6 | With subdomains on, visit `www.example.com` | Reminder page appears |
 | 7 | With subdomains off, visit `www.example.com` | Site loads normally |
 | 8 | Click "Continue anyway" | Site loads |
@@ -95,11 +96,13 @@ chrome.declarativeNetRequest.getDynamicRules().then(console.table)
 node --test tests/unit/*.js
 ```
 
-137 tests covering pattern normalization, regex generation, subdomain matching,
-lookalike-domain rejection, rule construction, bypass filtering,
-global-versus-per-site resolution, the cross-browser manifest and its per-store
-derivation, source-URL extraction, and browser detection. No dependencies;
-Node 20+.
+261 tests covering pattern normalization, regex generation, subdomain matching,
+lookalike-domain rejection, rule construction, the settings schema, legacy
+migration, the sync storage layout and quota, config mutations, pause
+presentation and style rotation, the continue gate, bypass badges and tab
+return, palette contrast, the worker's message handlers (with `chrome.*`
+stubbed), the cross-browser manifest, source-URL extraction, and browser
+detection. No dependencies; Node 20+.
 
 The Chrome-dependent surfaces (service worker, options page, interstitial) are
 verified manually via the table above — they need a real browser.
@@ -118,7 +121,7 @@ declarativeNetRequest regex rule
 blocked.html reads the config from chrome.storage.sync
         │
         ├── per-site target  ──► falls back to global target
-        ├── per-site note    ──► falls back to global note
+        ├── per-site reasons ──► fall back to default reasons
         │
         └── renders: your reason, [Go where I meant to], [Continue anyway]
 ```
@@ -144,11 +147,18 @@ steer-clear/
 │   ├── manifest.json
 │   ├── constants.js
 │   ├── background/
-│   │   ├── service_worker.js   # Owns dynamic rules + bypass lifecycle
+│   │   ├── service_worker.js   # Listener registration only
+│   │   ├── rule_sync.js        # Owns dynamic rules + bypass lifecycle
+│   │   ├── bypass_badges.js    # Bypass badge countdown, return to the pause
+│   │   ├── message_handlers.js # The worker's message table
 │   │   ├── rules.js            # Pure config -> rules (unit-tested)
-│   │   └── config.js           # Storage read/write/validate
-│   ├── blocked/                # The interstitial
-│   ├── options/                # Settings UI
+│   │   ├── pause.js            # Pure pause-screen decisions (variant, style, reason)
+│   │   ├── settings_schema.js  # Settings field table, validation, resolution
+│   │   ├── sync_layout.js      # Config across sync items, quota check
+│   │   ├── config_mutations.js # Pure planners for every config change
+│   │   └── config.js           # Storage read, serialized writes
+│   ├── blocked/                # The pause page and its style views
+│   ├── options/                # Settings UI (form, site list, reasons editor)
 │   ├── stats/                  # Statistics page (the toolbar popup)
 │   ├── shared/                 # Page helpers and shared CSS tokens/base
 │   └── icons/                  # PLACEHOLDER — see icons/README.md

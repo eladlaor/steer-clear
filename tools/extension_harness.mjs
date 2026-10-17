@@ -86,33 +86,37 @@ export async function launchExtension(contextOptions) {
 }
 
 /**
- * Replace the extension's stored config and statistics with demo data.
+ * Replace the extension's stored settings, sites and statistics with demo data.
  *
  * Seeds through the extension's own modules so the stored shape is exactly
- * what the shipped code writes.
+ * what the shipped code writes (schema v3: `schema`, `settings`, `site:<id>`).
  *
  * @param {object} page A page already on an extension URL.
- * @param {{targetName: string, note: string,
- *   sites: Array<{pattern: string, fields?: object}>,
- *   events: Array<{host: string, at: number}>}} demo
- *   `fields` are written onto the created site (e.g. autoContinue).
+ * @param {{defaults?: object,
+ *   sites: Array<{pattern: string, fields?: object, overrides?: object}>,
+ *   events: Array<{host: string, at: number}>, lifecycle?: object}} demo
+ *   `defaults` patches the global settings; `fields` are site fields
+ *   (e.g. displayName); `overrides` are per-site settings.
  */
 export async function seedDemoData(page, demo) {
-  await page.evaluate(async ({ targetName, note, sites, events }) => {
-    const { defaultConfig, createSite } = await import('/background/config.js');
+  await page.evaluate(async ({ defaults = {}, sites, events, lifecycle }) => {
+    const { defaultSettings } = await import('/background/settings_schema.js');
+    const { newSite } = await import('/background/config_mutations.js');
+    const { siteKey } = await import('/background/sync_layout.js');
     const { emptyStats, recordInterception } = await import('/background/stats.js');
 
-    const config = defaultConfig();
-    config.globalTargetName = targetName;
-    config.globalNote = note;
-    config.sites = sites.map(({ pattern, fields = {} }) => ({ ...createSite(pattern), ...fields }));
+    const items = { schema: 3, settings: { defaults: { ...defaultSettings(), ...defaults } } };
+    sites.forEach(({ pattern, fields = {}, overrides = {} }, order) => {
+      const site = newSite(pattern, { id: crypto.randomUUID(), order, now: Date.now() });
+      items[siteKey(site.id)] = { ...site, ...fields, overrides };
+    });
 
     let stats = emptyStats();
     for (const { host, at } of events) stats = recordInterception(stats, host, at);
 
     await chrome.storage.local.clear();
     await chrome.storage.sync.clear();
-    await chrome.storage.sync.set({ config });
-    await chrome.storage.local.set({ stats });
+    await chrome.storage.sync.set(items);
+    await chrome.storage.local.set(lifecycle ? { stats, lifecycle } : { stats });
   }, demo);
 }

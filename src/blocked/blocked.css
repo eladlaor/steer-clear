@@ -1,6 +1,8 @@
-/* Steer Clear interstitial.
+/* Steer Clear pause page.
    Calm, quiet, unhurried — the page exists to slow someone down, so it should
-   not look like an error or a scold. */
+   not look like an error or a scold. It changes layout (body class), palette
+   (data-palette on <html>) and wording on each interception so it keeps being
+   read; every variant keeps the same content and order of choices. */
 
 @import url("../shared/tokens.css");
 @import url("../shared/base.css");
@@ -13,13 +15,21 @@ body {
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  max-width: 33rem;
+  max-width: 36rem;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 40px 36px 28px;
+  padding: 28px 36px 14px;
   text-align: center;
+}
+
+.message,
+.choices {
+  display: flex;
+  flex-direction: column;
 }
 
 .eyebrow {
@@ -31,26 +41,39 @@ body {
 }
 
 .host {
-  margin: 0 0 24px;
+  margin: 0 0 18px;
   font-size: 1.75rem;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 
+/* The user's reason -------------------------------------------------------- */
+
+.reason {
+  margin: 0 0 18px;
+  text-align: left;
+}
+
+.reason-lead {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
 .note {
-  margin: 0 0 28px;
-  padding: 16px 20px;
+  margin: 0;
+  padding: 14px 18px;
   border-left: 3px solid var(--accent);
   border-radius: 0 8px 8px 0;
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-  text-align: left;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
   font-size: 1.0625rem;
+  white-space: pre-line;
   overflow-wrap: anywhere;
 }
 
-.actions {
-  display: flex;
-  flex-direction: column;
+/* Choices ------------------------------------------------------------------ */
+
+.choices {
   gap: 10px;
 }
 
@@ -64,20 +87,45 @@ body {
 }
 
 .btn-sub {
-  opacity: 0.65;
+  opacity: 0.75;
   font-size: 0.875rem;
 }
 
-.status {
-  min-height: 1.25rem;
-  margin: 14px 0 0;
+.choice-continue {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Continue stays focusable while locked, so its reason can be read. */
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gate {
+  margin: 0;
   font-size: 0.875rem;
   color: var(--ink-soft);
 }
 
+.gate:empty {
+  display: none;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.status:empty {
+  display: none;
+}
+
 .footer {
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 4px;
   border-top: 1px solid var(--line);
   font-size: 0.8125rem;
 }
@@ -90,6 +138,131 @@ body {
   text-decoration: underline;
 }
 
+/* One-time variation notice ------------------------------------------------ */
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0 0 18px;
+  padding: 8px 8px 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.notice-text {
+  flex: 1 1 14rem;
+  margin: 0;
+}
+
+.notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.card .notice .btn {
+  width: auto;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+
+.notice-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  color: var(--ink-soft);
+}
+
+/* Exercises (breathing, intention) ---------------------------------------- */
+
+.exercise {
+  margin: 0 0 16px;
+}
+
+.breathing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.breath-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 22%, var(--card));
+  border: 2px solid var(--accent);
+  transform: scale(0.6);
+  transition-property: transform;
+  transition-timing-function: ease-in-out;
+}
+
+.breath-circle.is-inhale {
+  transform: scale(1);
+}
+
+.breath-circle.is-exhale {
+  transform: scale(0.6);
+}
+
+.breath-cue {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.breath-count {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* No scaling under reduced motion: the cue and counter carry the timing. */
+@media (prefers-reduced-motion: reduce) {
+  .breath-circle,
+  .breath-circle.is-inhale,
+  .breath-circle.is-exhale {
+    transform: none;
+    transition: none;
+  }
+}
+
+.intention {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.intention-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.intention-input {
+  width: 100%;
+  min-height: var(--target-min);
+  padding: 9px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+}
+
+.intention-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
 /* Auto-continue countdown ------------------------------------------------ */
 
 .countdown {
@@ -97,7 +270,6 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 1.5rem;
 }
 
 .countdown-text {
@@ -111,21 +283,135 @@ body {
   min-width: 2.5ch;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--ink);
 }
 
-/* Phone width ------------------------------------------------------------ */
+/* Layout: left ------------------------------------------------------------ */
+
+.layout-left {
+  place-items: center start;
+  padding-left: max(24px, 8vw);
+}
+
+.layout-left .card {
+  max-width: 38rem;
+  text-align: left;
+  border-left: 6px solid var(--accent);
+  border-radius: 6px 16px 16px 6px;
+}
+
+.layout-left .choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+
+.layout-left .countdown,
+.layout-left .status {
+  grid-column: 1 / -1;
+}
+
+.layout-left .countdown {
+  align-items: flex-start;
+}
+
+/* Layout: split ----------------------------------------------------------- */
+
+.layout-split .card {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-areas:
+    "notice notice"
+    "message choices"
+    "footer footer";
+  column-gap: 32px;
+  max-width: 54rem;
+  text-align: left;
+  border-top: 6px solid var(--accent);
+}
+
+.layout-split .notice {
+  grid-area: notice;
+}
+
+.layout-split .message {
+  grid-area: message;
+}
+
+.layout-split .choices {
+  grid-area: choices;
+  align-self: center;
+}
+
+.layout-split .footer {
+  grid-area: footer;
+}
+
+.layout-split .host {
+  font-size: 2rem;
+}
+
+/* Narrow windows ----------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .layout-left {
+    place-items: center;
+    padding-left: 24px;
+  }
+
+  .layout-split .card {
+    display: flex;
+  }
+
+  .layout-left .choices {
+    display: flex;
+  }
+}
+
+/* Phone width: the destination comes right after the reason in every
+   layout, so it is on screen without scrolling even with an exercise. */
 
 @media (max-width: 480px) {
-  body {
+  body,
+  .layout-left {
     padding: 16px;
   }
 
   .card {
-    padding: 28px 20px 16px;
+    padding: 22px 18px 12px;
   }
 
-  .host {
+  .message,
+  .choices {
+    display: contents;
+  }
+
+  .layout-left .choices {
+    display: contents;
+  }
+
+  .notice { order: 0; }
+  .intro { order: 1; }
+  .reason { order: 2; }
+  .countdown,
+  .choice-go { order: 3; margin-bottom: 10px; }
+  .exercise { order: 4; margin-top: 8px; }
+  .choice-continue { order: 5; }
+  .status { order: 6; }
+  .footer { order: 7; }
+
+  .host,
+  .layout-split .host {
     font-size: 1.5rem;
+    margin-bottom: 16px;
+  }
+
+  .reason {
+    margin-bottom: 16px;
+  }
+
+  .breath-circle {
+    width: 88px;
+    height: 88px;
   }
 }

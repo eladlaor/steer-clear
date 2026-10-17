@@ -11,104 +11,35 @@
       <header class="head">
         <h1>Steer Clear</h1>
         <p class="sub">
-          Sites listed here show you a reminder instead of loading. Everything
+          Sites listed here show you a pause instead of loading. Everything
           stays in your browser.
         </p>
       </header>
 
-      <section class="panel">
-        <h2>Defaults</h2>
+      <p class="config-error" id="config-error" role="alert" hidden></p>
+
+      <section class="panel" aria-labelledby="defaults-heading">
+        <h2 id="defaults-heading">Defaults</h2>
         <p class="hint">
-          Used by any site that doesn't set its own. Add a per-site override
-          below when you want something different.
+          Used by any site that doesn't set its own. Customize a site below
+          when you want something different.
         </p>
-
-        <label class="field">
-          <span class="label">Send me to</span>
-          <input
-            type="url"
-            id="global-target"
-            placeholder="https://example.com"
-            required
-          />
-        </label>
-
-        <label class="field">
-          <span class="label">
-            Call that place <span class="opt">shown on the button</span>
-          </span>
-          <input type="text" id="global-target-name" placeholder="Wikipedia" />
-        </label>
-
-        <label class="field">
-          <span class="label">Remind me why <span class="opt">optional</span></span>
-          <textarea
-            id="global-note"
-            rows="2"
-            placeholder="I said I'd stop doomscrolling during work hours."
-          ></textarea>
-        </label>
-
-        <label class="field">
-          <span class="label">
-            <input type="checkbox" id="global-auto-continue" />
-            Don't wait for me — go automatically
-          </span>
-          <span class="hint">
-            The reminder still appears, then moves on by itself. You can stop it
-            while the countdown runs.
-          </span>
-        </label>
-
-        <label class="field" id="global-countdown-field" hidden>
-          <span class="label">Wait this long first</span>
-          <input
-            type="number"
-            id="global-countdown"
-            min="1"
-            max="60"
-            step="1"
-          />
-          <span class="hint">Seconds before it goes on without you.</span>
-        </label>
+        <div id="defaults-form"></div>
       </section>
 
-      <section class="panel">
-        <h2>Sites</h2>
+      <section class="panel" aria-labelledby="sites-heading">
+        <h2 id="sites-heading">Sites</h2>
 
         <form class="add-form" id="add-form">
           <div class="add-grid">
             <label class="field">
               <span class="label">Steer clear of</span>
-              <input
-                type="text"
-                id="add-pattern"
-                placeholder="ynet.co.il"
-                required
-              />
-            </label>
-
-            <label class="field">
-              <span class="label">Call it <span class="opt">optional</span></span>
-              <input type="text" id="add-display-name" placeholder="The news" />
-            </label>
-
-            <label class="field">
-              <span class="label">Send me to <span class="opt">optional</span></span>
-              <input
-                type="url"
-                id="add-target"
-                placeholder="Using the default above"
-              />
+              <input type="text" id="add-pattern" placeholder="reddit.com" required />
             </label>
 
             <label class="field">
               <span class="label">Remind me why <span class="opt">optional</span></span>
-              <input
-                type="text"
-                id="add-note"
-                placeholder="Using the default above"
-              />
+              <input type="text" id="add-reason" maxlength="280" placeholder="Using the default above" />
             </label>
           </div>
 
@@ -143,54 +74,25 @@
           <span class="site-warning-text">
             Not active — Steer Clear needs your permission for this site.
           </span>
-          <button type="button" class="btn btn-small site-grant">
-            Grant access
-          </button>
+          <button type="button" class="btn btn-small site-grant">Grant access</button>
         </div>
 
         <div class="site-detail" hidden>
-          <label class="field">
-            <span class="label">Call it <span class="opt">shown on the buttons</span></span>
+          <div class="field">
+            <label class="label site-display-name-label">
+              Call it <span class="opt">shown on the buttons</span>
+            </label>
             <input type="text" class="site-display-name" placeholder="Using the domain" />
-          </label>
+          </div>
 
-          <label class="field">
-            <span class="label">
+          <div class="field">
+            <label class="check">
               <input type="checkbox" class="site-subdomains" />
-              Include subdomains
-            </span>
-          </label>
+              <span>Include subdomains</span>
+            </label>
+          </div>
 
-          <label class="field">
-            <span class="label">Send me to <span class="opt">leave blank to use the default</span></span>
-            <input type="url" class="site-target" placeholder="Using default" />
-          </label>
-
-          <label class="field">
-            <span class="label">Remind me why <span class="opt">leave blank to use the default</span></span>
-            <textarea class="site-note" rows="2" placeholder="Using default"></textarea>
-          </label>
-
-          <label class="field">
-            <span class="label">Go automatically</span>
-            <select class="site-auto-continue">
-              <option value="inherit">Use the default</option>
-              <option value="true">Yes — go without waiting</option>
-              <option value="false">No — wait for me to choose</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span class="label">Wait this long <span class="opt">leave blank to use the default</span></span>
-            <input
-              type="number"
-              class="site-countdown"
-              min="1"
-              max="60"
-              step="1"
-              placeholder="Using default"
-            />
-          </label>
+          <div class="site-settings"></div>
         </div>
       </li>
     </template>

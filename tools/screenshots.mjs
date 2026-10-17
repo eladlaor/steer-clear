@@ -109,10 +109,11 @@ async function main() {
     const page = await context.newPage();
     await page.goto(`${base}/options/options.html`);
     await seedDemoData(page, {
-      targetName: 'Wikipedia',
-      note: DEMO_NOTE,
+      defaults: { targetName: 'Wikipedia', reasons: [DEMO_NOTE] },
       sites: DEMO_SITES.map((pattern) => ({ pattern })),
       events: buildEvents(now),
+      // The listing shows the screen as a returning user sees it.
+      lifecycle: { variationNoticeSeenAt: now },
     });
 
     // A real user grants each site's access through Chrome's own prompt, which

@@ -289,3 +289,97 @@ textarea:focus {
     width: 100%;
   }
 }
+
+/* Settings form (shared by defaults and each site) ----------------------- */
+
+.status.is-error {
+  color: var(--danger);
+}
+
+.config-error {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--danger);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  font-size: 0.875rem;
+}
+
+.field-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+}
+
+.field-head .label {
+  margin-bottom: 5px;
+}
+
+.field-tag {
+  margin-bottom: 5px;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.field-hint {
+  margin: 5px 0 0;
+}
+
+.field-hint:empty {
+  display: none;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--target-min);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.style-hint {
+  margin: 5px 0 0;
+}
+
+.form-advanced {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.form-advanced > summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--target-min);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-advanced-body {
+  padding-top: 6px;
+}
+
+/* Reasons list ------------------------------------------------------------ */
+
+.reason-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.reason-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.reason-row textarea {
+  flex: 1 1 auto;
+}
+
+.reason-add[hidden] {
+  display: none;
+}

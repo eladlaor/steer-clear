@@ -42,12 +42,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  */
 const LONG_HOST = 'a-very-long-subdomain-name.example-with-a-long-domain.co.uk';
 const DEMO = {
-  targetName: 'Wikipedia',
-  note: 'I said I would write today, not read the news. This reason is long enough to wrap on a phone.',
+  defaults: {
+    targetName: 'Wikipedia',
+    reasons: ['I said I would write today, not read the news. This reason is long enough to wrap on a phone.'],
+  },
   sites: [
     { pattern: 'example.com' },
-    { pattern: 'news.example.org', fields: { displayName: 'The news', autoContinue: true, countdownSeconds: 60 } },
+    { pattern: 'news.example.org', fields: { displayName: 'The news' }, overrides: { autoContinue: true, countdownSeconds: 60 } },
     { pattern: LONG_HOST },
+    { pattern: 'breathe.example.net', overrides: { pauseStyle: 'breathing' } },
+    { pattern: 'intent.example.net', overrides: { pauseStyle: 'intention', reasons: ['x'.repeat(280)] } },
   ],
 };
 
@@ -77,12 +81,19 @@ function auditStates(base) {
     { name: 'reminder (unencoded source)', url: from('https://www.example.com/a?x=1&y=2#frag') },
     { name: 'reminder (auto-continue countdown)', url: from(encodeURIComponent('https://news.example.org/')) },
     { name: 'reminder (long host)', url: from(encodeURIComponent(`https://${LONG_HOST}/`)) },
+    // Each visit advances the presentation variant, so repeats cover the layouts.
+    { name: 'reminder (breathing)', url: from(encodeURIComponent('https://breathe.example.net/')) },
+    { name: 'reminder (breathing, next variant)', url: from(encodeURIComponent('https://breathe.example.net/')) },
+    { name: 'reminder (intention, longest reason)', url: from(encodeURIComponent('https://intent.example.net/')) },
+    { name: 'reminder (intention, next variant)', url: from(encodeURIComponent('https://intent.example.net/')) },
+    { name: 'reminder (intention, third variant)', url: from(encodeURIComponent('https://intent.example.net/')) },
     { name: 'reminder (opened directly)', url: `${base}/blocked/blocked.html` },
     {
       name: 'settings (every site expanded)',
       url: `${base}/options/options.html`,
       prepare: async (page) => {
         for (const button of await page.locator('.site-expand').all()) await button.click();
+        for (const summary of await page.locator('details > summary').all()) await summary.click();
       },
     },
     { name: 'stats', url: `${base}/stats/stats.html` },

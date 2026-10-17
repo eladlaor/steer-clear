@@ -16,9 +16,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   Chrome/Edge and Firefox store zips from one cross-browser manifest.
 - Continuous integration running the unit tests, both builds, a pinned
   `web-ext lint` with warnings treated as errors, and a phone-width audit.
+- The pause screen changes its layout, colour and wording on every visit so it
+  keeps being noticed; a one-time note explains why, and Settings can turn it
+  off.
+- Pause styles: your reason (default), a paced breathing exercise, an
+  intention prompt ("What did you come here for?"), or rotating through all
+  three. Your reason is shown in every style; nothing typed is saved.
+- Up to five reasons per site (or as defaults), shown in turn.
+- A pause length (0–60 s, default 0) before continuing unlocks; the breathing
+  style paces one 10-second breath per started 10 s.
+- A choice of bypass length: 1, 5, 15 or 30 minutes.
+- The toolbar badge shows the minutes left on a bypass in the tabs using it
+  and clears when it ends (not available on Firefox for Android).
+- Opt-in "When my time is up, bring the pause back": tabs still on the site
+  return to the pause page when the bypass ends, including single-page sites
+  that never reload.
 
 ### Changed
 
+- Settings are stored one site per sync item under new keys, so the list is
+  no longer capped by the 8 KB per-item sync limit; the 1.x settings item is
+  read but never modified, so rolling back to 1.x finds it intact.
+- Only the background worker writes settings, one change at a time, so a
+  settings tab open elsewhere can no longer overwrite a newer change.
+- The settings page groups each form into the main fields (reasons,
+  destination, pause style) and a collapsed Advanced section; each site's
+  customized fields show "Use default" to inherit again.
+- The add-site form takes a domain and an optional reason; other per-site
+  settings are under "Customize".
+- A site with its own destination but no name for it shows that
+  destination's address on the button, not the default destination's name.
+- The pause page still opens, with default settings, when saved settings
+  cannot be read.
+- Installing no longer writes default settings to sync storage.
 - Every page works at phone width (360 CSS px): no sideways scrolling, and
   every button, field, checkbox and standalone link is at least 44×44 CSS px.
 - The statistics popup's minimum width is now the phone width (360 px), so it

@@ -6,32 +6,66 @@
     <title>Steer Clear</title>
     <link rel="stylesheet" href="blocked.css" />
   </head>
-  <body>
-    <main class="card">
-      <p class="eyebrow">You were heading to</p>
-      <h1 class="host" id="host">&nbsp;</h1>
-
-      <blockquote class="note" id="note" hidden></blockquote>
-
-      <div class="countdown" id="countdown" hidden>
-        <p class="countdown-text">
-          Going to <strong id="countdown-target"></strong> in
-          <span class="countdown-seconds" id="countdown-seconds"></span>
+  <body class="layout-center">
+    <main class="card" id="card">
+      <aside class="notice" id="variation-notice" hidden>
+        <p class="notice-text">
+          This screen changes a little each time, so it stays noticeable.
         </p>
-        <button class="btn btn-ghost" id="stop" type="button">Stop</button>
+        <div class="notice-actions">
+          <button class="btn btn-ghost" id="notice-ok" type="button">Got it</button>
+          <a
+            class="notice-link"
+            id="notice-settings"
+            href="../options/options.html#vary-presentation"
+            target="_blank"
+            rel="noopener"
+          >Turn this off in Settings</a>
+        </div>
+      </aside>
+
+      <div class="message">
+        <header class="intro">
+          <p class="eyebrow" id="lead">You were heading to</p>
+          <h1 class="host" id="host">&nbsp;</h1>
+        </header>
+
+        <section class="reason" id="reason" hidden>
+          <p class="reason-lead" id="reason-lead"></p>
+          <blockquote class="note" id="note"></blockquote>
+        </section>
+
+        <section class="exercise" id="exercise" hidden></section>
       </div>
 
-      <div class="actions" id="actions">
-        <a class="btn btn-primary" id="go-target" href="#">
+      <div class="choices">
+        <div class="countdown" id="countdown" hidden>
+          <p class="countdown-text">
+            Going to <strong id="countdown-target"></strong> in
+            <span class="countdown-seconds" id="countdown-seconds"></span>
+          </p>
+          <button class="btn btn-ghost" id="stop" type="button">Stop</button>
+        </div>
+
+        <a class="btn btn-primary choice-go" id="go-target" href="#">
           <span id="go-target-label">&nbsp;</span>
         </a>
-        <button class="btn btn-ghost" id="bypass" type="button">
-          <span id="bypass-label">&nbsp;</span>
-          <span class="btn-sub">5 min</span>
-        </button>
-      </div>
 
-      <p class="status" id="status" role="status" aria-live="polite"></p>
+        <div class="choice-continue" id="continue-group">
+          <button
+            class="btn btn-ghost"
+            id="bypass"
+            type="button"
+            aria-describedby="gate"
+          >
+            <span id="bypass-label">&nbsp;</span>
+            <span class="btn-sub" id="bypass-minutes"></span>
+          </button>
+          <p class="gate" id="gate"></p>
+        </div>
+
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </div>
 
       <footer class="footer">
         <a href="#" id="open-options">Settings</a>
