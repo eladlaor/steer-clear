@@ -20,7 +20,8 @@ import {
   recordPauseView,
   recordSteered,
 } from './pause_views.js';
-import { grantBypass, rebuildRules } from './rule_sync.js';
+import { endSnooze, grantBypass, rebuildRules, startSnooze } from './rule_sync.js';
+import { readStatus } from './status.js';
 import { clearStats, readStats } from './stats_store.js';
 
 /** Handlers by message type. Each returns the response payload. */
@@ -62,6 +63,16 @@ const HANDLERS = Object.freeze({
     await rebuildRules();
     return {};
   },
+
+  // Snooze lives in session storage only; it never touches the synced config.
+  [MessageType.SET_SNOOZE]: (message) => startSnooze(message.minutes),
+
+  [MessageType.CLEAR_SNOOZE]: async () => {
+    await endSnooze();
+    return {};
+  },
+
+  [MessageType.GET_STATUS]: () => readStatus(Date.now()),
 
   [MessageType.ADD_SITES]: async (message) => {
     const { added, skipped } = await mutateConfig(MessageType.ADD_SITES, (items) =>

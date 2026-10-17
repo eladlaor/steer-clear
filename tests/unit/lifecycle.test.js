@@ -51,3 +51,31 @@ test('the variation notice shows until seen, and never when variation is off', (
   const seen = applyLifecycleEvent(fresh, LifecycleEvent.VARIATION_NOTICE_SEEN, NOW);
   assert.equal(shouldShowVariationNotice(seen, true), false);
 });
+
+test('onboardingCompleted stamps the time once', () => {
+  const once = applyLifecycleEvent(normalizeLifecycle(undefined), LifecycleEvent.ONBOARDING_COMPLETED, NOW);
+  assert.equal(once.onboardingCompletedAt, NOW);
+  const twice = applyLifecycleEvent(once, LifecycleEvent.ONBOARDING_COMPLETED, NOW + 1);
+  assert.equal(twice.onboardingCompletedAt, NOW);
+});
+
+test('the rating events move the rating prompt', () => {
+  const fresh = normalizeLifecycle(undefined);
+  const shown = applyLifecycleEvent(fresh, LifecycleEvent.RATING_SHOWN, NOW);
+  assert.deepEqual(shown.ratingPrompt, { state: RatingState.PENDING, shownCount: 1, resolvedAt: null });
+  assert.equal(applyLifecycleEvent(shown, LifecycleEvent.RATING_RATED, NOW).ratingPrompt.state, RatingState.RATED);
+  assert.equal(
+    applyLifecycleEvent(shown, LifecycleEvent.RATING_DISMISSED, NOW).ratingPrompt.state,
+    RatingState.DISMISSED
+  );
+});
+
+test('a rating answer does not touch the other flags', () => {
+  const lifecycle = applyLifecycleEvent(
+    normalizeLifecycle({ variationNoticeSeenAt: 3 }),
+    LifecycleEvent.RATING_DISMISSED,
+    NOW
+  );
+  assert.equal(lifecycle.variationNoticeSeenAt, 3);
+  assert.equal(lifecycle.onboardingCompletedAt, null);
+});

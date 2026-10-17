@@ -6,7 +6,15 @@
  * not erased with statistics and never exported.
  */
 
-import { LifecycleEvent, RatingState } from '../constants.js';
+import { LifecycleEvent, RatingEvent, RatingState } from '../constants.js';
+import { nextRatingState } from './rating.js';
+
+/** The rating transition each rating lifecycle event stands for. */
+const RATING_EVENT_FOR = Object.freeze({
+  [LifecycleEvent.RATING_SHOWN]: RatingEvent.SHOWN,
+  [LifecycleEvent.RATING_RATED]: RatingEvent.RATED,
+  [LifecycleEvent.RATING_DISMISSED]: RatingEvent.DISMISSED,
+});
 
 /**
  * The stored lifecycle with every documented field present.
@@ -40,6 +48,12 @@ export function applyLifecycleEvent(lifecycle, event, now) {
   switch (event) {
     case LifecycleEvent.VARIATION_NOTICE_SEEN:
       return { ...lifecycle, variationNoticeSeenAt: lifecycle.variationNoticeSeenAt ?? now };
+    case LifecycleEvent.ONBOARDING_COMPLETED:
+      return { ...lifecycle, onboardingCompletedAt: lifecycle.onboardingCompletedAt ?? now };
+    case LifecycleEvent.RATING_SHOWN:
+    case LifecycleEvent.RATING_RATED:
+    case LifecycleEvent.RATING_DISMISSED:
+      return nextRatingState(lifecycle, RATING_EVENT_FOR[event], now);
     default:
       throw new Error(`applyLifecycleEvent: unknown lifecycle event "${event}"`);
   }

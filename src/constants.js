@@ -48,6 +48,19 @@ export const StorageArea = Object.freeze({
 /** runtime.onInstalled reason for a first install. */
 export const INSTALL_REASON = 'install';
 
+/** How often the stats-retention sweep runs, in minutes. */
+export const STATS_PRUNE_PERIOD_MINUTES = 24 * 60;
+
+/** KeyboardEvent.key that stops a running auto-continue countdown. */
+export const STOP_COUNTDOWN_KEY = 'Escape';
+
+/**
+ * Quick-add from the toolbar strips this leading label, so adding from
+ * www.reddit.com lists reddit.com (subdomains included) rather than only
+ * the www host.
+ */
+export const QUICK_ADD_STRIPPED_PREFIX = 'www.';
+
 /** tabs.onUpdated status of a tab that finished loading. */
 export const TAB_STATUS_COMPLETE = 'complete';
 
@@ -74,6 +87,9 @@ export const MessageType = Object.freeze({
   UPDATE_DEFAULTS: 'UPDATE_DEFAULTS',
   RECORD_VIEW: 'RECORD_VIEW',
   RECORD_OUTCOME: 'RECORD_OUTCOME',
+  SET_SNOOZE: 'SET_SNOOZE',
+  CLEAR_SNOOZE: 'CLEAR_SNOOZE',
+  GET_STATUS: 'GET_STATUS',
 });
 
 /**
@@ -101,7 +117,11 @@ export const STEER_RATE_WINDOW_DAYS = 30;
 
 /** Events a page reports to the worker for one-time lifecycle flags. */
 export const LifecycleEvent = Object.freeze({
+  ONBOARDING_COMPLETED: 'onboardingCompleted',
   VARIATION_NOTICE_SEEN: 'variationNoticeSeen',
+  RATING_SHOWN: 'ratingShown',
+  RATING_RATED: 'ratingRated',
+  RATING_DISMISSED: 'ratingDismissed',
 });
 
 /** States of the one-time rating prompt (stored in `lifecycle`). */
@@ -110,6 +130,33 @@ export const RatingState = Object.freeze({
   RATED: 'rated',
   DISMISSED: 'dismissed',
   EXPIRED: 'expired',
+});
+
+/** What can happen to the rating prompt: it is shown, or the user picks a button. */
+export const RatingEvent = Object.freeze({
+  SHOWN: 'shown',
+  RATED: 'rated',
+  DISMISSED: 'dismissed',
+});
+
+/** The rating prompt appears once the user has chosen the destination this many times. */
+export const RATING_PROMPT_THRESHOLD = 10;
+
+/** After this many showings without an answer, the prompt never returns. */
+export const RATING_PROMPT_MAX_SHOWS = 3;
+
+/**
+ * Each store's reviews page, by BrowserId. A null entry hides the rating
+ * prompt in that browser (logged at info level).
+ *
+ * - edge: filled in from the Edge Add-ons listing once 1.0.0 is live there.
+ * - firefox: filled in once the AMO slug is confirmed free and set in the
+ *   submission form (plan open question 2).
+ */
+export const STORE_REVIEW_URL = Object.freeze({
+  chrome: 'https://chromewebstore.google.com/detail/steer-clear/fooahacimdgjcfoofpijkpmgiaghinbn/reviews',
+  edge: null,
+  firefox: null,
 });
 
 /** chrome.alarms name for the periodic stats-retention sweep. */
@@ -145,6 +192,12 @@ export const SCHEDULE_ALARM = 'schedule-boundary';
 
 /** Path of the settings page, relative to the extension root. */
 export const OPTIONS_PATH = 'options/options.html';
+
+/** Path of the first-run page, opened once on install. */
+export const ONBOARDING_PATH = 'onboarding/onboarding.html';
+
+/** Path of the statistics page, relative to the extension root. */
+export const STATS_PATH = 'stats/stats.html';
 
 /** Anchor of the daily-limit field on the settings page. */
 export const DAILY_LIMIT_ANCHOR = 'daily-limit';
@@ -297,6 +350,12 @@ export const OVER_LIMIT_PAUSE_SECONDS = 30;
  * this line says so.
  */
 export const SNOOZE_ALLOWANCE_NOTE = 'Pauses all reminders, including your daily limit.';
+
+/** Snooze lengths the popup offers, in minutes. */
+export const SNOOZE_OPTIONS_MINUTES = Object.freeze([15, 30, 60]);
+
+/** chrome.alarms name for the end of a snooze, which triggers a rebuild. */
+export const SNOOZE_ALARM = 'snooze-end';
 
 /** Typing pauses this long before a settings text field is saved, in ms. */
 export const SETTINGS_SAVE_DELAY_MS = 400;

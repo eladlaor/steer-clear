@@ -11,8 +11,8 @@
 import {
   BYPASS_ALARM_PREFIX,
   BYPASS_TICK_ALARM,
-  INSTALL_REASON,
   SCHEDULE_ALARM,
+  SNOOZE_ALARM,
   STATS_PRUNE_ALARM,
   StorageArea,
   StorageKey,
@@ -20,7 +20,8 @@ import {
 } from '../constants.js';
 import { readConfig } from './config.js';
 import { isSiteKey } from './sync_layout.js';
-import { expireBypass, readActiveBypasses, rebuildRules } from './rule_sync.js';
+import { endSnooze, expireBypass, readActiveBypasses, rebuildRules } from './rule_sync.js';
+import { handleInstalled } from './install.js';
 import { refreshBadges } from './bypass_badges.js';
 import { hasBadgeWork } from './bypass_tabs.js';
 import { handleMessage } from './message_handlers.js';
@@ -37,26 +38,21 @@ async function refreshAllBadges() {
 }
 
 /**
- * First install opens settings and writes nothing: reading returns defaults
- * until the user changes something, so a second device can never overwrite
- * settings that sync has not delivered yet.
+ * First install opens onboarding and writes nothing; an update opens
+ * nothing. install.js logs any failure with its context.
  */
-chrome.runtime.onInstalled.addListener(async (details) => {
-  try {
-    if (details.reason === INSTALL_REASON) {
-      await chrome.runtime.openOptionsPage();
-    }
-    await chrome.alarms.create(STATS_PRUNE_ALARM, { periodInMinutes: 60 * 24 });
-    await rebuildRules();
-  } catch (error) {
-    console.error('[steer-clear] onInstalled failed', { reason: details.reason, error: error.message });
-  }
+chrome.runtime.onInstalled.addListener((details) => {
+  handleInstalled(details).catch(() => {});
 });
 
-/** Rebuild on browser startup — session bypasses are gone by definition. */
+/**
+ * Rebuild on browser startup — session bypasses and a snooze are gone by
+ * definition, so their leftovers are cleared too.
+ */
 chrome.runtime.onStartup.addListener(async () => {
   try {
-    await chrome.storage.session.remove([StorageKey.BYPASSES, StorageKey.BADGED_TABS]);
+    await chrome.storage.session.remove([StorageKey.BYPASSES, StorageKey.BADGED_TABS, StorageKey.SNOOZE]);
+    await chrome.alarms.clear(SNOOZE_ALARM);
     await rebuildRules();
   } catch (error) {
     console.error('[steer-clear] onStartup failed', { error: error.message });
@@ -121,6 +117,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       // A schedule started or ended; the rebuild reads the clock and sets
       // the alarm for the boundary after this one.
       await rebuildRules();
+    } else if (alarm.name === SNOOZE_ALARM) {
+      await endSnooze();
     } else if (alarm.name === BYPASS_TICK_ALARM) {
       await refreshAllBadges();
     } else if (alarm.name.startsWith(BYPASS_ALARM_PREFIX)) {

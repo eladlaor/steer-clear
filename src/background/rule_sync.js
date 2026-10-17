@@ -1,13 +1,13 @@
 /**
- * Rule state: rebuilding the dynamic rule set, and granting and ending
- * bypasses.
+ * Rule state: rebuilding the dynamic rule set, granting and ending
+ * bypasses, and starting and ending a snooze.
  *
  * The worker is the sole owner of declarativeNetRequest dynamic rules. Rules
  * are always derivable from storage (config, bypasses, host permissions), so
  * a full rebuild is always safe and cannot drift.
  */
 
-import { BYPASS_ALARM_PREFIX, SCHEDULE_ALARM, StorageKey } from '../constants.js';
+import { BYPASS_ALARM_PREFIX, SCHEDULE_ALARM, SNOOZE_ALARM, StorageKey } from '../constants.js';
 import { readConfig } from './config.js';
 import { buildRules, findMatchingSite, normalizePattern } from './rules.js';
 import { nextScheduleBoundary } from './schedule.js';
@@ -15,6 +15,7 @@ import { resolveSettings } from './settings_schema.js';
 import { grantedHostsAmong } from './permissions.js';
 import { bypassExpiresAt } from './bypass_tabs.js';
 import { endBypassBadges, returnExpiredTabs, showBypassBadge } from './bypass_badges.js';
+import { snoozeEndsAt } from './snooze.js';
 
 /**
  * Read the currently-active bypasses, dropping any that have expired.
@@ -34,9 +35,10 @@ export async function readActiveBypasses(now = Date.now()) {
 }
 
 /**
- * @returns {Promise<number|null>} When the running snooze ends, or null.
+ * @returns {Promise<number|null>} When the stored snooze ends (possibly
+ *   already past), or null when none is stored.
  */
-async function readSnoozedUntil() {
+export async function readSnoozedUntil() {
   try {
     const stored = await chrome.storage.session.get(StorageKey.SNOOZE);
     return stored[StorageKey.SNOOZE]?.until ?? null;
@@ -180,6 +182,44 @@ export async function expireBypass(host) {
     console.info('[steer-clear] bypass expired', { host, returnPause: config.defaults.returnPauseOnExpiry });
   } catch (error) {
     console.error('[steer-clear] expireBypass failed', { host, error: error.message });
+    throw error;
+  }
+}
+
+/**
+ * Turn every reminder off for a while: store the end in session storage (so
+ * a browser restart ends it), set an alarm for the end, and rebuild.
+ *
+ * @param {number} minutes One of SNOOZE_OPTIONS_MINUTES.
+ * @returns {Promise<{until: number}>}
+ */
+export async function startSnooze(minutes) {
+  try {
+    const until = snoozeEndsAt(minutes, Date.now());
+    await chrome.storage.session.set({ [StorageKey.SNOOZE]: { until } });
+    await chrome.alarms.create(SNOOZE_ALARM, { when: until });
+    await rebuildRules();
+    console.info('[steer-clear] snooze started', { minutes, until });
+    return { until };
+  } catch (error) {
+    console.error('[steer-clear] startSnooze failed', { minutes, error: error.message });
+    throw error;
+  }
+}
+
+/**
+ * End a snooze ("Resume now", or its alarm) and bring the reminders back.
+ *
+ * @returns {Promise<void>}
+ */
+export async function endSnooze() {
+  try {
+    await chrome.storage.session.remove(StorageKey.SNOOZE);
+    await chrome.alarms.clear(SNOOZE_ALARM);
+    await rebuildRules();
+    console.info('[steer-clear] snooze ended');
+  } catch (error) {
+    console.error('[steer-clear] endSnooze failed', { error: error.message });
     throw error;
   }
 }

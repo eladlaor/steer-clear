@@ -37,6 +37,7 @@ export function createFakeChrome({ sync = {}, local = {}, session = {}, tabs = [
   const calls = {
     badges: [],
     tabUpdates: [],
+    tabCreates: [],
     alarms: {},
     clearedAlarms: [],
     dynamicRules: [],
@@ -55,9 +56,17 @@ export function createFakeChrome({ sync = {}, local = {}, session = {}, tabs = [
     return originalRemove(keys);
   };
 
+  const localArea = storageArea(local);
+  const originalLocalSet = localArea.set;
+  calls.localSets = [];
+  localArea.set = async (items) => {
+    calls.localSets.push(Object.keys(items));
+    return originalLocalSet(items);
+  };
+
   const chrome = {
     runtime: { getURL: (path) => `chrome-extension://test/${path}` },
-    storage: { sync: syncArea, local: storageArea(local), session: storageArea(session) },
+    storage: { sync: syncArea, local: localArea, session: storageArea(session) },
     permissions: { contains: async () => true },
     declarativeNetRequest: {
       getDynamicRules: async () => calls.dynamicRules,
@@ -81,6 +90,10 @@ export function createFakeChrome({ sync = {}, local = {}, session = {}, tabs = [
       query: async () => structuredClone(tabs),
       update: async (tabId, props) => {
         calls.tabUpdates.push({ tabId, ...props });
+      },
+      create: async (props) => {
+        calls.tabCreates.push(props);
+        return { id: 1000 + calls.tabCreates.length, ...props };
       },
     },
     action: badge
