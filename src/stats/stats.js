@@ -10,6 +10,7 @@
  */
 
 import { MessageType } from '../constants.js';
+import { sendMessage } from '../shared/messaging.js';
 import {
   summarize,
   totalsByHost,
@@ -47,20 +48,6 @@ const elements = {
 
 /** Whether the erase button is awaiting confirmation. */
 let clearArmed = false;
-
-/**
- * Ask the service worker for something, rejecting on a failed response.
- *
- * @param {object} message
- * @returns {Promise<object>}
- */
-async function sendMessage(message) {
-  const response = await chrome.runtime.sendMessage(message);
-  if (!response?.ok) {
-    throw new Error(response?.error ?? 'no response from service worker');
-  }
-  return response;
-}
 
 /**
  * Render a horizontal bar list into a container.

@@ -88,3 +88,22 @@ export const MAX_COUNTDOWN_SECONDS = 60;
 
 /** Longest accepted site display name, in characters. */
 export const MAX_DISPLAY_NAME_LENGTH = 60;
+
+/** Browsers whose behavior or store link may need telling apart. */
+export const BrowserId = Object.freeze({
+  CHROME: 'chrome',
+  EDGE: 'edge',
+  FIREFOX: 'firefox',
+});
+
+/** URL scheme of extension pages in Firefox; Chromium browsers use chrome-extension:. */
+export const FIREFOX_EXTENSION_SCHEME = 'moz-extension:';
+
+/**
+ * The navigator.userAgentData brand Edge reports. Edge installs the same
+ * package as Chrome, so the brand is the only way to tell them apart.
+ */
+export const EDGE_UA_BRAND = 'Microsoft Edge';
+
+/** Protocols a source URL on the reminder page may have. */
+export const SOURCE_URL_PROTOCOLS = Object.freeze(['http:', 'https:']);

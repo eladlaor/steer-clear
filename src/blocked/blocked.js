@@ -6,7 +6,9 @@
  * Never touches declarativeNetRequest directly — the worker owns rules.
  */
 
-import { MessageType, PARAM_FROM } from '../constants.js';
+import { MessageType } from '../constants.js';
+import { sendMessage } from '../shared/messaging.js';
+import { extractSourceUrl } from '../shared/source_url.js';
 
 const elements = {
   host: document.getElementById('host'),
@@ -26,43 +28,6 @@ const elements = {
 
 /** Handle for the auto-continue interval, so Stop can cancel it. */
 let countdownTimer = null;
-
-/**
- * Extract the originally-requested URL from this page's query string.
- *
- * @returns {string|null} The source URL, or null if absent/malformed.
- */
-function readSourceUrl() {
-  try {
-    const raw = new URL(window.location.href).searchParams.get(PARAM_FROM);
-    if (!raw) {
-      return null;
-    }
-    // Validate before trusting it anywhere.
-    new URL(raw);
-    return raw;
-  } catch (error) {
-    console.error('[steer-clear] readSourceUrl failed', {
-      href: window.location.href,
-      error: error.message,
-    });
-    return null;
-  }
-}
-
-/**
- * Send a message to the service worker, rejecting on a non-ok response.
- *
- * @param {object} message
- * @returns {Promise<object>} The response payload.
- */
-async function sendMessage(message) {
-  const response = await chrome.runtime.sendMessage(message);
-  if (!response?.ok) {
-    throw new Error(response?.error ?? 'no response from service worker');
-  }
-  return response;
-}
 
 /**
  * Render the resolved site details into the page.
@@ -171,10 +136,14 @@ async function init() {
       chrome.runtime.openOptionsPage();
     });
 
-    const sourceUrl = readSourceUrl();
+    const sourceUrl = extractSourceUrl(window.location.href);
 
     if (!sourceUrl) {
-      // Reached without a source URL — someone opened the page directly.
+      // Reached without a usable source URL — someone opened the page
+      // directly, or the address was not an http(s) URL.
+      console.warn('[steer-clear] interstitial has no usable source URL', {
+        href: window.location.href,
+      });
       elements.host.textContent = 'Nothing to steer clear of';
       elements.actions.hidden = true;
       elements.status.textContent =
