@@ -18,6 +18,11 @@ import { fileURLToPath } from 'node:url';
 
 import { SRC_DIR_NAME } from './tool_constants.mjs';
 
+/** The page the extension opens on install (ONBOARDING_PATH in src/constants.js). */
+const ONBOARDING_PAGE = 'onboarding/onboarding.html';
+/** How long install may take to open onboarding, in ms. */
+const ONBOARDING_WAIT_MS = 10000;
+
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXTENSION_DIR = path.join(ROOT, SRC_DIR_NAME);
 
@@ -75,7 +80,12 @@ export async function launchExtension(contextOptions) {
     if (!worker) worker = await context.waitForEvent('serviceworker');
     const base = `chrome-extension://${new URL(worker.url()).host}`;
 
-    // The options page opens itself on install; close it so it can't race the seed.
+    // Onboarding opens itself on install. Wait for it, then close every page
+    // so it cannot race the seed (it reacts to sites arriving in sync).
+    const isOnboarding = (page) => page.url().endsWith(ONBOARDING_PAGE);
+    if (!context.pages().some(isOnboarding)) {
+      await context.waitForEvent('page', { predicate: isOnboarding, timeout: ONBOARDING_WAIT_MS });
+    }
     for (const page of context.pages()) await page.close();
 
     return { context, base, close };

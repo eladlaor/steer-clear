@@ -45,6 +45,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   be tracked.
 - The pause page records what you chose (went elsewhere, or continued) with
   each interception; nothing you type is stored.
+- A two-step welcome page on first install: pick sites from one-tap chips
+  (none preselected) or type your own, optionally add a reason for each, then
+  "Turn on" adds them all and asks for access to those sites only. If your
+  sites already synced from another device, it says so and skips setup.
+- A toolbar popup: today's pauses and the days you steered clear this week,
+  "Steer clear of <this site>" for the tab you are on, snooze all reminders
+  for 15, 30 or 60 minutes (with "Resume now"), and links to statistics and
+  settings.
+- After you have chosen the better destination 10 times, the popup and the
+  statistics page ask once whether you would rate Steer Clear, with a link
+  to this browser's store page; it never returns after you answer or after
+  three showings.
+- Escape stops a running auto-continue countdown, and the countdown is
+  announced once when it starts and when it stops.
 
 ### Changed
 
@@ -62,7 +76,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   destination's address on the button, not the default destination's name.
 - The pause page still opens, with default settings, when saved settings
   cannot be read.
-- Installing no longer writes default settings to sync storage.
+- Installing no longer writes default settings to sync storage, and opens the
+  welcome page instead of settings; an update opens no tab.
+- The toolbar button opens the new popup instead of the statistics page.
+- Adding a site from settings, the popup or the welcome page uses one order
+  that works in every browser: the site is saved first, then the browser asks
+  for access, so a refused or interrupted prompt leaves the site listed as
+  "needs access" instead of losing it.
+- Pages share one type scale, spacing scale and corner radii; buttons in
+  each site row name their site for screen readers, and charts on the
+  statistics page describe themselves in words.
+- Store screenshots now cover the breathing style and the popup, and a
+  440×280 small promo tile is generated with them.
 - Every page works at phone width (360 CSS px): no sideways scrolling, and
   every button, field, checkbox and standalone link is at least 44×44 CSS px.
 - The statistics popup's minimum width is now the phone width (360 px), so it

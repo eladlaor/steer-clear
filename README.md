@@ -20,8 +20,9 @@ rather be, and an easy way through when you actually mean it.
 
 ## Summary
 
-Load `src/` (or a built `dist/<target>/`) as an unpacked extension, add a
-domain in its settings page, then navigate to that domain. You get the pause page rather than the site. A bypass
+Load `src/` (or a built `dist/<target>/`) as an unpacked extension, pick a
+site on the welcome page that opens (or add one from the toolbar popup or the
+settings page), then navigate to that domain. You get the pause page rather than the site. A bypass
 lasts 5 minutes by default (1, 5, 15 or 30 in settings) and dies with the
 browser.
 
@@ -55,7 +56,9 @@ recognized. That key is for Firefox; the built `dist/chrome/` does not carry it.
 
 Firefox for Android: see `knowledge/usage_guides/DEVOPS_GUIDE.md`.
 
-The settings page opens automatically on first install.
+The welcome page (onboarding) opens automatically on first install; an update
+opens nothing. The toolbar button opens a popup with today's pauses,
+"Steer clear of <this site>", snooze, and links to statistics and settings.
 
 ---
 
@@ -96,15 +99,16 @@ chrome.declarativeNetRequest.getDynamicRules().then(console.table)
 node --test tests/unit/*.js
 ```
 
-352 tests covering pattern normalization, regex generation, subdomain matching,
+419 tests covering pattern normalization, regex generation, subdomain matching,
 lookalike-domain rejection, rule construction (schedules and snooze included),
 schedules, outcome-tagged statistics and progress figures, the daily
 allowance, the settings schema, legacy
 migration, the sync storage layout and quota, config mutations, pause
 presentation and style rotation, the continue gate, bypass badges and tab
 return, palette contrast, the worker's message handlers (with `chrome.*`
-stubbed), the cross-browser manifest, source-URL extraction, and browser
-detection. No dependencies; Node 20+.
+stubbed), snooze, install-time behavior (nothing written to sync), the
+rating prompt, onboarding presets, the add-site click handlers' call order,
+the cross-browser manifest, source-URL extraction, and browser detection. No dependencies; Node 20+.
 
 The Chrome-dependent surfaces (service worker, options page, interstitial) are
 verified manually via the table above — they need a real browser.
@@ -162,17 +166,24 @@ steer-clear/
 │   │   ├── settings_schema.js  # Settings field table, validation, resolution
 │   │   ├── sync_layout.js      # Config across sync items, quota check
 │   │   ├── config_mutations.js # Pure planners for every config change
-│   │   └── config.js           # Storage read, serialized writes
+│   │   ├── config.js           # Storage read, serialized writes
+│   │   ├── install.js          # First install opens onboarding; never writes
+│   │   ├── presets.js          # Onboarding's site chips
+│   │   ├── rating.js           # Pure rating-prompt rules
+│   │   ├── snooze.js           # Pure snooze timing
+│   │   └── lifecycle*.js       # One-time flags (worker-written)
 │   ├── blocked/                # The pause page and its style views
 │   ├── options/                # Settings UI (form, site list, reasons and schedule editors)
-│   ├── stats/                  # Statistics page (the toolbar popup)
-│   ├── shared/                 # Page helpers and shared CSS tokens/base
+│   ├── stats/                  # Statistics page
+│   ├── popup/                  # Toolbar popup: today, quick-add, snooze
+│   ├── onboarding/             # Two-step welcome page opened on install
+│   ├── shared/                 # Page helpers, rating banner, CSS tokens/base
 │   └── icons/                  # PLACEHOLDER — see icons/README.md
 ├── tools/
 │   ├── build.mjs               # Builds dist/ and both store zips
 │   ├── manifest_targets.mjs    # Pure per-browser manifest derivation
 │   ├── mobile_audit.mjs        # 360px / 44px-target audit in Chromium
-│   └── screenshots.mjs         # Regenerates store/screenshots/ at 1280×800
+│   └── screenshots.mjs         # Regenerates store/screenshots/ (1280×800 + promo tile)
 ├── tests/unit/
 ├── store/                      # Web Store submission materials
 │   ├── LISTING.md

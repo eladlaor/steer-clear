@@ -1007,6 +1007,26 @@ asked once for a rating, where they will see it.
   The banner never reappears after either button or after 3 showings.
 - M9 Upgrading from 1.0.0 opens no tab, and existing settings are intact.
 
+**Implementation notes (G4):**
+
+- The install handler lives in `src/background/install.js` so it can be
+  unit-tested; `service_worker.js` only registers it.
+- The three add-site click handlers share `addSitesThenRequestAccess` in
+  `src/shared/site_access.js`; the popup's and onboarding's handlers
+  (`src/popup/quick_add.js`, `src/onboarding/turn_on.js`) are DOM-free so
+  acceptance criterion 6 drives them directly.
+- Quick-add lists the active tab's host without a leading `www.` (so it
+  matches the site, subdomains included), and is hidden for pages that are not
+  http(s) or whose host has no dot.
+- `nextRatingState` takes a `RatingEvent` (`shown`, `rated`, `dismissed`);
+  `applyLifecycleEvent` maps the three rating `LifecycleEvent`s onto it.
+  Lifecycle writes run through a serial queue, like stats writes.
+- `STORE_REVIEW_URL.edge` and `.firefox` stay `null` (prompt hidden, logged at
+  info level) until the Edge listing URL and the AMO slug are confirmed.
+- Snooze timing is pure in `src/background/snooze.js`; `GET_STATUS` is
+  answered by `src/background/status.js`. Browser startup clears a leftover
+  snooze and its alarm.
+
 ---
 
 ## G5 — Trust, portability, release engineering and store presence

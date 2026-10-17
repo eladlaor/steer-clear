@@ -1,6 +1,6 @@
 # Privacy Policy — Steer Clear
 
-**Last updated:** 2026-10-02
+**Last updated:** 2026-10-17
 
 ## Table of Contents
 
@@ -37,8 +37,15 @@ your browser and, if you have Chrome Sync enabled, synchronized across your own
 signed-in Chrome installations by Google as part of your Chrome profile. It is
 never sent to the developer or to any third party.
 
-Temporary "continue anyway" passes are stored using Chrome's `storage.session`
-API and are erased when you close the browser.
+Temporary "continue anyway" passes, and a snooze you start from the toolbar
+popup, are stored using Chrome's `storage.session` API and are erased when you
+close the browser.
+
+A few one-time flags are kept in `storage.local` on this device only: when you
+finished the welcome page, and whether the pause page's "this screen changes"
+note and the request to rate Steer Clear have been shown or answered. They
+contain no browsing data, are not synchronized, and are not erased with your
+statistics. Uninstalling the extension removes them.
 
 ### Your interception history
 
@@ -85,7 +92,8 @@ extension package.
 |---|---|
 | `declarativeNetRequest` | To redirect navigations to the domains you configure toward the extension's own reminder page. Rules are supplied to Chrome declaratively; the extension does not observe or receive the requests themselves. |
 | `storage` | To save your settings, and to hold temporary bypass passes for the current browser session. |
-| `alarms` | To restore a reminder automatically when a temporary bypass expires. |
+| `alarms` | To restore a reminder automatically when a temporary bypass or a snooze ends. |
+| `activeTab` | Only when you click the toolbar button: to read the address of the tab you are on, so the popup can offer "Steer clear of" that site. Nothing is stored unless you add the site, and adding it asks for access to that site alone. |
 | Site access (optional host permissions) | Chrome only lets an extension redirect a site it has access to. Steer Clear asks for access to each site individually, at the moment you add that site in settings, and holds no access to any site you have not entered. Removing a site from your list gives its access back. The extension uses this access only to redirect; it injects no scripts and does not read page content on any site. |
 
 ---

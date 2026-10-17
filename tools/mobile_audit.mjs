@@ -3,8 +3,9 @@
  * Phone-width audit of every extension page.
  *
  * Loads src/ unpacked in Playwright's Chromium, emulating a touch phone at
- * MOBILE_VIEWPORT (360x740), seeds demo data, opens each page in each state
- * worth checking, and fails when:
+ * MOBILE_VIEWPORT (360x740), audits onboarding as a new user sees it, seeds
+ * demo data, opens each page (pause, settings, stats, popup, onboarding) in
+ * each state worth checking, and fails when:
  *
  *   - the page is wider than the phone (documentElement.scrollWidth >
  *     MOBILE_VIEWPORT.width). Measured against the device width, not
@@ -90,7 +91,8 @@ function demoEvents(now) {
  */
 function advanceVariant(base, host) {
   return async (page) => {
-    await page.goto(`${base}/stats/stats.html`);
+    // Not the stats page: opening it would count as a rating-banner showing.
+    await page.goto(`${base}/options/options.html`);
     await page.evaluate(async (key) => {
       const { stats } = await chrome.storage.local.get('stats');
       stats.totals[key] = (stats.totals[key] ?? 0) + 1;
@@ -139,7 +141,59 @@ function auditStates(base) {
         for (const summary of await page.locator('details > summary').all()) await summary.click();
       },
     },
-    { name: 'stats', url: `${base}/stats/stats.html` },
+    { name: 'stats (with the rating banner)', url: `${base}/stats/stats.html`, expect: '.rating' },
+    { name: 'onboarding (sites synced from another device)', url: `${base}/onboarding/onboarding.html`, expect: '#synced' },
+    { name: 'popup (on its own tab: no quick-add)', url: `${base}/popup/popup.html`, expect: '.rating' },
+    {
+      name: 'popup (quick-add for the active tab)',
+      init: () => {
+        chrome.tabs.query = async () => [{ id: 1, url: 'https://www.a-very-long-subdomain-name.example-with-a-long-domain.org/' }];
+      },
+      url: `${base}/popup/popup.html`,
+      expect: '#quick-add-button',
+    },
+    {
+      name: 'popup (snoozed)',
+      expect: '#resume',
+      before: async (page) => {
+        await page.goto(`${base}/popup/popup.html`);
+        await page.evaluate(() => chrome.runtime.sendMessage({ type: 'SET_SNOOZE', minutes: 15 }));
+      },
+      url: `${base}/popup/popup.html`,
+    },
+  ];
+}
+
+/**
+ * Onboarding as a new user sees it, audited before any data is seeded.
+ *
+ * @param {string} base The extension origin.
+ */
+function freshStates(base) {
+  const url = `${base}/onboarding/onboarding.html`;
+  const pick = async (page) => {
+    for (const host of ['reddit.com', 'youtube.com', 'temu.com']) {
+      await page.locator(`.chip[data-host="${host}"]`).click();
+    }
+    await page.fill('#domain-input', LONG_HOST);
+    await page.click('#add-domain button[type="submit"]');
+  };
+  return [
+    { name: 'onboarding (nothing picked)', url },
+    { name: 'onboarding (sites picked, one typed)', url, prepare: pick, expect: '.picked-item' },
+    {
+      name: 'onboarding (turned on)',
+      // The browser's own permission prompt cannot be clicked by automation.
+      init: () => {
+        chrome.permissions.request = async () => true;
+      },
+      url,
+      prepare: async (page) => {
+        await pick(page);
+        await page.click('#turn-on');
+      },
+      expect: '#try-it',
+    },
   ];
 }
 
@@ -207,8 +261,12 @@ function measurePage({ deviceWidth, minTarget, tolerance }) {
  * Audit one page state.
  *
  * @param {object} context
- * @param {{name: string, url: string, before?: Function, prepare?: Function}} state
- *   `before` stages data before the page loads; `prepare` runs after.
+ * @param {{name: string, url: string, init?: Function, before?: Function, prepare?: Function,
+ *   expect?: string}} state
+ *   `init` runs in the page before its own scripts (to stand in for what
+ *   automation cannot do, such as a permission prompt); `before` stages data
+ *   before the page loads; `prepare` runs after. `expect` is a selector that
+ *   must be visible, so a state that did not render is not audited as passing.
  * @returns {Promise<string[]>} Problems found.
  */
 async function auditState(context, state) {
@@ -217,6 +275,7 @@ async function auditState(context, state) {
   page.on('pageerror', (error) => errors.push(`uncaught error: ${error.message}`));
 
   try {
+    if (state.init) await page.addInitScript(state.init);
     if (state.before) await state.before(page);
     await page.goto(state.url);
     await page.waitForLoadState('networkidle');
@@ -224,6 +283,10 @@ async function auditState(context, state) {
     if (state.prepare) {
       await state.prepare(page);
       await page.waitForTimeout(SETTLE_MS);
+    }
+
+    if (state.expect && !(await page.locator(state.expect).first().isVisible())) {
+      errors.push(`expected ${state.expect} to be visible: the state did not render`);
     }
 
     const { problems, checked } = await page.evaluate(measurePage, {
@@ -247,17 +310,23 @@ async function main() {
   });
 
   try {
+    const failures = [];
+    const audit = async (states) => {
+      for (const state of states) {
+        for (const problem of await auditState(context, state)) {
+          failures.push(`${state.name}: ${problem}`);
+        }
+      }
+    };
+
+    await audit(freshStates(base));
+
     const seedPage = await context.newPage();
     await seedPage.goto(`${base}/options/options.html`);
     await seedDemoData(seedPage, { ...DEMO, events: demoEvents(Date.now()) });
     await seedPage.close();
 
-    const failures = [];
-    for (const state of auditStates(base)) {
-      for (const problem of await auditState(context, state)) {
-        failures.push(`${state.name}: ${problem}`);
-      }
-    }
+    await audit(auditStates(base));
 
     if (failures.length > 0) {
       throw new Error(`${failures.length} problem(s) at ${MOBILE_VIEWPORT.width}x${MOBILE_VIEWPORT.height}:\n  ${failures.join('\n  ')}`);

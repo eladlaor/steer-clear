@@ -121,8 +121,12 @@ Used to persist the user's own settings: the list of domains they added, the
 destination they chose, and the reminder note they wrote. Stored via
 storage.sync so settings follow the user's Chrome profile.
 
-storage.session additionally holds temporary "continue anyway" passes, which are
-discarded when the browser closes.
+storage.session additionally holds temporary "continue anyway" passes and a
+running snooze, which are discarded when the browser closes.
+
+storage.local also holds a few one-time flags for this device (when the welcome
+page was completed, and whether the variation notice and the rating prompt
+have been shown or answered). They contain no browsing data.
 
 storage.local holds the interception history shown on the extension's own
 statistics page: for each redirect, the user-configured domain and a timestamp.
@@ -137,7 +141,19 @@ that page. No data is transmitted anywhere.
 When a user grants a temporary 5-minute bypass, the corresponding redirect rule
 is removed. An alarm scheduled for the expiry time reinstates it. Without alarms
 the bypass would persist indefinitely, silently disabling the feature the user
-installed the extension for.
+installed the extension for. The same applies to a snooze the user starts from
+the toolbar popup ("pause all reminders for 15, 30 or 60 minutes"): an alarm
+brings the reminders back when it ends.
+```
+
+### `activeTab`
+
+```
+When the user clicks the toolbar button, the popup offers "Steer clear of
+<this site>" for the tab they are on. activeTab lets the popup read that one
+tab's address, only after that click. Nothing is read or stored unless the
+user then adds the site, and adding it asks for access to that site alone.
+activeTab carries no install-time warning and grants nothing in the background.
 ```
 
 ### Host permissions
@@ -237,16 +253,19 @@ https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY
 |---|---|---|
 | Store icon | 128×128 PNG | `src/icons/icon-128.png` — must be uploaded separately on the Store listing tab |
 | Toolbar icons | 16/32/48 PNG | Present — 16px is muddy; redraw when convenient |
-| Screenshot | 1280×800 or 640×400 PNG, at least 1, up to 5 | Present — three in `store/screenshots/`, upload in numbered order. Regenerate with `node tools/screenshots.mjs` |
-| Small promo tile | 440×280 PNG | Optional |
+| Screenshot | 1280×800 or 640×400 PNG, at least 1, up to 5 | Present — five in `store/screenshots/`, upload in numbered order. Regenerate with `node tools/screenshots.mjs` |
+| Small promo tile | 440×280 PNG | Present — `store/screenshots/promo-small-440x280.png`, generated with the screenshots |
 | Marquee promo tile | 1400×560 PNG | Optional |
 
-**The three in `store/screenshots/`**, upload in this order:
+**The five in `store/screenshots/`**, upload in this order:
 
 1. `1-reminder.png` — the reminder page with a real note; this is the product
-2. `2-settings.png` — settings with the defaults filled in and two sites listed
-3. `3-patterns.png` — the statistics page, which also makes the local-only
+2. `2-breathing.png` — the breathing pause style, with the site's own reason
+3. `3-settings.png` — settings with two sites listed
+4. `4-patterns.png` — the statistics page, which also makes the local-only
    data story concrete for a reviewer reading the privacy disclosures
+5. `5-popup.png` — the toolbar popup: today, quick-add for the current site,
+   and snooze
 
 ---
 

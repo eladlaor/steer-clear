@@ -104,19 +104,23 @@ filled in any order, but all must be complete before Submit unlocks.
 package is not used for the listing; without this upload the dashboard blocks
 publishing with "Icon image is missing".
 
-**Screenshots:** upload all three from `store/screenshots/`, in this order:
+**Screenshots:** upload all five from `store/screenshots/`, in this order:
 
 They are generated, not hand-made: `node tools/screenshots.mjs` loads `src/`
-in Chromium, seeds the demo persona, and writes all three at exactly 1280×800.
+in Chromium, seeds the demo persona, and writes all five at exactly 1280×800,
+plus the 440×280 small promo tile.
 Re-run it after any UI change. Use `--out <dir>` to preview without
 overwriting the committed set.
 
 1. `1-reminder.png` — the reminder page; this is the product, so it leads
-2. `2-settings.png` — settings, showing the model is comprehensible
-3. `3-patterns.png` — statistics, which also makes the local-only data story
+2. `2-breathing.png` — the breathing pause style
+3. `3-settings.png` — settings, showing the model is comprehensible
+4. `4-patterns.png` — statistics, which also makes the local-only data story
    concrete for a reviewer who is about to read the privacy disclosures
+5. `5-popup.png` — the toolbar popup: quick-add, today, snooze
 
-Promotional tiles are optional. Skip them for a first submission.
+The small promo tile is `promo-small-440x280.png`; upload it before a Featured
+nomination.
 
 ---
 

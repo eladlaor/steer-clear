@@ -73,18 +73,26 @@ npx playwright install chromium
 node tools/mobile_audit.mjs
 ```
 
-The audit loads `src/` unpacked in Chromium emulating a touch phone at 360×740,
-seeds demo data, and checks the reminder page (several states), the settings
-page with every site expanded, and the statistics page. It fails on sideways
-scrolling, on any visible interactive element smaller than 44×44 CSS px (a
-checkbox is measured by its label), on an uncaught page error, and on a page
-with no interactive element at all. Links displayed inline inside a sentence are
+The audit loads `src/` unpacked in Chromium emulating a touch phone at 360×740.
+It first checks onboarding as a new user sees it (nothing picked, sites picked,
+turned on), then seeds demo data and checks the reminder page (several states),
+the settings page with every site expanded, the statistics page with the rating
+banner, onboarding with synced sites, and the toolbar popup (with and without
+quick-add, and snoozed). It fails on sideways scrolling, on any visible
+interactive element smaller than 44×44 CSS px (a checkbox is measured by its
+label), on an uncaught page error, on a page with no interactive element at
+all, and on a state whose expected element did not render. The browser's own
+permission prompt cannot be clicked by automation, so the "turned on" and
+quick-add states stand in for it inside the audited page only. Links displayed inline inside a sentence are
 exempt, following WCAG 2.5.8.
 
 Playwright cannot load a Firefox extension, so Firefox and Firefox for Android
 layouts are covered by the manual checks in the plan (G1 M3 and M4).
 
 `tools/screenshots.mjs` uses the same loader (`tools/extension_harness.mjs`).
+It writes the five 1280×800 listing screenshots and the 440×280 small promo
+tile to `store/screenshots/` (or `--out <dir>`), and fails if any file is not
+exactly that size.
 
 ---
 
