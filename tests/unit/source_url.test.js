@@ -48,6 +48,18 @@ test('decodes an encoded value exactly once', () => {
   assert.equal(extractSourceUrl(`${PAGE}?from=${encodeURIComponent(original)}`), original);
 });
 
+test('keeps a raw fragment the browser appended after an encoded value', () => {
+  // A request URL carries no fragment, so the redirect cannot encode it; the
+  // browser re-attaches the original fragment to the redirect target as-is.
+  // Decoding it again would turn "%20" into a space and "%23" into "#".
+  const query = 'https://example.com/a?x=1&y=2';
+  const fragment = '#sec%20one%23two';
+  assert.equal(
+    extractSourceUrl(`${PAGE}?from=${encodeURIComponent(query)}${fragment}`),
+    `${query}${fragment}`
+  );
+});
+
 test('treats the encoded scheme case-insensitively', () => {
   assert.equal(extractSourceUrl(`${PAGE}?from=HTTPS%3a%2F%2Fexample.com%2F`), 'HTTPS://example.com/');
 });

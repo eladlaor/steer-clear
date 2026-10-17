@@ -31,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - The reminder page keeps the full original address, including everything
   after an `&` and any `#fragment`, whether or not the browser percent-encodes
-  it, so "continue" returns to the exact page that was requested.
+  it, so "continue" returns to the exact page that was requested. A fragment the
+  browser re-attaches after an encoded address is kept exactly as typed.
 
 ### Removed
 

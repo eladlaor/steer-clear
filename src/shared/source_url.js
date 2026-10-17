@@ -18,6 +18,9 @@ const FROM_MARKER = `?${PARAM_FROM}=`;
 /** An encoded value starts with an http(s) scheme whose colon is escaped. */
 const ENCODED_SCHEME = /^https?%3A/i;
 
+/** Starts a URL fragment. */
+const FRAGMENT_MARKER = '#';
+
 /**
  * Extract the original http(s) URL from the reminder page's href.
  *
@@ -42,8 +45,14 @@ export function extractSourceUrl(href) {
 
   let candidate = raw;
   if (ENCODED_SCHEME.test(raw)) {
+    // An encoded value has its own '#' escaped, so a raw '#' can only be the
+    // original fragment the browser re-attached after the redirect. It was
+    // never encoded, so it must not be decoded.
+    const hashAt = raw.indexOf(FRAGMENT_MARKER);
+    const encoded = hashAt === -1 ? raw : raw.slice(0, hashAt);
+    const fragment = hashAt === -1 ? '' : raw.slice(hashAt);
     try {
-      candidate = decodeURIComponent(raw);
+      candidate = decodeURIComponent(encoded) + fragment;
     } catch {
       // Malformed escapes: not a URL the redirect could have produced.
       return null;

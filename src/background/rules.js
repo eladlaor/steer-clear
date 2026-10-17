@@ -153,8 +153,10 @@ export function buildRules(
       action: {
         type: 'redirect',
         redirect: {
-          // \0 expands to the entire matched URL. It is percent-encoded by
-          // Chrome when substituted into a query parameter position.
+          // \0 expands to the entire matched URL. Chrome substitutes it
+          // unencoded (observed on Chromium 1248), so it may contain '&' and
+          // '#'; the reminder page reads it with extractSourceUrl, never
+          // URLSearchParams.
           regexSubstitution: `${interstitialUrl}?${PARAM_FROM}=\\0`,
         },
       },
