@@ -1,4 +1,4 @@
-# Submitting Steer Clear to the Chrome Web Store
+# Submitting Steer Clear to the Stores
 
 ## Table of Contents
 
@@ -12,6 +12,9 @@
 - [Step 5 — Submit](#step-5--submit)
 - [After submitting](#after-submitting)
 - [If it is rejected](#if-it-is-rejected)
+- [Updating the Chrome item to 2.0.0](#updating-the-chrome-item-to-200)
+- [Edge Add-ons](#edge-add-ons)
+- [Firefox Add-ons (AMO)](#firefox-add-ons-amo)
 
 ---
 
@@ -26,6 +29,13 @@ and discovering that with a half-filled form is annoying.
 
 Paste-ready text for every field is in `store/LISTING.md`. Where this document
 says "paste the X block", that is where X lives.
+
+Steps 0–5 are the Chrome Web Store walkthrough that shipped 1.0.0. Version
+2.0.0 is an update of that item (see
+[Updating the Chrome item to 2.0.0](#updating-the-chrome-item-to-200)), and
+the same version goes to Edge Add-ons and addons.mozilla.org with
+`store/LISTING_EDGE.md` and `store/LISTING_FIREFOX.md`. Build both packages
+with `node tools/build.mjs`.
 
 ---
 
@@ -42,6 +52,9 @@ As of 2026-10-16 — **approved and live on the Web Store; not yet announced**:
 | Submitted | **Done, 2026-10-02.** Version 1.0.0, item ID `fooahacimdgjcfoofpijkpmgiaghinbn` |
 | Review | **Passed.** Listing is live at `https://chromewebstore.google.com/detail/steer-clear/fooahacimdgjcfoofpijkpmgiaghinbn` (verified 2026-10-15) |
 | Public launch announcement | **Not yet.** Held pending competitive research; the draft is in `store/LISTING.md` |
+| 2.0.0 package and listing text | **Ready on the branch** (2026-10-17): `dist/steer-clear-chrome-2.0.0.zip`, `dist/steer-clear-firefox-2.0.0.zip`, `store/LISTING*.md`. Not uploaded |
+| Edge Add-ons | **Not started.** Partner Center account and the 1.0.0 upload come first (`store/LISTING_EDGE.md`) |
+| Firefox Add-ons | **Not started.** Slug `steer-clear` free on 2026-10-17; ask AMO about the data-collection category first (`store/LISTING_FIREFOX.md`) |
 
 ---
 
@@ -137,6 +150,7 @@ The tab that decides how long review takes. Every field here has prepared text.
 | `declarativeNetRequest` | the **`declarativeNetRequest`** block |
 | `storage` | the **`storage`** block |
 | `alarms` | the **`alarms`** block |
+| `activeTab` (2.0.0) | the **`activeTab`** block |
 | Host permissions | the **Host permissions** block |
 
 **Remote code** — answer **No**, and paste the **Remote code use** block.
@@ -222,3 +236,57 @@ whose version has not increased.
 
 Paste the rejection text into the working session and the fix can be made
 directly.
+
+---
+
+## Updating the Chrome item to 2.0.0
+
+1. Run the release checks in `knowledge/usage_guides/DEVOPS_GUIDE.md`
+   ("Release to the three stores"), including `node tools/upgrade_check.mjs`.
+2. Dashboard → the item → **Package** → **Upload new package** →
+   `dist/steer-clear-chrome-2.0.0.zip`.
+3. **Store listing:** replace the short and detailed descriptions with the
+   2.0.0 blocks in `store/LISTING.md`; upload the five screenshots again and the
+   small promo tile.
+4. **Privacy practices:** add the `activeTab` justification; replace the
+   `storage`, `alarms` and host-permission blocks with the 2.0.0 text; keep the
+   data-use answers (re-checked for 2.0.0 in `store/LISTING.md`).
+5. Re-check the comparison sentence (`knowledge/setup/STORE_PRESENCE.md`), then
+   submit. Adding `activeTab` shows no install warning, so existing users are
+   not asked to re-approve.
+
+---
+
+## Edge Add-ons
+
+1. Create a Microsoft Partner Center developer account (free) and open the
+   Edge program.
+2. **Create new extension** → upload the package: first the 1.0.0 zip with the
+   1.0.0 subset of the copy, then `dist/steer-clear-chrome-2.0.0.zip`.
+3. **Availability:** public, all markets.
+4. **Properties:** category, privacy policy URL, website and support contact
+   from `store/LISTING_EDGE.md`.
+5. **Store listings:** English; description, search terms, logo, screenshots
+   and the small promo tile from `store/LISTING_EDGE.md`.
+6. Paste the certification notes and publish.
+7. Once live: set `STORE_REVIEW_URL.edge` in `src/constants.js` and record the
+   listing URL and date in the status table above.
+
+---
+
+## Firefox Add-ons (AMO)
+
+1. Confirm the add-on id `steer-clear@eladlaor` (permanent after the first
+   upload) and that the slug `steer-clear` is still free.
+2. Ask AMO about the data-collection declaration for `storage.sync`
+   (`store/LISTING_FIREFOX.md`); change the manifest and the privacy policy
+   together if the answer requires it.
+3. Run `npx --yes web-ext@10.7.0 lint --source-dir dist/firefox --warnings-as-errors`.
+4. addons.mozilla.org → **Developer Hub** → **Submit a New Add-on** → **On this
+   site** → upload `dist/steer-clear-firefox-2.0.0.zip`; platforms Firefox and
+   Firefox for Android.
+5. Source code: answer that none is needed (no minification or bundling).
+6. Describe the add-on: the fields in `store/LISTING_FIREFOX.md`, slug
+   `steer-clear`, the privacy policy text, and the notes to the reviewer.
+7. Once live: confirm the listing URL matches `STORE_REVIEW_URL.firefox`, and
+   record it and the date in the status table above.

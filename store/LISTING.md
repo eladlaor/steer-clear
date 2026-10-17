@@ -3,8 +3,10 @@
 ## Table of Contents
 
 - [Summary](#summary)
+- [Copy rules (all three stores)](#copy-rules-all-three-stores)
 - [Listing fields](#listing-fields)
 - [Permission justifications](#permission-justifications)
+- [What is stored and which tab functions are used](#what-is-stored-and-which-tab-functions-are-used)
 - [Submission walkthrough](#submission-walkthrough)
 - [Data-use disclosures](#data-use-disclosures)
 - [Assets checklist](#assets-checklist)
@@ -14,11 +16,38 @@
 
 ## Summary
 
-Copy-paste-ready text for every field of the Chrome Web Store submission form,
-plus the permission justifications reviewers require and a draft launch post.
-Every asset is prepared and the privacy policy is hosted; nothing blocks
-submission. See `knowledge/setup/SUBMISSION_STEPS.md` for
-current status.
+Copy-paste-ready text for every field of the Chrome Web Store form for
+version 2.0.0, plus the permission justifications reviewers require and a
+draft launch post. The Edge and Firefox listings reuse this copy:
+`store/LISTING_EDGE.md` and `store/LISTING_FIREFOX.md`. The copy rules below
+are enforced by `tests/unit/listing_copy.test.js`, and the disclosures by
+`tests/unit/privacy_disclosures.test.js`. Release status is in
+`knowledge/setup/SUBMISSION_STEPS.md`; store-presence work (Featured
+nomination, promo video, category test) is in
+`knowledge/setup/STORE_PRESENCE.md`.
+
+---
+
+## Copy rules (all three stores)
+
+- **Benefit first.** The first line is: "A nudge in your own words, not a
+  wall: your own reason, one click to something better, and you're never
+  locked out."
+- **Search phrases.** The description uses "stop doomscrolling", "block
+  distracting sites" and "mindless browsing", the phrases people type.
+- **Who it is for, and not for.** It names "people who check social and news
+  sites on autopilot" and says "Not for you if you want sites locked: Steer
+  Clear always lets you through."
+- **One comparison, in exactly these words:** "Asks for access only to the
+  sites you add, unlike one sec, LeechBlock NG and Freedom's Pause." Before
+  each submission it is checked against those extensions' current manifests,
+  and the date is recorded in `knowledge/setup/STORE_PRESENCE.md`. Never say
+  Steer Clear is the only or the first to do this: Intention also asks per
+  site.
+- **No health claims.** Nothing about brain chemistry, attention disorders or
+  any medical condition, and no promise to fix or heal anything; the banned
+  words are listed in `tests/unit/listing_copy.test.js`. The allowed phrasing
+  is "Built for people who get pulled off-task".
 
 ---
 
@@ -33,52 +62,56 @@ Steer Clear
 ### Short description (132 char max)
 
 ```
-Catch the reflex. Sites you'd rather not open show you your own reason first, and one click to somewhere you'd rather be.
+A nudge in your own words, not a wall: your own reason, one click to something better, and you're never locked out.
 ```
 
-*(120 characters.)*
+*(115 characters.)*
 
 ### Detailed description
 
 ```
+A nudge in your own words, not a wall: your own reason, one click to something better, and you're never locked out.
+
 You didn't decide to open that site. Your fingers did.
 
-Steer Clear puts one small pause between the habit and the page. When you
-navigate to a site on your list, you get a quiet reminder instead — showing you
-the reason you wrote for yourself, and a single click to wherever you'd rather
-have gone.
+Steer Clear is for people who check social and news sites on autopilot. When
+you go to a site on your list, you get a short pause instead of the page: the
+reason you wrote for yourself, one click to wherever you'd rather be, and a
+"continue anyway" button that works.
 
-It is not a blocker. There is a "continue anyway" button, and it works. The
-point isn't to lock you out of the internet; it's to make an automatic action
-into a decision you actually make. Most of the time, seeing your own words is
-enough.
+If you want to stop doomscrolling and cut down on mindless browsing, but every
+tool that tries to block distracting sites ends up switched off, this is the
+gentler version. It asks once, in your own words, and then lets you decide.
+
+Not for you if you want sites locked: Steer Clear always lets you through.
 
 HOW IT WORKS
 
-• Add the sites that pull you in — ynet.co.il, x.com, whatever yours are
-• Write yourself a note explaining why, in your own words
+• Add the sites that pull you in, from the toolbar button or the welcome page
+• Write a reason for each, in your own words (up to five, shown in turn)
 • Pick where you'd rather land instead
-• Navigate there out of habit, and get your reminder rather than the page
+• Go there out of habit, and get your pause rather than the page
 
-MADE TO BE HONEST
+STAYS NOTICEABLE AFTER THE FIRST WEEK
 
-• Continue anyway takes one click and lasts 5 minutes
-• Uninstall whenever you want — this is your speed bump, not a cage
-• Per-site destinations and notes, if you want different reasons for different
-  habits, or one setting for everything
+• The pause screen changes its layout, colour and wording each time, so it
+  keeps being read
+• Pause styles: your reason, a paced breath, or "What did you come here for?"
+• Schedules per site (say, weekdays 9 to 5), a snooze, and an optional daily
+  limit that makes the pause longer once you have continued enough times
+• "Continue anyway" lasts 1, 5, 15 or 30 minutes; the toolbar badge shows the
+  minutes left, and the pause can come back when the time is up
+• A statistics page shows how often you steered clear, kept on your device
 
 PRIVATE BY CONSTRUCTION
 
-• No servers. No accounts. No network requests at all
-• Your settings and your history stay in your browser
-• It counts how often it steered you away, so you can see your own patterns —
-  stored on your device only, auto-deleted after 90 days, erasable in one click
-• It records only the domains you typed in yourself, never the pages you visit
-• Fully open source
-
-Steer Clear asks for access only to the specific sites you add, one at a time,
-when you add them. It cannot read page content on any site, and it knows only
-the domains you typed into it yourself.
+• No servers. No accounts. No analytics. No network requests at all
+• Asks for access only to the sites you add, unlike one sec, LeechBlock NG and Freedom's Pause.
+• Your history stays on this device, is deleted after 90 days, and can be
+  erased in one click
+• Export your settings to a file to move them to another browser
+• Works in Chrome, Edge and Firefox (including Firefox for Android)
+• Open source under the MIT license
 ```
 
 ### Category
@@ -86,6 +119,9 @@ the domains you typed into it yourself.
 ```
 Productivity
 ```
+
+Category test: 4 weeks in the current category, then 4 weeks in "Workflow &
+Planning". The log and the decision are in `knowledge/setup/STORE_PRESENCE.md`.
 
 ### Language
 
@@ -103,13 +139,13 @@ Reviewers reject vague answers. These are specific and map to actual code.
 
 ```
 Steer Clear redirects top-level navigations to domains the user has explicitly
-added in the extension's own settings page. Each configured domain becomes one
-declarative redirect rule pointing at a reminder page bundled inside the
-extension package (blocked/blocked.html).
+added in the extension's own settings, popup or welcome page. Each configured
+domain becomes one declarative redirect rule pointing at a pause page bundled
+inside the extension package (blocked/blocked.html).
 
 Rules are supplied to Chrome declaratively, so the extension never observes,
 receives, or intercepts the requests themselves. Only main_frame requests are
-matched — subresources, XHR, and third-party requests are untouched. Redirect
+matched; subresources, XHR, and third-party requests are untouched. Redirect
 destinations are always the extension's own local page; the extension never
 redirects to any external or developer-controlled address.
 ```
@@ -117,33 +153,35 @@ redirects to any external or developer-controlled address.
 ### `storage`
 
 ```
-Used to persist the user's own settings: the list of domains they added, the
-destination they chose, and the reminder note they wrote. Stored via
-storage.sync so settings follow the user's Chrome profile.
-
-storage.session additionally holds temporary "continue anyway" passes and a
-running snooze, which are discarded when the browser closes.
-
-storage.local also holds a few one-time flags for this device (when the welcome
-page was completed, and whether the variation notice and the rating prompt
-have been shown or answered). They contain no browsing data.
+storage.sync holds the user's own settings: the domains they added, their
+reasons, the destination they chose, and their pause preferences (keys
+"schema", "settings" and one "site:<id>" item per site; the 1.x "config" item
+is read but never written).
 
 storage.local holds the interception history shown on the extension's own
-statistics page: for each redirect, the user-configured domain and a timestamp.
-It is kept out of storage.sync deliberately so it never leaves the device,
-individual records expire after 90 days, and the user can erase all of it from
-that page. No data is transmitted anywhere.
+statistics page ("stats": for each pause, the user-configured domain, a
+timestamp, which choice was made, and a random id for the pause page) and a
+few one-time flags ("lifecycle": welcome page finished, notice shown, rating
+prompt answered). It is kept out of storage.sync deliberately so it never
+leaves the device; history records expire after 90 days and the user can
+erase all of it.
+
+storage.session holds state that must end with the browser: running "continue
+anyway" passes ("bypasses"), which tabs show the minutes left ("badgedTabs",
+tab numbers only), a running snooze ("snooze"), and, only when saved settings
+cannot be read, the rules a pass removed so they can be restored
+("liftedRules"). No data is transmitted anywhere.
 ```
 
 ### `alarms`
 
 ```
-When a user grants a temporary 5-minute bypass, the corresponding redirect rule
-is removed. An alarm scheduled for the expiry time reinstates it. Without alarms
-the bypass would persist indefinitely, silently disabling the feature the user
-installed the extension for. The same applies to a snooze the user starts from
-the toolbar popup ("pause all reminders for 15, 30 or 60 minutes"): an alarm
-brings the reminders back when it ends.
+When a user grants a temporary "continue anyway" pass (1 to 30 minutes), the
+corresponding redirect rule is removed. An alarm at the expiry time reinstates
+it; without it the pass would never end. Alarms also: tick the toolbar badge
+once a minute to show the minutes left on a pass; end a snooze the user
+started from the toolbar popup; switch reminders on and off at the start and
+end of a per-site schedule; and delete history older than 90 days.
 ```
 
 ### `activeTab`
@@ -151,9 +189,10 @@ brings the reminders back when it ends.
 ```
 When the user clicks the toolbar button, the popup offers "Steer clear of
 <this site>" for the tab they are on. activeTab lets the popup read that one
-tab's address, only after that click. Nothing is read or stored unless the
-user then adds the site, and adding it asks for access to that site alone.
-activeTab carries no install-time warning and grants nothing in the background.
+tab's address (tabs.query on the active tab), only after that click. Nothing
+is read or stored unless the user then adds the site, and adding it asks for
+access to that site alone. activeTab carries no install-time warning and
+grants nothing in the background.
 ```
 
 ### Host permissions
@@ -161,27 +200,27 @@ activeTab carries no install-time warning and grants nothing in the background.
 ```
 Redirecting a navigation requires host access to the site being redirected, so
 Steer Clear requests access to each site individually, at the moment the user
-adds that site in the extension's settings page. Nothing is granted at install
-time and the extension holds no access to any site the user has not personally
-entered.
+adds that site. Nothing is granted at install time and the extension holds no
+access to any site the user has not personally entered.
 
 The broad pattern appears under optional_host_permissions rather than
 host_permissions precisely so that no blanket grant exists: the user's list is
-theirs to define, and a fixed list in the manifest would mean shipping an update
-every time someone wanted to add a domain. A site the user has not granted
-produces no redirect rule at all, and the settings page shows it as inactive
-with a button to grant access.
+theirs to define. A site the user has not granted produces no redirect rule at
+all, and the settings page shows it as inactive with a button to grant access.
 
-Access is used solely to redirect top-level navigations to the extension's own
-bundled reminder page. The extension injects no content scripts and reads no
-page content on any site.
+Access is used to redirect top-level navigations to the extension's own
+bundled pause page, and to find the tabs open on a site whose pass is running
+or has ended (tabs.query), to update the toolbar badge and, only if the user
+opted in, to send those tabs back to the pause page (tabs.update). The
+extension injects no content scripts and reads no page content on any site.
 ```
 
 ### Single-purpose statement
 
 ```
-Steer Clear has one purpose: to redirect user-specified websites to a reminder
-page inside the extension, so the user can reconsider before continuing.
+Steer Clear has one purpose: to show a pause page, in the user's own words,
+before user-specified websites load, so the user can reconsider before
+continuing.
 ```
 
 ### Remote code use
@@ -190,6 +229,36 @@ page inside the extension, so the user can reconsider before continuing.
 No. All code is contained in the extension package. No remote code is loaded or
 executed.
 ```
+
+---
+
+## What is stored and which tab functions are used
+
+The same facts as `store/PRIVACY_POLICY.md`, for reviewers on every store.
+
+| What | Where | Notes |
+|---|---|---|
+| Settings and sites | `storage.sync`: `schema`, `settings`, `site:<id>` (1.x `config` read only) | Synced only by the browser's own sync |
+| `stats` | `storage.local` | Domain, time, choice, random page id; 90-day records; erasable |
+| `lifecycle` | `storage.local` | Welcome done, notice shown, rating answered |
+| `bypasses` | `storage.session` | Running passes; gone when the browser closes |
+| `badgedTabs` | `storage.session` | Tab numbers showing a badge |
+| `snooze` | `storage.session` | When a snooze ends |
+| `liftedRules` | `storage.session` | Only when settings cannot be read |
+
+| Permission | Use |
+|---|---|
+| `declarativeNetRequest` | Redirect listed sites to the bundled pause page |
+| `storage` | The keys above |
+| `alarms` | End passes and snoozes, badge tick, schedules, history pruning |
+| `activeTab` | The popup reads the current tab's address after a click |
+
+| Tab function | Use |
+|---|---|
+| `tabs.query` | Find tabs on a site with a running or ended pass (badge); the popup reads the active tab |
+| `tabs.update` | Opt-in return of the pause when a pass ends; the welcome page's "Try it" |
+| `tabs.getCurrent` | The welcome page finds its own tab for "Try it" |
+| `tabs.create` | Open the welcome page on install, and statistics from the popup |
 
 ---
 
@@ -217,21 +286,27 @@ In the Privacy practices tab, declare:
 | Website content? | **No** |
 
 **On the two "Yes" answers.** The statistics feature records the date and time
-of each interception, against the domain the user themselves configured. That is
-timestamped activity data, and answering "No" because it never leaves the device
-would be false: these questions ask what the extension *collects*, not what it
-transmits. A disclosure that turns out to be inaccurate is grounds for takedown
-after publication, which is a far worse outcome than declaring accurately now.
+of each pause against the domain the user configured, and, since 1.1, which
+button the user chose on the pause page. That is timestamped activity data,
+and answering "No" because it never leaves the device would be wrong: these
+questions ask what the extension *collects*, not what it transmits. A
+disclosure that turns out to be inaccurate is grounds for takedown after
+publication, which is a far worse outcome than declaring it correctly now.
+
+Re-checked for 2.0.0 on 2026-10-17: nothing typed on the pause page is stored,
+export files are created only on request and stay on the user's computer, and
+no new category applies.
 
 What is recorded is deliberately narrow, and the listing should say so in the
 justification field:
 
-> Steer Clear records the date and time it redirected you away from a site you
-> configured, so it can show you your own patterns. It records only the domain
-> you entered in settings — never the full address, the page, or anything you
-> searched for. It is never sent anywhere: it is stored locally, is excluded
-> from Chrome Sync by design, is deleted automatically after 90 days, and can be
-> erased permanently at any time from the extension's statistics page.
+> Steer Clear records the date and time it showed you a pause for a site you
+> configured, and which choice you made there, so it can show you your own
+> patterns. It records only the domain you entered in settings — never the
+> full address, the page, anything you searched for or anything you typed. It
+> is never sent anywhere: it is stored locally, is excluded from Chrome Sync
+> by design, is deleted automatically after 90 days, and can be erased
+> permanently at any time from the extension's statistics page.
 
 Then check all three certification boxes:
 
@@ -254,12 +329,13 @@ https://eladlaor.github.io/steer-clear/store/PRIVACY_POLICY
 | Store icon | 128×128 PNG | `src/icons/icon-128.png` — must be uploaded separately on the Store listing tab |
 | Toolbar icons | 16/32/48 PNG | Present — 16px is muddy; redraw when convenient |
 | Screenshot | 1280×800 or 640×400 PNG, at least 1, up to 5 | Present — five in `store/screenshots/`, upload in numbered order. Regenerate with `node tools/screenshots.mjs` |
-| Small promo tile | 440×280 PNG | Present — `store/screenshots/promo-small-440x280.png`, generated with the screenshots |
+| Small promo tile | 440×280 PNG | Present — `store/screenshots/promo-small-440x280.png`, generated with the screenshots. Upload before the Featured nomination |
+| Promo video | 30–60 s, YouTube link | Script in `knowledge/setup/STORE_PRESENCE.md`; not recorded yet |
 | Marquee promo tile | 1400×560 PNG | Optional |
 
 **The five in `store/screenshots/`**, upload in this order:
 
-1. `1-reminder.png` — the reminder page with a real note; this is the product
+1. `1-reminder.png` — the pause page with a real reason; this is the product
 2. `2-breathing.png` — the breathing pause style, with the site's own reason
 3. `3-settings.png` — settings with two sites listed
 4. `4-patterns.png` — the statistics page, which also makes the local-only
@@ -279,24 +355,24 @@ I kept typing ynet.co.il without deciding to.
 Not reading it. Just... arriving there. Fingers faster than intent, twenty times
 a day, then twenty minutes gone.
 
-The usual fixes didn't fit. Blockers are all-or-nothing, so you disable them the
-first time you actually need the site, and then never re-enable them. Redirects
+The usual fixes didn't fit. Blockers are all-or-nothing, so you switch them off
+when you actually need a site, and then never switch them back on. Redirects
 are invisible — you just retype the URL without noticing you did.
 
-So I built the smallest thing that seemed like it might work: a pause. Navigate
-to a site on your list and you get a page showing the reason you wrote for
+So I built the smallest thing that seemed like it might work: a pause. Go to a
+site on your list and you get a page showing the reason you wrote for
 yourself, plus one click to wherever you meant to go.
 
 There's a "continue anyway" button. It takes one click and it works. That's
 deliberate — the goal was never to lock myself out. It was to turn something
-automatic into something I decide. Turns out reading your own words back at the
-exact moment you're ignoring them does most of the work.
+automatic into something I decide. Reading your own words back at the exact
+moment you're ignoring them does most of the work.
 
 It's free, open source, and makes no network requests at all — no accounts, no
-analytics, and no permission to read any page you visit. Your list never leaves
-your browser.
+analytics, and it asks for access only to the sites you add. Your list never
+leaves your browser.
 
-Steer Clear, on the Chrome Web Store: [LINK]
+Steer Clear, for Chrome, Edge and Firefox: [LINK]
 Source: [LINK]
 
 Curious whether this generalizes. What's the site your fingers go to without

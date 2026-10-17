@@ -27,8 +27,10 @@ lasts 5 minutes by default (1, 5, 15 or 30 in settings) and dies with the
 browser.
 
 Unit tests cover the pure logic: `node --test tests/unit/*.js`. Store
-packages come from `node tools/build.mjs`; build, lint, phone-width audit and
-CI are described in `knowledge/usage_guides/DEVOPS_GUIDE.md`.
+packages come from `node tools/build.mjs`; build, lint, phone-width audit,
+the upgrade and import checks, CI and releasing to the three stores are
+described in `knowledge/usage_guides/DEVOPS_GUIDE.md`. The four usage guides
+(developer, user, DevOps, QA) are in `knowledge/usage_guides/`.
 
 Supported: Chrome 121+, Edge 121+, Firefox 140+ and Firefox for Android 142+.
 Chrome for Android and iOS browsers do not run extensions.
@@ -99,7 +101,7 @@ chrome.declarativeNetRequest.getDynamicRules().then(console.table)
 node --test tests/unit/*.js
 ```
 
-419 tests covering pattern normalization, regex generation, subdomain matching,
+536 tests covering pattern normalization, regex generation, subdomain matching,
 lookalike-domain rejection, rule construction (schedules and snooze included),
 schedules, outcome-tagged statistics and progress figures, the daily
 allowance, the settings schema, legacy
@@ -108,10 +110,17 @@ presentation and style rotation, the continue gate, bypass badges and tab
 return, palette contrast, the worker's message handlers (with `chrome.*`
 stubbed), snooze, install-time behavior (nothing written to sync), the
 rating prompt, onboarding presets, the add-site click handlers' call order,
-the cross-browser manifest, source-URL extraction, and browser detection. No dependencies; Node 20+.
+the cross-browser manifest and its exact permissions and version, source-URL
+extraction, browser detection, the degraded continue path when settings
+cannot be read, export and import, the store listing copy rules, the privacy
+disclosures, and every document's table of contents. Schema fixtures,
+including a config captured from a real 1.0.0 install, are in
+`tests/unit/fixtures/`. No dependencies; Node 20+.
 
-The Chrome-dependent surfaces (service worker, options page, interstitial) are
-verified manually via the table above — they need a real browser.
+Browser behavior is checked in Chromium by `tools/mobile_audit.mjs`,
+`tools/upgrade_check.mjs` (1.0.0 upgrade, corrupt item, rollback) and
+`tools/import_export_check.mjs`, and by hand with the matrix in
+`knowledge/usage_guides/QA_GUIDE.md` (Firefox needs the hand run).
 
 ---
 
@@ -124,10 +133,10 @@ Navigation to a blocked site
 declarativeNetRequest regex rule
         │  regexSubstitution: blocked.html?from=\0
         ▼
-blocked.html reads the config from chrome.storage.sync
+blocked.html asks the worker (GET_RESOLVED_SITE)
         │
-        ├── per-site target  ──► falls back to global target
-        ├── per-site reasons ──► fall back to default reasons
+        ├── per-site overrides ──► fall back to the defaults
+        ├── settings unreadable ──► defaults, degraded: continue still works
         │
         └── renders: your reason, [Go where I meant to], [Continue anyway]
 ```
@@ -138,10 +147,13 @@ cannot inject the originally-requested URL into a redirect through
 source URL requires `regexFilter` paired with `regexSubstitution`, where `\0`
 expands to the whole matched URL.
 
-**Rule ownership:** the service worker is the only writer of dynamic rules. The
-options page and interstitial mutate storage or send messages; the worker
-observes and rebuilds. Rules are therefore always derivable from storage, so a
-full rebuild is always safe and cannot drift.
+**Rule and settings ownership:** the service worker is the only writer of
+dynamic rules and of the synced settings. Pages read storage directly and
+change it only by sending a message (`ADD_SITES`, `UPDATE_SITE`, `REMOVE_SITE`,
+`UPDATE_DEFAULTS`, `IMPORT_SETTINGS`), which the worker applies one at a time.
+Rules are therefore always derivable from storage, so a full rebuild is always
+safe and cannot drift. Settings live one site per sync item; the 1.x `config`
+item is read and never written, so rolling back to 1.x is safe.
 
 ---
 
@@ -157,6 +169,7 @@ steer-clear/
 │   │   ├── rule_sync.js        # Owns dynamic rules + bypass lifecycle
 │   │   ├── bypass_badges.js    # Bypass badge countdown, return to the pause
 │   │   ├── message_handlers.js # The worker's message table
+│   │   ├── degraded.js         # Pure: continue when settings can't be read
 │   │   ├── rules.js            # Pure config -> rules (unit-tested)
 │   │   ├── pause.js            # Pure pause-screen decisions (variant, style, reason, allowance)
 │   │   ├── schedule.js         # Pure schedules: active-at, validation, next boundary
@@ -167,13 +180,14 @@ steer-clear/
 │   │   ├── sync_layout.js      # Config across sync items, quota check
 │   │   ├── config_mutations.js # Pure planners for every config change
 │   │   ├── config.js           # Storage read, serialized writes
+│   │   ├── settings_io.js      # Pure export file and import parsing
 │   │   ├── install.js          # First install opens onboarding; never writes
 │   │   ├── presets.js          # Onboarding's site chips
 │   │   ├── rating.js           # Pure rating-prompt rules
 │   │   ├── snooze.js           # Pure snooze timing
 │   │   └── lifecycle*.js       # One-time flags (worker-written)
 │   ├── blocked/                # The pause page and its style views
-│   ├── options/                # Settings UI (form, site list, reasons and schedule editors)
+│   ├── options/                # Settings UI (form, site list, editors, export/import)
 │   ├── stats/                  # Statistics page
 │   ├── popup/                  # Toolbar popup: today, quick-add, snooze
 │   ├── onboarding/             # Two-step welcome page opened on install
@@ -183,12 +197,16 @@ steer-clear/
 │   ├── build.mjs               # Builds dist/ and both store zips
 │   ├── manifest_targets.mjs    # Pure per-browser manifest derivation
 │   ├── mobile_audit.mjs        # 360px / 44px-target audit in Chromium
+│   ├── upgrade_check.mjs       # 1.0.0 -> this tree -> 1.0.0 in one Chromium profile
+│   ├── import_export_check.mjs # Export and import through the settings page
 │   └── screenshots.mjs         # Regenerates store/screenshots/ (1280×800 + promo tile)
-├── tests/unit/
-├── store/                      # Web Store submission materials
-│   ├── LISTING.md
+├── tests/unit/                 # Unit tests; fixtures/ holds the schema fixtures
+├── store/                      # Store submission materials
+│   ├── LISTING.md              # Chrome Web Store (and the copy rules)
+│   ├── LISTING_EDGE.md         # Edge Add-ons
+│   ├── LISTING_FIREFOX.md      # addons.mozilla.org
 │   └── PRIVACY_POLICY.md
-└── knowledge/plans/
+└── knowledge/                  # plans/, setup/, usage_guides/, market_research/
 ```
 
 ---
@@ -197,14 +215,19 @@ steer-clear/
 
 Version 1.0.0 passed review and is
 [live on the Chrome Web Store](https://chromewebstore.google.com/detail/steer-clear/fooahacimdgjcfoofpijkpmgiaghinbn).
-The public launch has not been announced yet. Release status is tracked in
-`knowledge/setup/SUBMISSION_STEPS.md`; listing copy, permission justifications,
-and data-use disclosures live in `store/LISTING.md`.
+Version 2.0.0 (this tree) is ready for the Chrome Web Store, Edge Add-ons and
+addons.mozilla.org but not uploaded. The public launch has not been announced
+yet. Release status is tracked in `knowledge/setup/SUBMISSION_STEPS.md`;
+listing copy, permission justifications and data-use disclosures live in
+`store/LISTING*.md`; the Featured nomination, promo video and category test
+are tracked in `knowledge/setup/STORE_PRESENCE.md`.
 
 Outstanding: **icons** are usable but should be redrawn for 16px legibility.
 
-To ship an update: bump `version` in `src/manifest.json`, rebuild with
-`node tools/build.mjs`, and upload each store's zip. Expect closer-than-average review:
+To ship an update, follow "Release to the three stores" in
+`knowledge/usage_guides/DEVOPS_GUIDE.md`: bump `version` (the manifest test
+and the changelog must agree), rebuild with `node tools/build.mjs`, and upload
+each store's zip. Expect closer-than-average review:
 `declarativeNetRequest` with redirect is the permission set traffic-hijacking
 extensions use.
 

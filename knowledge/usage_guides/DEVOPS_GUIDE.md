@@ -6,7 +6,9 @@
 - [Build the store packages](#build-the-store-packages)
 - [Lint the Firefox package](#lint-the-firefox-package)
 - [Run the phone-width audit](#run-the-phone-width-audit)
+- [Run the upgrade and import checks](#run-the-upgrade-and-import-checks)
 - [Continuous integration](#continuous-integration)
+- [Release to the three stores](#release-to-the-three-stores)
 - [Pinned tool versions](#pinned-tool-versions)
 - [Load the extension for manual checks](#load-the-extension-for-manual-checks)
 - [Known lint and load warnings](#known-lint-and-load-warnings)
@@ -25,7 +27,13 @@
   every tap target at least 44×44 CSS px.
 - CI (`.github/workflows/ci.yml`) runs all of the above plus the unit tests on
   every push and pull request. It holds no secrets and publishes nothing.
-- Store submission steps live in `knowledge/setup/SUBMISSION_STEPS.md`.
+- Before a release, `node tools/upgrade_check.mjs` and
+  `node tools/import_export_check.mjs` must pass (they need git tags and a
+  browser, so CI does not run them).
+- Releasing: bump `version`, update the manifest test and the changelog
+  together, build, then upload the same version to all three stores; see
+  [Release to the three stores](#release-to-the-three-stores). Store
+  submission details live in `knowledge/setup/SUBMISSION_STEPS.md`.
 
 ---
 
@@ -96,6 +104,30 @@ exactly that size.
 
 ---
 
+## Run the upgrade and import checks
+
+```bash
+git fetch --tags        # upgrade_check needs the v1.0.0 tag
+node tools/upgrade_check.mjs
+node tools/import_export_check.mjs
+```
+
+`upgrade_check.mjs` loads one unpacked-extension directory in Chromium and
+swaps its contents between the `v1.0.0` tag and `src/`, reloading the
+extension in place from `chrome://extensions` (developer mode on), so the
+extension id and storage carry over as in a store update. It checks the
+1.0.0 `config` item stays byte-identical through the upgrade and through edits,
+that a corrupt `site:*` item hides nothing else, that rolling back to 1.0.0
+works, and that 40 legacy sites upgrade and accept a 41st.
+`--capture <file>` also saves the `config` 1.0.0 wrote; that is how
+`tests/unit/fixtures/config_v2_real.json` was made.
+
+`import_export_check.mjs` clicks "Export settings" on the real settings page,
+imports an edited copy with an invalid `bypassMinutes` (refused, storage
+unchanged), then imports a valid copy and confirms.
+
+---
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every push and pull request, on Node 24:
@@ -107,6 +139,35 @@ exactly that size.
 5. uploads both zips as the `steer-clear-packages` workflow artifact
 
 The workflow has read-only repository permissions and uses no secrets.
+
+---
+
+## Release to the three stores
+
+The same version ships to all three stores.
+
+1. Set `version` in `src/manifest.json` and `RELEASE_VERSION` in
+   `tests/unit/manifest.test.js`; promote `[Unreleased]` in `CHANGELOG.md` to
+   `## [X.Y.Z] - <date>` with its compare link. The manifest test fails until
+   all three agree.
+2. If a permission, storage key or `tabs` call changed, update
+   `store/PRIVACY_POLICY.md` and the three `store/LISTING*.md` files in the same
+   change; `tests/unit/privacy_disclosures.test.js` fails until they name it.
+3. Run the unit tests, the build, `web-ext lint`, the phone-width audit, and
+   the two browser checks above.
+4. Upload:
+
+| Store | Package | Listing copy | Steps |
+|---|---|---|---|
+| Chrome Web Store | `dist/steer-clear-chrome-<version>.zip` | `store/LISTING.md` | `knowledge/setup/SUBMISSION_STEPS.md` |
+| Edge Add-ons (Partner Center) | the same Chrome zip | `store/LISTING_EDGE.md` | `knowledge/setup/SUBMISSION_STEPS.md` |
+| addons.mozilla.org | `dist/steer-clear-firefox-<version>.zip` | `store/LISTING_FIREFOX.md` | `knowledge/setup/SUBMISSION_STEPS.md` |
+
+5. Re-check the comparison sentence against the named competitors' current
+   manifests and record the date in `knowledge/setup/STORE_PRESENCE.md`.
+6. Tag the release commit `vX.Y.Z` once the first store accepts it.
+   `tools/upgrade_check.mjs` upgrades from `v1.0.0` (its `RELEASED_TAG`);
+   point it at the newest published tag when the next storage change lands.
 
 ---
 

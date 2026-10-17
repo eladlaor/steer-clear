@@ -155,14 +155,15 @@ export const RATING_PROMPT_MAX_SHOWS = 3;
  * Each store's reviews page, by BrowserId. A null entry hides the rating
  * prompt in that browser (logged at info level).
  *
- * - edge: filled in from the Edge Add-ons listing once 1.0.0 is live there.
- * - firefox: filled in once the AMO slug is confirmed free and set in the
- *   submission form (plan open question 2).
+ * - edge: filled in from the Edge Add-ons listing once 1.0.0 is live there
+ *   (the listing URL carries a store-assigned id that does not exist yet).
+ * - firefox: the AMO slug `steer-clear`, confirmed free on 2026-10-17 and set
+ *   in the submission form (store/LISTING_FIREFOX.md).
  */
 export const STORE_REVIEW_URL = Object.freeze({
   chrome: 'https://chromewebstore.google.com/detail/steer-clear/fooahacimdgjcfoofpijkpmgiaghinbn/reviews',
   edge: null,
-  firefox: null,
+  firefox: 'https://addons.mozilla.org/firefox/addon/steer-clear/reviews/',
 });
 
 /** chrome.alarms name for the periodic stats-retention sweep. */
