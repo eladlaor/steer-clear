@@ -14,7 +14,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { quickAdd, quickAddHost } from '../../src/popup/quick_add.js';
+import { quickAdd, quickAddHost, quickAddOffer } from '../../src/popup/quick_add.js';
 import { turnOn } from '../../src/onboarding/turn_on.js';
 import { addSitesThenRequestAccess } from '../../src/shared/site_access.js';
 import { originPatternsFor } from '../../src/background/permissions.js';
@@ -80,6 +80,42 @@ test('quickAddHost lists the site without www and skips pages that cannot be lis
     assert.equal(quickAddHost(url), null, url);
   }
   assert.equal(quickAddHost(undefined), null, 'a tab without a readable URL');
+});
+
+/** A config listing the given sites, as readConfig returns it (only the fields matching reads). */
+const listing = (...sites) => ({
+  sites: sites.map((site, index) => ({
+    id: `s${index}`,
+    displayName: null,
+    includeSubdomains: true,
+    enabled: true,
+    ...site,
+  })),
+});
+
+test('quickAddOffer offers an unlisted web page and nothing for other pages', () => {
+  assert.deepEqual(quickAddOffer('https://www.reddit.com/r/all', listing()), { host: 'reddit.com', listed: null });
+  assert.equal(quickAddOffer('chrome://extensions', listing()), null);
+  assert.equal(quickAddOffer(undefined, listing()), null);
+});
+
+test('quickAddOffer reports a site that already matches the tab instead of offering it', () => {
+  const offer = quickAddOffer('https://old.reddit.com/', listing({ pattern: 'reddit.com' }));
+  assert.equal(offer.host, 'old.reddit.com');
+  assert.equal(offer.listed.pattern, 'reddit.com');
+});
+
+test('quickAddOffer reports a turned-off site rather than offering an add the worker would skip', () => {
+  // ADD_SITES skips a host that is already listed, so offering it would
+  // claim "added" while the site stays off.
+  const offer = quickAddOffer('https://www.reddit.com/', listing({ pattern: 'reddit.com', enabled: false }));
+  assert.equal(offer.listed?.pattern, 'reddit.com');
+  assert.equal(offer.listed.enabled, false);
+});
+
+test('quickAddOffer reports a listed host that does not cover the tab\'s www subdomain', () => {
+  const offer = quickAddOffer('https://www.reddit.com/', listing({ pattern: 'reddit.com', includeSubdomains: false }));
+  assert.equal(offer.listed?.pattern, 'reddit.com');
 });
 
 /* Onboarding "Turn on" ----------------------------------------------------------------- */

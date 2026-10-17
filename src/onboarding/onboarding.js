@@ -252,6 +252,9 @@ async function checkForSyncedSites() {
   if (turnedOn) return;
   try {
     const config = await readConfig();
+    // "Turn on" may have been pressed while this read was in flight; the
+    // sites it finds are then the user's own, not synced ones.
+    if (turnedOn) return;
     if (config.sites.length > 0) showSynced();
   } catch (error) {
     console.error('[steer-clear] onboarding could not read settings', { error: error.message });

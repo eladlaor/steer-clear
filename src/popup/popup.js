@@ -14,12 +14,11 @@ import {
   STEERED_DAYS_WINDOW,
 } from '../constants.js';
 import { readConfig } from '../background/config.js';
-import { findMatchingSite, siteLabel } from '../background/rules.js';
 import { steeredClearDays, todaySummary } from '../background/progress.js';
 import { sendMessage } from '../shared/messaging.js';
 import { mountRatingBanner } from '../shared/rating_banner.js';
-import { quickAdd, quickAddHost } from './quick_add.js';
-import { minutesLeft, snoozeOptionLabel, steeredDaysText, todayText } from './popup_text.js';
+import { quickAdd, quickAddOffer } from './quick_add.js';
+import { listedText, minutesLeft, snoozeOptionLabel, steeredDaysText, todayText } from './popup_text.js';
 
 /** How often the snooze's time left is refreshed while the popup is open, in ms. */
 const SNOOZE_REFRESH_MS = 15000;
@@ -138,16 +137,16 @@ function refreshSnooze() {
  * @param {object|null} config Null when the settings cannot be read.
  */
 function renderQuickAdd(tab, config) {
-  const host = quickAddHost(tab?.url);
-  if (host === null || config === null) return;
-  const listed = findMatchingSite(config, tab.url);
-  if (listed) {
-    el.listed.textContent = `${siteLabel(listed)} is on your list.`;
+  if (config === null) return;
+  const offer = quickAddOffer(tab?.url, config);
+  if (offer === null) return;
+  if (offer.listed) {
+    el.listed.textContent = listedText(offer.listed);
     el.listed.hidden = false;
     return;
   }
-  quickAddTarget = host;
-  el.quickAddHost.textContent = host;
+  quickAddTarget = offer.host;
+  el.quickAddHost.textContent = offer.host;
   el.quickAdd.hidden = false;
 }
 

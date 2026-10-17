@@ -82,9 +82,12 @@ export async function mountRatingBanner(container, stats) {
     if (!shouldShowRatingPrompt(await readLifecycle(), steers, storeUrl)) return false;
 
     const banner = buildBanner(steers, storeUrl);
+    // Hidden rather than removed: a link taken out of the document during
+    // its own click is not followed in every browser, and "Rate" must still
+    // open the store.
     const close = (event) => {
       record(event);
-      container.replaceChildren();
+      container.hidden = true;
     };
     // The link opens the store in a new tab by itself; the answer is sent
     // first, since a popup may close as the tab opens.

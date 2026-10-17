@@ -3,6 +3,7 @@
  */
 
 import { MINUTES_PER_HOUR, MS_PER_MINUTE } from '../constants.js';
+import { siteLabel } from '../background/rules.js';
 
 /**
  * @param {number} minutes A snooze length.
@@ -49,4 +50,14 @@ export function todayText(today) {
  */
 export function steeredDaysText({ days, of }) {
   return `You steered clear on ${days} of the last ${of} days.`;
+}
+
+/**
+ * @param {{pattern: string, displayName: string|null, enabled: boolean}} site
+ *   The listed site that covers the active tab.
+ * @returns {string}
+ */
+export function listedText(site) {
+  const label = siteLabel(site);
+  return site.enabled ? `${label} is on your list.` : `${label} is on your list but turned off. Turn it on in Settings.`;
 }

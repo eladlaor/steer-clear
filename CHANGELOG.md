@@ -50,9 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   "Turn on" adds them all and asks for access to those sites only. If your
   sites already synced from another device, it says so and skips setup.
 - A toolbar popup: today's pauses and the days you steered clear this week,
-  "Steer clear of <this site>" for the tab you are on, snooze all reminders
-  for 15, 30 or 60 minutes (with "Resume now"), and links to statistics and
-  settings.
+  "Steer clear of <this site>" for the tab you are on (or a note that it is
+  already listed, and whether it is turned off), snooze all reminders for 15,
+  30 or 60 minutes (with "Resume now"), and links to statistics and settings.
 - After you have chosen the better destination 10 times, the popup and the
   statistics page ask once whether you would rate Steer Clear, with a link
   to this browser's store page; it never returns after you answer or after

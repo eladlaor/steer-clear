@@ -6,7 +6,7 @@
  */
 
 import { QUICK_ADD_STRIPPED_PREFIX, SOURCE_URL_PROTOCOLS } from '../constants.js';
-import { normalizePattern } from '../background/rules.js';
+import { findMatchingSite, normalizePattern } from '../background/rules.js';
 import { addSitesThenRequestAccess } from '../shared/site_access.js';
 
 /**
@@ -32,6 +32,28 @@ export function quickAddHost(url) {
   if (host.startsWith(QUICK_ADD_STRIPPED_PREFIX) && bare.includes('.')) host = bare;
   if (!host.includes('.')) return null;
   return normalizePattern(host);
+}
+
+/**
+ * What the popup offers for a tab: the host quick-add would list, and the
+ * listed site that already covers it, if any.
+ *
+ * A turned-off site, or one listed under the same host without its
+ * subdomains, does not match the tab, but ADD_SITES would skip it as a
+ * duplicate; offering it would report "added" while nothing changes. So it
+ * counts as listed.
+ *
+ * @param {string|undefined} url The tab's URL.
+ * @param {{sites: object[]}} config A readable config.
+ * @returns {{host: string, listed: object|null}|null} Null for a page that
+ *   cannot be listed.
+ */
+export function quickAddOffer(url, config) {
+  const host = quickAddHost(url);
+  if (host === null) return null;
+  const listed =
+    findMatchingSite(config, url) ?? config.sites.find((site) => normalizePattern(site.pattern) === host) ?? null;
+  return { host, listed };
 }
 
 /**

@@ -146,8 +146,8 @@ The form will not submit without a privacy policy URL.
     histories, so reruns give the same charts.
   - **Exactly 1280×800**: set the viewport and `deviceScaleFactor: 1`. Check
     the result with `file *.png`.
-  - **Name files `N-what.png`** (`1-reminder.png`, `2-settings.png`,
-    `3-patterns.png`). The number is the upload order. Put the core experience
+  - **Name files `N-what.png`** (`1-reminder.png`, `2-breathing.png`,
+    `3-settings.png`, `4-patterns.png`, `5-popup.png`). The number is the upload order. Put the core experience
     first, then the settings (shows the model is understandable), then
     anything that makes the privacy story concrete.
   - **Frame each page on purpose**: zoom per page (CSS `zoom`) so the telling

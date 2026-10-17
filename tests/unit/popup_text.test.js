@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { minutesLeft, snoozeOptionLabel, steeredDaysText, todayText } from '../../src/popup/popup_text.js';
+import { listedText, minutesLeft, snoozeOptionLabel, steeredDaysText, todayText } from '../../src/popup/popup_text.js';
 import { SNOOZE_OPTIONS_MINUTES } from '../../src/constants.js';
 
 const MINUTE = 60000;
@@ -37,4 +37,12 @@ test('today reads naturally for none, one and several pauses', () => {
 
 test('steered-clear days', () => {
   assert.equal(steeredDaysText({ days: 5, of: 7 }), 'You steered clear on 5 of the last 7 days.');
+});
+
+test('a listed site says whether it is on or turned off', () => {
+  assert.equal(listedText({ pattern: 'reddit.com', displayName: null, enabled: true }), 'reddit.com is on your list.');
+  assert.equal(
+    listedText({ pattern: 'reddit.com', displayName: 'Reddit', enabled: false }),
+    'Reddit is on your list but turned off. Turn it on in Settings.'
+  );
 });

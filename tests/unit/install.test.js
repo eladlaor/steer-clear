@@ -17,7 +17,7 @@ import { readConfig } from '../../src/background/config.js';
 import { defaultSettings } from '../../src/background/settings_schema.js';
 import { newSite } from '../../src/background/config_mutations.js';
 import { siteKey } from '../../src/background/sync_layout.js';
-import { ONBOARDING_PATH, STATS_PRUNE_ALARM } from '../../src/constants.js';
+import { ONBOARDING_PATH, STATS_PRUNE_ALARM, StorageKey } from '../../src/constants.js';
 import { createFakeChrome } from './helpers/fake_chrome.js';
 
 const NOW = 1_700_000_000_000;
@@ -48,11 +48,12 @@ function v2Config() {
   };
 }
 
-/** A 2.0 device's sync: the legacy item, the marker and two site items. */
+/** A 2.0 device's sync: the legacy item, the marker, its own settings and two site items. */
 function v3Items() {
   return {
     config: v2Config(),
     schema: 3,
+    [StorageKey.SETTINGS]: { defaults: { ...defaultSettings(), reasons: ['synced default'] } },
     [siteKey('s1')]: newSite('reddit.com', { id: 's1', order: 0, now: NOW }),
     [siteKey('s2')]: newSite('youtube.com', { id: 's2', order: 1, now: NOW, reason: 'later' }),
   };
@@ -104,6 +105,14 @@ test('with empty storage, readConfig after install returns the defaults', async 
   assert.deepEqual(config.sites, []);
 });
 
+test('a synced 2.0 layout reads its own settings and sites after install', async () => {
+  install(v3Items());
+  await handleInstalled({ reason: 'install' });
+  const config = await readConfig();
+  assert.deepEqual(config.sites.map((site) => site.pattern), ['reddit.com', 'youtube.com']);
+  assert.deepEqual(config.defaults.reasons, ['synced default']);
+});
+
 test('a synced 1.x config still reads after install', async () => {
   install({ config: v2Config() });
   await handleInstalled({ reason: 'install' });
@@ -125,6 +134,7 @@ test('an update opens no tab and writes nothing', async () => {
   await handleInstalled({ reason: 'update', previousVersion: '1.0.0' });
   assert.deepEqual(fake.calls.tabCreates, []);
   assert.deepEqual(fake.calls.syncSets, []);
+  assert.deepEqual(fake.calls.syncRemoves, []);
   assert.deepEqual(fake.chrome.storage.sync.store, before);
 });
 
